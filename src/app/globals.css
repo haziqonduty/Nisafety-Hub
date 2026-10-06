@@ -1,26 +1,203 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --canvas: #f7f8f6;
+  --surface: #ffffff;
+  --surface-soft: #fbfcfb;
+  --ink: #102a33;
+  --ink-muted: #647679;
+  /* 5.19:1 on --surface / 4.87:1 on --canvas — clears WCAG AA (4.5:1) for
+     normal text. The old #8a9a98 only hit ~2.9:1 and was in real use as
+     actual label/body text (section headers, table headers, step labels),
+     not just decorative chrome, so it was a genuine failure, not a
+     theoretical one. See MEMORY.md's accessibility audit entry. */
+  --ink-faint: #5c716f;
+  --line: #dce7e3;
+  --brand: #102a33;
+  --brand-hover: #173946;
+  --accent: #0f766e;
+  --accent-hover: #075e57;
+  --accent-soft: #dff4f0;
+  /* 5.31:1 on --amber-soft — the old #b86a00 only hit 3.69:1, which fails
+     AA for the small (10-12px) badge/notice text it's actually used at. */
+  --amber: #955400;
+  --amber-soft: #fff1d8;
+  --danger: #9b3325;
+  --danger-soft: #fff5f3;
+  --badge-neutral-bg: #eaf0f2;
+  --badge-neutral-text: #31515b;
+
+  /* Content sitting on the permanently-dark "brand" panels (hero CTA, header
+     logo tile) — these panels don't flip with the site theme, so text/icons
+     on them stay constant rather than swapping per theme. */
+  --on-brand: #dff4f0;
+  --on-brand-muted: #c9dad7;
+  --on-brand-accent: #80dfcc;
+  --on-brand-text: #0e4c48;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #0b1416;
+    --surface: #101f24;
+    --surface-soft: #0d1a1e;
+    --ink: #eef5f3;
+    --ink-muted: #93a6a5;
+    /* 5.57:1 on --surface / 6.15:1 on --canvas — see the light-mode comment
+       above for why this token was raised. */
+    --ink-faint: #7c9a97;
+    --line: #1e3339;
+    --brand: #16323b;
+    --brand-hover: #1e4049;
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-soft: #123832;
+    --amber: #f2b25c;
+    --amber-soft: #3a2a10;
+    --danger: #f2a08e;
+    --danger-soft: #3a1c17;
+    --badge-neutral-bg: #1c2e32;
+    --badge-neutral-text: #c3d2d1;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #0b1416;
+  --surface: #101f24;
+  --surface-soft: #0d1a1e;
+  --ink: #eef5f3;
+  --ink-muted: #93a6a5;
+  --ink-faint: #7c9a97;
+  --line: #1e3339;
+  --brand: #16323b;
+  --brand-hover: #1e4049;
+  --accent: #2dd4bf;
+  --accent-hover: #5eead4;
+  --accent-soft: #123832;
+  --amber: #f2b25c;
+  --amber-soft: #3a2a10;
+  --danger: #f2a08e;
+  --danger-soft: #3a1c17;
+  --badge-neutral-bg: #1c2e32;
+  --badge-neutral-text: #c3d2d1;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-badge-neutral-bg: var(--badge-neutral-bg);
+  --color-badge-neutral-text: var(--badge-neutral-text);
+  --color-on-brand: var(--on-brand);
+  --color-on-brand-muted: var(--on-brand-muted);
+  --color-on-brand-accent: var(--on-brand-accent);
+  --color-on-brand-text: var(--on-brand-text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* Cursor-reactive glow for card hover — position set via --spot-x/--spot-y
+   inline styles from pointermove. Children get a stacking context so the
+   glow (an absolutely-positioned ::before) paints behind their content. */
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 65%);
+}
+
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+.spotlight > * {
+  position: relative;
+  z-index: 1;
 }
