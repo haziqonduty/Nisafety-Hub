@@ -1,7 +1,11 @@
 import { DOCUMENT_CATEGORIES } from "@/lib/format";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// Vercel's hard per-request body limit is 4.5MB regardless of plan/config
+// (confirmed directly: a 6MB upload returns 413 FUNCTION_PAYLOAD_TOO_LARGE
+// before this code even runs). 4MB leaves headroom for the other form
+// fields and multipart overhead within that ceiling.
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const ALLOWED_TYPES = new Map([
   ["pdf", "application/pdf"],
   ["doc", "application/msword"],

@@ -6,7 +6,17 @@ import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link, useRouter } from "@/i18n/routing";
+import { compressPdf } from "@/lib/compress-pdf";
 import { CATEGORY_GROUPS } from "@/lib/format";
+
+// Matches the server's own MAX_FILE_SIZE in src/app/api/submissions/route.ts —
+// both driven by Vercel's hard 4.5MB request-body limit, confirmed directly
+// (a 6MB upload returns 413 FUNCTION_PAYLOAD_TOO_LARGE before our code runs).
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
+
+function formatMegabytes(bytes: number) {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -26,6 +36,8 @@ const KNOWN_ERROR_CODES = [
   "UPLOAD_ERROR",
   "DOCUMENT_SAVE_ERROR",
   "RATE_LIMITED",
+  "FILE_TOO_LARGE_AFTER_COMPRESSION",
+  "FILE_TYPE_CANNOT_COMPRESS",
 ] as const;
 type ErrorCode = (typeof KNOWN_ERROR_CODES)[number];
 
@@ -55,6 +67,8 @@ export default function SubmitPage() {
   const [honeypot, setHoneypot] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionNotice, setCompressionNotice] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
 
@@ -65,9 +79,37 @@ export default function SubmitPage() {
     }
   }
 
-  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+  async function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
     setError("");
-    setSelectedFile(event.target.files?.[0] ?? null);
+    setCompressionNotice("");
+
+    if (!file || file.size <= MAX_FILE_SIZE) {
+      setSelectedFile(file);
+      return;
+    }
+
+    if (file.type !== "application/pdf") {
+      setSelectedFile(null);
+      event.target.value = "";
+      setError(tErrors("FILE_TYPE_CANNOT_COMPRESS"));
+      return;
+    }
+
+    setIsCompressing(true);
+    setSelectedFile(null);
+    try {
+      const result = await compressPdf(file, MAX_FILE_SIZE);
+      if (!result.ok) {
+        event.target.value = "";
+        setError(tErrors("FILE_TOO_LARGE_AFTER_COMPRESSION"));
+        return;
+      }
+      setSelectedFile(result.file);
+      setCompressionNotice(t("compressedNotice", { originalSize: formatMegabytes(result.originalSize), newSize: formatMegabytes(result.compressedSize) }));
+    } finally {
+      setIsCompressing(false);
+    }
   }
 
   function updateField(field: keyof SubmissionValues, value: string) {
@@ -161,12 +203,18 @@ export default function SubmitPage() {
             <div className="flex items-start justify-between gap-5"><div><h2 className="text-xl font-semibold tracking-[-0.04em]">{attachDocument ? t("step2Heading") : t("step2SkippedHeading")}</h2><p className="mt-1 text-sm text-ink-muted">{attachDocument ? t("step2Subheading") : t("step2SkippedText")}</p></div><span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold text-accent">{t("step2Badge")}</span></div>
             {attachDocument && <>
               <label className="mt-7 block text-sm font-semibold">{t("documentCategory")}<select required name="category" value={values.category} onChange={(event) => updateField("category", event.target.value)} className={fieldClass}><option value="" disabled>{t("selectCategory")}</option>{CATEGORY_GROUPS.map((group) => <optgroup key={group.group} label={tGroups(group.group)}>{group.categories.map((category) => <option key={category} value={category}>{tCategories(category)}</option>)}</optgroup>)}</select></label>
-              <label className="mt-5 block cursor-pointer rounded-2xl border border-dashed border-accent-soft bg-accent-soft/60 p-8 text-center transition-colors hover:bg-accent-soft"><input required type="file" accept=".pdf,.doc,.docx" onChange={chooseFile} className="sr-only" /><span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-surface text-accent shadow-sm"><Upload className="h-5 w-5" /></span><span className="mt-4 block text-sm font-semibold">{selectedFile?.name || t("chooseDocument")}</span><span className="mt-1 block text-xs text-ink-muted">{t("fileHint")}</span></label>
-              {selectedFile && <div className="mt-4 flex items-center gap-3 rounded-xl border border-line bg-surface-soft p-3 text-sm"><File className="h-5 w-5 text-accent" /><span className="min-w-0 flex-1 truncate font-medium">{selectedFile.name}</span><span className="font-mono text-[10px] text-ink-muted">{t("ready")}</span></div>}
+              <label className={`mt-5 block rounded-2xl border border-dashed border-accent-soft bg-accent-soft/60 p-8 text-center transition-colors ${isCompressing ? "pointer-events-none opacity-60" : "cursor-pointer hover:bg-accent-soft"}`}>
+                <input required disabled={isCompressing} type="file" accept=".pdf,.doc,.docx" onChange={chooseFile} className="sr-only" />
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-surface text-accent shadow-sm">{isCompressing ? <Upload className="h-5 w-5 animate-pulse" /> : <Upload className="h-5 w-5" />}</span>
+                <span className="mt-4 block text-sm font-semibold">{isCompressing ? t("compressing") : selectedFile?.name || t("chooseDocument")}</span>
+                <span className="mt-1 block text-xs text-ink-muted">{t("fileHint")}</span>
+              </label>
+              {selectedFile && !isCompressing && <div className="mt-4 flex items-center gap-3 rounded-xl border border-line bg-surface-soft p-3 text-sm"><File className="h-5 w-5 text-accent" /><span className="min-w-0 flex-1 truncate font-medium">{selectedFile.name}</span><span className="font-mono text-[10px] text-ink-muted">{t("ready")}</span></div>}
+              {compressionNotice && <p className="mt-2 text-xs text-ink-muted">{compressionNotice}</p>}
               <div className="mt-5 rounded-xl border border-amber-soft bg-amber-soft p-4 text-xs leading-5 text-amber"><strong>{t("beforeSubmitStrong")}</strong> {t("beforeSubmitText")}</div>
             </>}
             {error && <p className="mt-5 rounded-xl border border-danger-soft bg-danger-soft p-3 text-sm text-danger" role="alert">{error}</p>}
-            <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => setStep(1)} className="rounded-full px-4 py-3 text-sm font-semibold text-ink-muted transition-colors hover:text-accent">{t("back")}</button><button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(15,118,110,.18)] transition-all hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? t("submitting") : t("submitButton")} <Arrow className="h-4 w-4" /></button></div>
+            <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => setStep(1)} className="rounded-full px-4 py-3 text-sm font-semibold text-ink-muted transition-colors hover:text-accent">{t("back")}</button><button type="submit" disabled={isSubmitting || isCompressing} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(15,118,110,.18)] transition-all hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? t("submitting") : t("submitButton")} <Arrow className="h-4 w-4" /></button></div>
           </div>}
         </form>
       </div>
