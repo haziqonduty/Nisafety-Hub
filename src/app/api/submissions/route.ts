@@ -1,5 +1,7 @@
 import { DOCUMENT_CATEGORIES } from "@/lib/format";
-import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase/server";
+import { clientIpFrom } from "@/lib/request-ip";
+import { createSupabaseClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/supabase/rate-limit";
 
 // Vercel's hard per-request body limit is 4.5MB regardless of plan/config
 // (confirmed directly: a 6MB upload returns 413 FUNCTION_PAYLOAD_TOO_LARGE
@@ -19,12 +21,6 @@ function textValue(value: FormDataEntryValue | null, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
-function clientIpFrom(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) return forwardedFor.split(",")[0].trim();
-  return request.headers.get("x-real-ip") ?? "unknown";
-}
-
 export async function POST(request: Request) {
   const formData = await request.formData();
 
@@ -35,19 +31,16 @@ export async function POST(request: Request) {
   }
 
   const ipAddress = clientIpFrom(request);
-  const abuseTracker = createSupabaseServiceClient();
-  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString();
-  const { count } = await abuseTracker
-    .from("submission_attempts")
-    .select("id", { count: "exact", head: true })
-    .eq("ip_address", ipAddress)
-    .gte("created_at", windowStart);
+  const { limited } = await checkRateLimit(
+    "submission_attempts",
+    ipAddress,
+    RATE_LIMIT_WINDOW_MINUTES,
+    RATE_LIMIT_MAX_ATTEMPTS,
+  );
 
-  if ((count ?? 0) >= RATE_LIMIT_MAX_ATTEMPTS) {
+  if (limited) {
     return Response.json({ error: "RATE_LIMITED" }, { status: 429 });
   }
-
-  await abuseTracker.from("submission_attempts").insert({ ip_address: ipAddress });
 
   const clientName = textValue(formData.get("clientName"), 160);
   const companyName = textValue(formData.get("companyName"), 160);

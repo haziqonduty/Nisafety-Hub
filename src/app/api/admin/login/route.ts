@@ -1,6 +1,11 @@
 import { timingSafeEqual } from "crypto";
 import bcrypt from "bcryptjs";
 import { createAdminSession } from "@/lib/auth/session";
+import { clientIpFrom } from "@/lib/request-ip";
+import { checkRateLimit } from "@/lib/supabase/rate-limit";
+
+const RATE_LIMIT_WINDOW_MINUTES = 15;
+const RATE_LIMIT_MAX_ATTEMPTS = 5;
 
 function safeCompare(a: string, b: string) {
   const bufferA = Buffer.from(a);
@@ -10,6 +15,18 @@ function safeCompare(a: string, b: string) {
 }
 
 export async function POST(request: Request) {
+  const ipAddress = clientIpFrom(request);
+  const { limited } = await checkRateLimit(
+    "admin_login_attempts",
+    ipAddress,
+    RATE_LIMIT_WINDOW_MINUTES,
+    RATE_LIMIT_MAX_ATTEMPTS,
+  );
+
+  if (limited) {
+    return Response.json({ error: "Too many sign-in attempts. Try again in a few minutes." }, { status: 429 });
+  }
+
   const { username, password } = (await request.json().catch(() => ({}))) as { username?: string; password?: string };
   const expectedUsername = process.env.ADMIN_USERNAME;
   const expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH;

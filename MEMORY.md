@@ -322,6 +322,15 @@ A real audit-and-fix pass (not a fixed deliverable) across public pages and admi
 - **Scope note**: this fixes latency for *every* server-rendered page on the site (directory search, record pages, submit flow, admin panel), not just the language toggle — the toggle was just the most noticeable symptom since users expect it to feel instant.
 - Hobby plan allows exactly one function region (Pro allows up to 5) — `sin1` alone is the correct and only choice needed here, no multi-region config required.
 
+## Security hardening round 2: dependency patch + admin login rate limiting (2026-10-10)
+
+- Ran a deep system review at Kay's request (rated ~7.5/10, fixing issues one at a time, highest priority first).
+- **`sharp` (transitive dep of `next`, high-severity CVE-2026-96889, librsvg) patched** via `npm audit fix` — non-breaking, confirmed the build still passes. Remaining `npm audit` findings (`uuid`<11.1.1 via `exceljs`, `eslint-config-next`'s `braces`/`micromatch`/`fast-glob` chain) are the same previously-assessed, non-actionable-without-breaking-changes transitive issues, unchanged.
+- **Admin login had zero brute-force protection** — confirmed directly: `/api/admin/login` had no rate limiting at all, unlike `/api/submissions` which already had IP-based limiting. Fixed with the identical pattern: new `supabase/migrations/20261010_create_admin_login_attempts.sql` (same shape as `submission_attempts` — zero RLS grants for `anon`, service-role-only), 5 attempts per IP per 15 minutes, `429` with a clear message on the 6th.
+- **Refactored the duplicated rate-limit logic into shared helpers** while doing this (now used by two routes, so worth deduplicating): `src/lib/request-ip.ts` (`clientIpFrom`) and `src/lib/supabase/rate-limit.ts` (`checkRateLimit(table, ip, windowMinutes, maxAttempts)`). `src/app/api/submissions/route.ts` was refactored to use these too, behavior unchanged (verified via lint/build). `createSupabaseServiceClient()`'s doc comment in `server.ts` updated to list both narrow-exception tables.
+- **Same "fails open" behavior as the original design, deliberately**: until Kay applies the new migration in the Supabase SQL Editor, the rate-limit query against the not-yet-existing table returns no count (`count ?? 0` → 0), so login isn't blocked — matches how `submission_attempts` behaved before its own migration was applied. **Migration not yet applied as of this entry** — same manual step as every prior migration (no DDL-execution path from the app layer or project API keys).
+- Still outstanding from the same review, not yet started: orphaned-upload rollback on partial submission failure, basic security headers (CSP/`X-Frame-Options`) in `next.config.ts`, error monitoring, automated tests.
+
 ## Planned Screen Flow
 
 - `/` — public home and searchable directory (implemented, Supabase-backed).
