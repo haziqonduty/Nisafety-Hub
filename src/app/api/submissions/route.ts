@@ -1,6 +1,6 @@
 import { DOCUMENT_CATEGORIES } from "@/lib/format";
 import { clientIpFrom } from "@/lib/request-ip";
-import { createSupabaseClient } from "@/lib/supabase/server";
+import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
 
 // Vercel's hard per-request body limit is 4.5MB regardless of plan/config
@@ -19,6 +19,19 @@ const RATE_LIMIT_MAX_ATTEMPTS = 5;
 
 function textValue(value: FormDataEntryValue | null, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+// A document was intended but the submission couldn't be completed partway
+// through (upload failed, or the document row failed to save after a
+// successful upload). Rather than leave a misleading document-less client
+// row or an orphaned storage file behind, undo exactly what this request
+// itself just created so the caller gets a clean error and can retry.
+async function rollbackFailedSubmission(clientId: string, storagePath?: string) {
+  const serviceClient = createSupabaseServiceClient();
+  if (storagePath) {
+    await serviceClient.storage.from("safety-documents").remove([storagePath]);
+  }
+  await serviceClient.from("clients").delete().eq("id", clientId);
 }
 
 export async function POST(request: Request) {
@@ -105,6 +118,7 @@ export async function POST(request: Request) {
   });
 
   if (uploadError) {
+    await rollbackFailedSubmission(client.id);
     return Response.json({ error: "UPLOAD_ERROR" }, { status: 500 });
   }
 
@@ -118,6 +132,7 @@ export async function POST(request: Request) {
   });
 
   if (documentError) {
+    await rollbackFailedSubmission(client.id, storagePath);
     return Response.json({ error: "DOCUMENT_SAVE_ERROR" }, { status: 500 });
   }
 
