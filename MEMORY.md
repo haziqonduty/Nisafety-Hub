@@ -361,6 +361,12 @@ A real audit-and-fix pass (not a fixed deliverable) across public pages and admi
 - Fixed in `next.config.ts`: `script-src` now conditionally appends `'unsafe-eval'` only when `process.env.NODE_ENV === "development"`. Confirmed the already-running dev server picked up the change and now sends `'unsafe-eval'` in dev; confirmed a fresh production build's output has no trace of it, so production stays correctly locked down.
 - Note for next time: this app's architecture doesn't allow two simultaneous `next dev` instances for the same project directory at all (not just a port conflict — Next's own lock file blocks it outright), unlike `next start` which has no such restriction. Verification of config changes that need a running dev server has to go through the one dev server that's already up, not a second throwaway instance.
 
+## Bug fix: language-switcher rapid-click race (2026-10-10)
+
+- Kay reported: clicking the EN/BM toggle repeatedly in quick succession briefly showed a router error, then it self-cleared back to normal. Confirmed via direct testing that the server side is not the cause — fired 6 rapid concurrent requests to both `/` and `/ms` and every one returned a clean `200`. Root cause was purely client-side: `src/app/_components/language-switcher.tsx` called `router.replace()` directly with no guard, so each new click started a new navigation while the previous one was still in flight; the earlier navigation's aborted fetch is what briefly surfaced as a router error, clearing itself once the final click's navigation completed.
+- Fixed per Next's own documented pattern for this exact scenario (`useTransition` + `disabled={isPending}`, from `single-page-applications.md`'s Server Action guidance, same idea applies to router navigations): wrapped `router.replace()` in `startTransition` and disabled both locale buttons while a switch is pending, so a second click can't start a competing navigation at all.
+- Verified: lint/build clean, rendered HTML confirms the buttons aren't disabled by default (only during an actual in-flight transition), and this is a component change (not `next.config.ts`), so it picks up via normal Turbopack HMR — no dev server restart needed, unlike the CSP config fixes earlier today.
+
 ## Planned Screen Flow
 
 - `/` — public home and searchable directory (implemented, Supabase-backed).
