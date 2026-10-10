@@ -355,6 +355,12 @@ A real audit-and-fix pass (not a fixed deliverable) across public pages and admi
 - Offered as fix #4 from the 2026-10-10 review (Sentry — the standard pick for Next.js). Kay explicitly declined: "i think for this just leave it. i dont want this feature." **Deliberate scope decision, not a gap to revisit** — don't re-pitch this unless Kay brings it up again.
 - Remaining open item from the same review: automated tests (none exist in the project).
 
+## Bug fix: dev-mode broken by the new CSP (2026-10-10)
+
+- Kay hit "eval() is not supported in this environment... make sure unsafe-eval is included" immediately after the CSP shipped — the dev-mode gap Next's own CSP docs explicitly call out (React uses `eval()` in development for reconstructing server-side error stacks) was missed when writing the policy.
+- Fixed in `next.config.ts`: `script-src` now conditionally appends `'unsafe-eval'` only when `process.env.NODE_ENV === "development"`. Confirmed the already-running dev server picked up the change and now sends `'unsafe-eval'` in dev; confirmed a fresh production build's output has no trace of it, so production stays correctly locked down.
+- Note for next time: this app's architecture doesn't allow two simultaneous `next dev` instances for the same project directory at all (not just a port conflict — Next's own lock file blocks it outright), unlike `next start` which has no such restriction. Verification of config changes that need a running dev server has to go through the one dev server that's already up, not a second throwaway instance.
+
 ## Planned Screen Flow
 
 - `/` — public home and searchable directory (implemented, Supabase-backed).
