@@ -16,9 +16,16 @@ const SUPABASE_REALTIME_ORIGIN = "wss://lkxelyxwfsmpaflifppk.supabase.co";
 // script-src is required regardless — confirmed directly that Next's RSC
 // bootstrap payload and next-themes' flash-prevention script are both
 // legitimate inline <script> tags with no src attribute.
+const isDev = process.env.NODE_ENV === "development";
+
+// 'unsafe-eval' is dev-only, per Next's own CSP docs: React uses eval() in
+// development for debugging features like reconstructing server-side error
+// stacks in the browser. Confirmed directly — omitting it broke local dev
+// with "eval() is not supported in this environment". React never uses
+// eval() in production, so it's correctly left out there.
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${SUPABASE_ORIGIN}`,
   "font-src 'self'",
