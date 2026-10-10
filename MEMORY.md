@@ -350,6 +350,11 @@ A real audit-and-fix pass (not a fixed deliverable) across public pages and admi
 - **Disclosed, known limitation of this approach** (not unique to this implementation — it's the documented tradeoff of skipping nonces): `'unsafe-inline'` means CSP does not protect against an attacker who somehow gets inline script content injected into the page (e.g., via a future `dangerouslySetInnerHTML` misuse) — it only blocks newly-loaded remote scripts/connections to non-allowed origins. This is real defense-in-depth (blocks the common "inject a `<script src="evil.com">` tag" and "exfiltrate stolen data to an attacker's server via fetch" attack patterns) but not a complete XSS mitigation on its own.
 - **Not verifiable in this environment**: actual browser-side CSP enforcement (console violations) can't be observed without a real browser — the header values and resource-URL matches were verified at the HTTP level, which is the correct level to catch a *misconfigured* policy, but Kay should open the browser devtools console on the live site once after deploy to confirm zero CSP violation warnings during normal use (dark mode toggle, command palette, PDF preview, language switch, admin login).
 
+## Error monitoring: declined (2026-10-10)
+
+- Offered as fix #4 from the 2026-10-10 review (Sentry — the standard pick for Next.js). Kay explicitly declined: "i think for this just leave it. i dont want this feature." **Deliberate scope decision, not a gap to revisit** — don't re-pitch this unless Kay brings it up again.
+- Remaining open item from the same review: automated tests (none exist in the project).
+
 ## Planned Screen Flow
 
 - `/` — public home and searchable directory (implemented, Supabase-backed).
