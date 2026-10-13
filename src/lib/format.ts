@@ -85,3 +85,9 @@ export function formatDate(isoDate: string) {
     year: "numeric",
   });
 }
+
+const NEW_BADGE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function isRecentlySubmitted(isoDate: string) {
+  return Date.now() - new Date(isoDate).getTime() < NEW_BADGE_WINDOW_MS;
+}

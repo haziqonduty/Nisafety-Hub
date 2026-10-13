@@ -48,7 +48,8 @@
     "searchHint": "Cari mengikut syarikat, kategori, atau dokumen.",
     "newRecordPublished": "Rekod baharu baru sahaja diterbitkan.",
     "recordRemoved": "Satu rekod baru sahaja dialih keluar.",
-    "clientOnlyBadge": "Butiran klien sahaja"
+    "clientOnlyBadge": "Butiran klien sahaja",
+    "newBadge": "Baharu"
   },
   "categoryFilter": {
     "filterPlaceholder": "Tapis kategori…",

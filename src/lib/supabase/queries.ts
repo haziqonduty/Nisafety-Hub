@@ -23,6 +23,7 @@ export type DirectoryDocument = {
   publicUrl: string | null;
   thumbnailUrl: string | null;
   date: string;
+  createdAt: string;
   tone: ReturnType<typeof toneForCategory> | null;
 };
 
@@ -63,6 +64,7 @@ function toDirectoryDocument(supabase: SupabaseClient, row: DocumentRow): Direct
     publicUrl: publicUrlFor(supabase, row.storage_path),
     thumbnailUrl: row.thumbnail_path ? publicUrlFor(supabase, row.thumbnail_path) : null,
     date: formatDate(row.created_at),
+    createdAt: row.created_at,
     tone: toneForCategory(row.category),
   };
 }
@@ -93,6 +95,7 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
     publicUrl: null,
     thumbnailUrl: null,
     date: formatDate(row.created_at),
+    createdAt: row.created_at,
     tone: null,
   };
 }

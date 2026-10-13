@@ -48,7 +48,8 @@
     "searchHint": "Search by company, category, or document.",
     "newRecordPublished": "A new record was just published.",
     "recordRemoved": "A record was just removed.",
-    "clientOnlyBadge": "Client details only"
+    "clientOnlyBadge": "Client details only",
+    "newBadge": "New"
   },
   "categoryFilter": {
     "filterPlaceholder": "Filter categories…",

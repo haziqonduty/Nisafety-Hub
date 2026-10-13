@@ -6,7 +6,7 @@ import { Download, Search } from "@/app/_components/icons";
 import { CategoryFilter } from "@/app/_components/category-filter";
 import { SpotlightCard } from "@/app/_components/spotlight-card";
 import { Link } from "@/i18n/routing";
-import { toneBadgeClass } from "@/lib/format";
+import { isRecentlySubmitted, toneBadgeClass } from "@/lib/format";
 import type { DirectoryDocument } from "@/lib/supabase/queries";
 
 export function DirectoryExplorer({ documents }: { documents: DirectoryDocument[] }) {
@@ -82,11 +82,19 @@ export function DirectoryExplorer({ documents }: { documents: DirectoryDocument[
             className="group rounded-2xl border border-line bg-surface p-5 transition-all duration-300 hover:-translate-y-1 hover:border-accent-soft hover:shadow-[0_18px_38px_rgba(16,42,51,.09)]"
           >
             <div className="flex items-start justify-between gap-4">
-              <span
-                className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide ${document.hasDocument ? toneBadgeClass(document.tone!) : "bg-badge-neutral-bg text-badge-neutral-text"}`}
-              >
-                {document.hasDocument ? `${document.fileType} · ${document.fileSize}` : t("clientOnlyBadge")}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide ${document.hasDocument ? toneBadgeClass(document.tone!) : "bg-badge-neutral-bg text-badge-neutral-text"}`}
+                >
+                  {document.hasDocument ? `${document.fileType} · ${document.fileSize}` : t("clientOnlyBadge")}
+                </span>
+                {isRecentlySubmitted(document.createdAt) && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-amber">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber" />
+                    {t("newBadge")}
+                  </span>
+                )}
+              </div>
               {document.hasDocument && (
                 <a
                   href={document.publicUrl!}
