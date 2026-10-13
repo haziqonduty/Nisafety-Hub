@@ -147,7 +147,9 @@
     "company": "SYARIKAT",
     "telephone": "TELEFON",
     "email": "E-MEL",
-    "submittedBy": "DIHANTAR OLEH"
+    "submittedBy": "DIHANTAR OLEH",
+    "printedFrom": "Dicetak daripada Nisafety Hub · nisafetyhub.com",
+    "printRecordId": "ID Rekod: {id}"
   },
   "categories": {
     "groups": {

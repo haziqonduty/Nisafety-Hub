@@ -174,6 +174,31 @@ body {
   }
 }
 
+/* Printing should always use light-mode colors regardless of the active
+   theme — a dark canvas would otherwise print as a near-black page. Same
+   specificity as :root[data-theme="dark"], so this wins by source order
+   (and only applies while printing). */
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    --canvas: #f7f8f6;
+    --surface: #ffffff;
+    --surface-soft: #fbfcfb;
+    --ink: #102a33;
+    --ink-muted: #647679;
+    --ink-faint: #5c716f;
+    --line: #dce7e3;
+    --brand: #102a33;
+    --accent: #0f766e;
+    --accent-soft: #dff4f0;
+    --amber: #955400;
+    --amber-soft: #fff1d8;
+    --badge-neutral-bg: #eaf0f2;
+    --badge-neutral-text: #31515b;
+    color-scheme: light;
+  }
+}
+
 /* Cursor-reactive glow for card hover — position set via --spot-x/--spot-y
    inline styles from pointermove. Children get a stacking context so the
    glow (an absolutely-positioned ::before) paints behind their content. */

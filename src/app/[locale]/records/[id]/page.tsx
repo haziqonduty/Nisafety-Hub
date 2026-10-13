@@ -31,17 +31,17 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
-      <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-6 py-6 lg:px-8">
+      <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-6 py-6 lg:px-8 print:py-3">
         <BrandLogo />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 print:hidden">
           <LanguageSwitcher />
           <ThemeToggle />
           <Link href="/" className="text-sm font-semibold text-accent transition-colors hover:text-accent-hover">{t("backToDirectory")}</Link>
         </div>
       </header>
 
-      <section className="mx-auto max-w-4xl px-6 pb-24 pt-6 lg:px-8">
-        <div className="rounded-[1.75rem] border border-line bg-surface p-6 shadow-[0_20px_50px_rgba(16,42,51,.07)] sm:p-10">
+      <section className="mx-auto max-w-4xl px-6 pb-24 pt-6 lg:px-8 print:px-0 print:pb-6 print:pt-0">
+        <div className="rounded-[1.75rem] border border-line bg-surface p-6 shadow-[0_20px_50px_rgba(16,42,51,.07)] sm:p-10 print:rounded-none print:border-0 print:p-0 print:shadow-none">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <span className={`rounded-full px-3 py-1.5 font-mono text-xs font-bold tracking-wide ${record.hasDocument ? toneBadgeClass(record.tone!) : "bg-badge-neutral-bg text-badge-neutral-text"}`}>
               {record.hasDocument ? categoryLabel : t("noDocumentBadge")}
@@ -56,7 +56,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
 
           {record.hasDocument ? (
             <>
-              <div className="mt-7 flex flex-wrap items-center gap-3">
+              <div className="mt-7 flex flex-wrap items-center gap-3 print:hidden">
                 <a
                   href={record.publicUrl!}
                   download
@@ -76,7 +76,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
                 )}
               </div>
 
-              <div className="mt-7">
+              <div className="mt-7 print:hidden">
                 {record.fileType === "PDF" ? (
                   <iframe
                     src={record.publicUrl!}
@@ -92,8 +92,8 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
               </div>
             </>
           ) : (
-            <div className="mt-7 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line p-10 text-center">
-              <File className="h-8 w-8 text-ink-faint" />
+            <div className="mt-7 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line p-10 text-center print:border-0 print:p-0">
+              <File className="h-8 w-8 text-ink-faint print:hidden" />
               <p className="text-sm text-ink-muted">{t("noDocumentNotice")}</p>
             </div>
           )}
@@ -119,6 +119,11 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
               <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("submittedBy")}</p>
               <p className="mt-1 text-sm font-semibold">{record.submitterName}</p>
             </div>
+          </div>
+
+          <div className="mt-8 hidden border-t border-line pt-4 text-xs text-ink-muted print:block">
+            <p>{t("printedFrom")}</p>
+            <p className="mt-0.5 font-mono">{t("printRecordId", { id: record.id })}</p>
           </div>
         </div>
       </section>
