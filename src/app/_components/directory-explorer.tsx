@@ -98,11 +98,19 @@ export function DirectoryExplorer({ documents }: { documents: DirectoryDocument[
                 </a>
               )}
             </div>
-            <Link href={`/records/${document.id}`} className="block">
-              <ViewTransition name={`${document.hasDocument ? "document" : "client"}-${document.id}`}>
-                <h3 className="mt-7 text-lg font-semibold tracking-[-0.03em]">{document.title}</h3>
-              </ViewTransition>
-              <p className="mt-2 text-sm text-ink-muted">{document.company}</p>
+            <Link href={`/records/${document.id}`} className="mt-7 flex items-start gap-4">
+              {document.thumbnailUrl && (
+                // Already a small, pre-sized JPEG from a known origin — next/image's
+                // optimization pipeline isn't worth the images.remotePatterns config.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={document.thumbnailUrl} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+              )}
+              <div className="min-w-0 flex-1">
+                <ViewTransition name={`${document.hasDocument ? "document" : "client"}-${document.id}`}>
+                  <h3 className="text-lg font-semibold tracking-[-0.03em]">{document.title}</h3>
+                </ViewTransition>
+                <p className="mt-2 text-sm text-ink-muted">{document.company}</p>
+              </div>
             </Link>
             <div className="mt-7 flex items-center justify-between border-t border-line pt-4 text-xs text-ink-muted">
               <span>{categoryLabel(document.category)}</span>

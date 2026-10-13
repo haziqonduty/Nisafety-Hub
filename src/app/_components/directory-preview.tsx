@@ -26,8 +26,17 @@ export async function DirectoryPreview({ documents, totalCount }: { documents: D
                 href={`/records/${document.id}`}
                 className="flex items-center gap-3 rounded-xl border border-line p-3 transition-transform duration-300 hover:translate-x-1"
               >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-badge-neutral-bg text-badge-neutral-text">
-                  {document.hasDocument ? <span className="font-mono text-[10px] font-bold">{document.fileType}</span> : <Users className="h-4 w-4" />}
+                <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-badge-neutral-bg text-badge-neutral-text">
+                  {document.thumbnailUrl ? (
+                    // Already a small, pre-sized JPEG from a known origin — next/image's
+                    // optimization pipeline isn't worth the images.remotePatterns config.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={document.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  ) : document.hasDocument ? (
+                    <span className="font-mono text-[10px] font-bold">{document.fileType}</span>
+                  ) : (
+                    <Users className="h-4 w-4" />
+                  )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{document.title}</p>

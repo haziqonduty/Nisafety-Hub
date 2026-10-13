@@ -7,6 +7,7 @@ import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link, useRouter } from "@/i18n/routing";
 import { compressPdf } from "@/lib/compress-pdf";
+import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
 import { CATEGORY_GROUPS } from "@/lib/format";
 
 // Matches the server's own MAX_FILE_SIZE in src/app/api/submissions/route.ts —
@@ -135,6 +136,11 @@ export default function SubmitPage() {
     if (attachDocument && selectedFile) {
       formData.append("category", values.category);
       formData.append("file", selectedFile);
+
+      if (selectedFile.type === "application/pdf") {
+        const thumbnail = await generatePdfThumbnail(selectedFile).catch(() => null);
+        if (thumbnail) formData.append("thumbnail", thumbnail);
+      }
     }
 
     try {

@@ -26,12 +26,34 @@ function textValue(value: FormDataEntryValue | null, maxLength: number) {
 // successful upload). Rather than leave a misleading document-less client
 // row or an orphaned storage file behind, undo exactly what this request
 // itself just created so the caller gets a clean error and can retry.
-async function rollbackFailedSubmission(clientId: string, storagePath?: string) {
+async function rollbackFailedSubmission(clientId: string, storagePath?: string, thumbnailPath?: string) {
   const serviceClient = createSupabaseServiceClient();
-  if (storagePath) {
-    await serviceClient.storage.from("safety-documents").remove([storagePath]);
+  const paths = [storagePath, thumbnailPath].filter((path): path is string => Boolean(path));
+  if (paths.length > 0) {
+    await serviceClient.storage.from("safety-documents").remove(paths);
   }
   await serviceClient.from("clients").delete().eq("id", clientId);
+}
+
+const MAX_THUMBNAIL_SIZE = 500 * 1024;
+
+// Best-effort: a thumbnail is a visual enhancement, not core data, so any
+// problem with it (wrong type, too large, upload failure) just means the
+// document is saved without one — never a reason to fail the submission.
+// Uses the service-role client (see the exception documented on
+// createSupabaseServiceClient) rather than loosening the public anon
+// upload policy's extension check just for this one internal file type.
+async function uploadThumbnail(documentId: string, thumbnail: FormDataEntryValue | null): Promise<string | null> {
+  if (!(thumbnail instanceof File) || thumbnail.type !== "image/jpeg" || thumbnail.size === 0 || thumbnail.size > MAX_THUMBNAIL_SIZE) {
+    return null;
+  }
+
+  const thumbnailPath = `submissions/${documentId}.thumb.jpg`;
+  const { error } = await createSupabaseServiceClient()
+    .storage.from("safety-documents")
+    .upload(thumbnailPath, thumbnail, { contentType: "image/jpeg", upsert: false });
+
+  return error ? null : thumbnailPath;
 }
 
 export async function POST(request: Request) {
@@ -62,6 +84,7 @@ export async function POST(request: Request) {
   const submitterName = textValue(formData.get("submitterName"), 160);
   const category = textValue(formData.get("category"), 80);
   const file = formData.get("file");
+  const thumbnail = formData.get("thumbnail");
 
   if (!clientName || !companyName || !telephone || !submitterName) {
     return Response.json({ error: "MISSING_FIELDS" }, { status: 400 });
@@ -111,7 +134,8 @@ export async function POST(request: Request) {
     return Response.json({ clientId: client.id }, { status: 201 });
   }
 
-  const storagePath = `submissions/${crypto.randomUUID()}.${extension}`;
+  const documentId = crypto.randomUUID();
+  const storagePath = `submissions/${documentId}.${extension}`;
   const { error: uploadError } = await supabase.storage.from("safety-documents").upload(storagePath, file, {
     contentType: file.type,
     upsert: false,
@@ -122,6 +146,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "UPLOAD_ERROR" }, { status: 500 });
   }
 
+  const thumbnailPath = await uploadThumbnail(documentId, thumbnail);
+
   const { error: documentError } = await supabase.from("documents").insert({
     client_id: client.id,
     category,
@@ -129,10 +155,11 @@ export async function POST(request: Request) {
     storage_path: storagePath,
     file_type: file.type,
     file_size: file.size,
+    thumbnail_path: thumbnailPath,
   });
 
   if (documentError) {
-    await rollbackFailedSubmission(client.id, storagePath);
+    await rollbackFailedSubmission(client.id, storagePath, thumbnailPath ?? undefined);
     return Response.json({ error: "DOCUMENT_SAVE_ERROR" }, { status: 500 });
   }
 

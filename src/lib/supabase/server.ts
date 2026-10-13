@@ -18,7 +18,7 @@ export function createSupabaseClient() {
 
 /**
  * Bypasses Row Level Security. Call this only after an explicit admin
- * session check (see src/lib/auth/session.ts), with two narrow exceptions:
+ * session check (see src/lib/auth/session.ts), with three narrow exceptions:
  *
  * 1. The abuse-tracking `submission_attempts` and `admin_login_attempts`
  *    tables have no RLS grants for `anon` at all (not even insert), so the
@@ -30,9 +30,13 @@ export function createSupabaseClient() {
  *    grant on either, by design). This only ever deletes the exact row/path
  *    IDs the same request itself produced moments earlier — never an
  *    arbitrary lookup or delete of existing data.
+ * 3. `/api/submissions` uploads the PDF thumbnail it generates via this
+ *    client too — the public upload RLS policy intentionally only allows
+ *    `pdf`/`doc`/`docx` extensions, and loosening it just for an internal
+ *    `.thumb.jpg` convention isn't worth widening what `anon` can write.
  *
  * Never use this client to read/write `clients`/`documents` on behalf of a
- * public caller outside these two narrow cases.
+ * public caller outside these narrow cases.
  */
 export function createSupabaseServiceClient() {
   const url = process.env.SUPABASE_URL;

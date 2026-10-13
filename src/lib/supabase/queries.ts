@@ -21,6 +21,7 @@ export type DirectoryDocument = {
   fileSize: string | null;
   storagePath: string | null;
   publicUrl: string | null;
+  thumbnailUrl: string | null;
   date: string;
   tone: ReturnType<typeof toneForCategory> | null;
 };
@@ -33,6 +34,7 @@ type DocumentRow = {
   file_name: string;
   file_size: number;
   storage_path: string;
+  thumbnail_path: string | null;
   created_at: string;
   clients: ClientSummary | ClientSummary[] | null;
 };
@@ -59,6 +61,7 @@ function toDirectoryDocument(supabase: SupabaseClient, row: DocumentRow): Direct
     fileSize: formatFileSize(row.file_size),
     storagePath: row.storage_path,
     publicUrl: publicUrlFor(supabase, row.storage_path),
+    thumbnailUrl: row.thumbnail_path ? publicUrlFor(supabase, row.thumbnail_path) : null,
     date: formatDate(row.created_at),
     tone: toneForCategory(row.category),
   };
@@ -88,6 +91,7 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
     fileSize: null,
     storagePath: null,
     publicUrl: null,
+    thumbnailUrl: null,
     date: formatDate(row.created_at),
     tone: null,
   };
@@ -99,7 +103,7 @@ export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
   const [documentsResult, clientsResult] = await Promise.all([
     supabase
       .from("documents")
-      .select("id, category, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email)")
+      .select("id, category, file_name, file_size, storage_path, thumbnail_path, created_at, clients(client_name, company_name, telephone, email)")
       .order("created_at", { ascending: false })
       .limit(DIRECTORY_LIMIT),
     supabase
