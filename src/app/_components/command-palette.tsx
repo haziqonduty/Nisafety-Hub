@@ -12,6 +12,7 @@ type DocumentResult = {
   company: string;
   category: string | null;
   fileType: string | null;
+  thumbnailUrl: string | null;
 };
 
 export function CommandPalette() {
@@ -145,9 +146,17 @@ export function CommandPalette() {
                 onSelect={() => goToRecord(document.id)}
                 className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm normal-case tracking-normal data-[selected=true]:bg-accent-soft"
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium text-ink">{document.title}</span>
-                  <span className="block truncate text-xs text-ink-muted">{document.company} · {document.category ?? tDirectory("clientOnlyBadge")}</span>
+                <span className="flex min-w-0 items-center gap-3">
+                  {document.thumbnailUrl && (
+                    // Already a small, pre-sized JPEG from a known origin — next/image's
+                    // optimization pipeline isn't worth the images.remotePatterns config.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={document.thumbnailUrl} alt="" loading="lazy" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-ink">{document.title}</span>
+                    <span className="block truncate text-xs text-ink-muted">{document.company} · {document.category ?? tDirectory("clientOnlyBadge")}</span>
+                  </span>
                 </span>
                 {document.fileType && <span className="shrink-0 font-mono text-[10px] font-bold text-accent">{document.fileType}</span>}
               </Command.Item>

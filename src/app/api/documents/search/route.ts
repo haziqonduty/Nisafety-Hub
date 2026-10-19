@@ -20,6 +20,7 @@ export async function GET(request: Request) {
     company: document.company,
     category: document.category,
     fileType: document.fileType,
+    thumbnailUrl: document.thumbnailUrl,
   }));
 
   return Response.json({ results });

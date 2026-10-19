@@ -426,6 +426,13 @@ A real audit-and-fix pass (not a fixed deliverable) across public pages and admi
 - **Disclosed, accepted tradeoff — not a bug**: the server-rendered HTML shows `0` before client JS hydrates and the count-up animation runs (confirmed directly in the SSR output). This is the same category of tradeoff already accepted throughout the app's existing entrance animations (elements start invisible/offset before JS paints them into position) — not a new risk, and standard behavior for this kind of effect.
 - **Verified**: lint/build clean; confirmed via a real production (`next start`) server that both the homepage badge and admin KPI tiles correctly render `0` in SSR output (matching initial client state exactly, so no hydration mismatch) ready to animate on mount. The actual counting motion itself can't be observed without a real browser — same standing limitation as every other animation this session.
 
+## Command palette thumbnail previews (2026-10-19)
+
+- Third pick from the "WOW feature" list — shows each document's thumbnail (already built for the directory) next to its result in the ⌘K command palette, instead of plain text only.
+- `GET /api/documents/search` (`route.ts`) now includes `thumbnailUrl` in each result, straight from `getDirectoryDocuments()` which already has it. `command-palette.tsx`'s `DocumentResult` type extended to match; result items show a small 36px thumbnail tile on the left when present, falling back to today's exact text-only layout otherwise (same graceful-fallback pattern as the directory grid and hero preview).
+- **Found while verifying, not a bug**: the production database currently has **zero documents** — confirmed directly via a service-role query, not just an empty search result. Worth knowing next time `/` or the admin dashboard is checked; unclear whether this was deliberate cleanup or not.
+- **Verified for real**: submitted a real test document with a thumbnail (same simulated-JPEG technique as the original thumbnail feature, since actual client-side `pdfjs-dist` rendering can't be exercised in this environment) and confirmed `GET /api/documents/search?q=...` returned a `thumbnailUrl` that actually serves a real `image/jpeg` at `200`. Test record deleted via the admin API afterward. `lint`/`build` clean.
+
 ## Planned Screen Flow
 
 - `/` — public home and searchable directory (implemented, Supabase-backed).
