@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
-import { Calendar, Mail, Pencil, Phone, Search, Trash } from "@/app/_components/icons";
+import { Calendar, Mail, Notes, Pencil, Phone, Search, Trash } from "@/app/_components/icons";
 import { toneBadgeClass, toneForCategory } from "@/lib/format";
 import type { AdminClient } from "@/lib/supabase/queries";
 
@@ -16,6 +16,7 @@ function EditRow({ client, onDone }: { client: AdminClient; onDone: () => void }
   const [clientName, setClientName] = useState(client.clientName);
   const [telephone, setTelephone] = useState(client.telephone);
   const [email, setEmail] = useState(client.email);
+  const [internalNotes, setInternalNotes] = useState(client.internalNotes ?? "");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
@@ -28,7 +29,7 @@ function EditRow({ client, onDone }: { client: AdminClient; onDone: () => void }
       const response = await fetch(`/api/admin/clients/${client.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientName, telephone, email }),
+        body: JSON.stringify({ clientName, telephone, email, internalNotes }),
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) {
@@ -57,6 +58,17 @@ function EditRow({ client, onDone }: { client: AdminClient; onDone: () => void }
       <label className="text-xs font-semibold text-ink-muted">
         Email
         <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className={fieldClass} />
+      </label>
+      <label className="text-xs font-semibold text-ink-muted sm:col-span-3">
+        Internal notes <span className="font-normal text-ink-faint">(admin-only, never shown publicly)</span>
+        <textarea
+          value={internalNotes}
+          onChange={(event) => setInternalNotes(event.target.value)}
+          maxLength={2000}
+          rows={2}
+          placeholder="e.g. Called to confirm renewal, follow up next month"
+          className={`${fieldClass} resize-y`}
+        />
       </label>
       {error && <p className="sm:col-span-3 text-sm text-danger" role="alert">{error}</p>}
       <div className="flex gap-2 sm:col-span-3">
@@ -121,6 +133,12 @@ function ClientCard({ client }: { client: AdminClient }) {
                     <DocumentChip key={document.id} document={document} />
                   ))}
                 </div>
+              )}
+              {client.internalNotes && (
+                <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-soft px-3 py-2 text-xs text-amber">
+                  <Notes className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{client.internalNotes}</span>
+                </p>
               )}
             </div>
           </div>

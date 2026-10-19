@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createSupabaseClient } from "@/lib/supabase/server";
+import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, toneForCategory } from "@/lib/format";
 
 const DIRECTORY_LIMIT = 200;
@@ -288,6 +288,7 @@ export type AdminClient = {
   telephone: string;
   email: string;
   submitterName: string;
+  internalNotes: string | null;
   date: string;
   createdAt: string;
   documents: { id: string; category: string; fileName: string }[];
@@ -300,15 +301,20 @@ type AdminClientRow = {
   telephone: string;
   email: string;
   submitter_name: string;
+  internal_notes: string | null;
   created_at: string;
   documents: { id: string; category: string; file_name: string }[] | null;
 };
 
+// internal_notes is admin-only and no longer in anon's column-level grant
+// (see the 2026-10-19 migration), so this needs the service-role client —
+// safe here since getAdminClients() is only ever called from the already
+// session-gated /admin route.
 export async function getAdminClients(): Promise<AdminClient[]> {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, created_at, documents(id, category, file_name)")
+    .select("id, client_name, company_name, telephone, email, submitter_name, internal_notes, created_at, documents(id, category, file_name)")
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
@@ -320,6 +326,7 @@ export async function getAdminClients(): Promise<AdminClient[]> {
     telephone: row.telephone,
     email: row.email,
     submitterName: row.submitter_name,
+    internalNotes: row.internal_notes,
     date: formatDate(row.created_at),
     createdAt: row.created_at,
     documents: (row.documents ?? []).map((document) => ({

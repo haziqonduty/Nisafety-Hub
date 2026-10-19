@@ -78,6 +78,10 @@ export function Users(props: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19.5c.7-3.4 3-5.3 5.5-5.3s4.8 1.9 5.5 5.3M15.5 8.7A2.8 2.8 0 1 1 16 3.2M15 14.3c2 .3 3.6 1.9 4.2 5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
+export function Notes(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M5 4.8A1.8 1.8 0 0 1 6.8 3h10.4A1.8 1.8 0 0 1 19 4.8v14.4a1.8 1.8 0 0 1-1.8 1.8H6.8A1.8 1.8 0 0 1 5 19.2V4.8Z" strokeLinejoin="round" /><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4" strokeLinecap="round" /></svg>;
+}
+
 export function Trash(props: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M5 7h14M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2M7 7l1 12.5A1.5 1.5 0 0 0 9.5 21h5a1.5 1.5 0 0 0 1.5-1.5L17 7" strokeLinecap="round" strokeLinejoin="round" /><path d="M10 11v6M14 11v6" strokeLinecap="round" /></svg>;
 }

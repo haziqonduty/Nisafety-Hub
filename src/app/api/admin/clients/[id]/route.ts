@@ -16,6 +16,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const clientName = textValue(body.clientName, 160);
   const telephone = textValue(body.telephone, 40);
   const email = textValue(body.email, 254).toLowerCase();
+  const internalNotes = textValue(body.internalNotes, 2000);
 
   if (!clientName || !telephone || !email) {
     return Response.json({ error: "Client name, telephone, and email are all required." }, { status: 400 });
@@ -28,7 +29,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("clients")
-    .update({ client_name: clientName, telephone, email })
+    .update({ client_name: clientName, telephone, email, internal_notes: internalNotes || null })
     .eq("id", id);
 
   if (error) {
