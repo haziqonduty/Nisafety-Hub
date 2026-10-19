@@ -2,6 +2,7 @@ import { AdminAnalyticsCharts } from "@/app/_components/admin-analytics-charts";
 import { AdminMonthDetail } from "@/app/_components/admin-month-detail";
 import { AdminMonthlyTrends } from "@/app/_components/admin-monthly-trends";
 import { CountUp } from "@/app/_components/count-up";
+import { Download } from "@/app/_components/icons";
 import { computeAnalytics } from "@/lib/analytics";
 import { getAdminAnalyticsData } from "@/lib/supabase/queries";
 
@@ -24,10 +25,20 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <section>
-      <div>
-        <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">INSIGHTS</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">Directory analytics.</h1>
-        <p className="mt-2 max-w-xl text-sm text-ink-muted">A live snapshot of submission activity across the directory.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">INSIGHTS</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">Directory analytics.</h1>
+          <p className="mt-2 max-w-xl text-sm text-ink-muted">A live snapshot of submission activity across the directory.</p>
+        </div>
+        {/* File download, not a page navigation — next/link's prefetching would trigger report generation on every dashboard load. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a
+          href="/api/admin/analytics/report"
+          className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(16,42,51,.18)] transition-all hover:-translate-y-0.5 hover:bg-brand-hover"
+        >
+          <Download className="h-4 w-4" /> Download summary report
+        </a>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
