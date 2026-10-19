@@ -43,7 +43,7 @@
     "emptyNoMatch": "No records match that search yet. Try a different keyword or category.",
     "liveDirectory": "LIVE DIRECTORY",
     "recentlyPublished": "Recently published",
-    "recordsCount": "{count} records",
+    "recordsLabel": "records",
     "previewEmpty": "No records have been published yet.",
     "searchHint": "Search by company, category, or document.",
     "newRecordPublished": "A new record was just published.",

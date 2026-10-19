@@ -43,7 +43,7 @@
     "emptyNoMatch": "Tiada rekod sepadan dengan carian itu. Cuba kata kunci atau kategori lain.",
     "liveDirectory": "DIREKTORI LANGSUNG",
     "recentlyPublished": "Baru diterbitkan",
-    "recordsCount": "{count} rekod",
+    "recordsLabel": "rekod",
     "previewEmpty": "Belum ada rekod diterbitkan.",
     "searchHint": "Cari mengikut syarikat, kategori, atau dokumen.",
     "newRecordPublished": "Rekod baharu baru sahaja diterbitkan.",

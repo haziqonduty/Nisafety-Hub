@@ -1,6 +1,7 @@
 import { AdminAnalyticsCharts } from "@/app/_components/admin-analytics-charts";
 import { AdminMonthDetail } from "@/app/_components/admin-month-detail";
 import { AdminMonthlyTrends } from "@/app/_components/admin-monthly-trends";
+import { CountUp } from "@/app/_components/count-up";
 import { computeAnalytics } from "@/lib/analytics";
 import { getAdminAnalyticsData } from "@/lib/supabase/queries";
 
@@ -10,7 +11,9 @@ function KpiTile({ label, value, compact }: { label: string; value: string | num
   return (
     <div className="rounded-2xl border border-line bg-surface p-5">
       <p className="font-mono text-xs font-semibold tracking-[0.12em] text-ink-faint">{label.toUpperCase()}</p>
-      <p className={`mt-2 truncate font-semibold tracking-[-0.03em] text-ink ${compact ? "text-lg" : "text-3xl"}`}>{value}</p>
+      <p className={`mt-2 truncate font-semibold tracking-[-0.03em] text-ink ${compact ? "text-lg" : "text-3xl"}`}>
+        {typeof value === "number" ? <CountUp value={value} /> : value}
+      </p>
     </div>
   );
 }

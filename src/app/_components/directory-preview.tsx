@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { CountUp } from "@/app/_components/count-up";
 import { Download, Spark, Users } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
 import type { DirectoryDocument } from "@/lib/supabase/queries";
@@ -16,7 +17,9 @@ export async function DirectoryPreview({ documents, totalCount }: { documents: D
             <p className="font-mono text-[11px] font-semibold tracking-[0.12em] text-ink-muted">{t("liveDirectory")}</p>
             <p className="mt-1 text-sm font-medium">{t("recentlyPublished")}</p>
           </div>
-          <span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">{t("recordsCount", { count: totalCount })}</span>
+          <span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
+            <CountUp value={totalCount} /> {t("recordsLabel")}
+          </span>
         </div>
         {recent.length > 0 ? (
           <div className="space-y-3 py-5">
