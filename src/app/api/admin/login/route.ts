@@ -2,6 +2,7 @@ import { timingSafeEqual } from "crypto";
 import bcrypt from "bcryptjs";
 import { createAdminSession } from "@/lib/auth/session";
 import { clientIpFrom } from "@/lib/request-ip";
+import { checkInMemoryRateLimit } from "@/lib/in-memory-rate-limit";
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
 
 const RATE_LIMIT_WINDOW_MINUTES = 15;
@@ -16,6 +17,14 @@ function safeCompare(a: string, b: string) {
 
 export async function POST(request: Request) {
   const ipAddress = clientIpFrom(request);
+
+  // Works immediately with zero setup; the DB-backed check below is the
+  // stronger, cross-instance-durable guard once its migration is applied —
+  // until then this is the only real protection in effect.
+  if (checkInMemoryRateLimit(`admin-login:${ipAddress}`, RATE_LIMIT_WINDOW_MINUTES, RATE_LIMIT_MAX_ATTEMPTS).limited) {
+    return Response.json({ error: "Too many sign-in attempts. Try again in a few minutes." }, { status: 429 });
+  }
+
   const { limited } = await checkRateLimit(
     "admin_login_attempts",
     ipAddress,
