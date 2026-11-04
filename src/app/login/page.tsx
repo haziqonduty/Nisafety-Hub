@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
-import { Eye, EyeOff } from "@/app/_components/icons";
+import { Eye, EyeOff, ShieldCheck, Users } from "@/app/_components/icons";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -90,17 +90,31 @@ export default function LoginPage() {
           <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">{mode === "staff" ? "STAFF SIGN IN" : "ADMIN SIGN IN"}</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em]">Welcome back.</h1>
 
-          <div className="mt-5 inline-flex items-center rounded-full border border-line bg-surface p-1 text-sm font-semibold">
-            <button type="button" onClick={() => switchMode("staff")} aria-current={mode === "staff"} className={`rounded-full px-4 py-2 transition-colors ${mode === "staff" ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>
-              Staff
+          <div className="relative mt-5 grid grid-cols-2 rounded-full border border-line bg-surface-soft p-1 text-sm font-semibold">
+            <span
+              aria-hidden="true"
+              className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-br from-accent to-brand shadow-[0_8px_20px_rgba(15,118,110,.35)] transition-transform duration-300 ease-out ${mode === "admin" ? "translate-x-full" : "translate-x-0"}`}
+            />
+            <button
+              type="button"
+              onClick={() => switchMode("staff")}
+              aria-pressed={mode === "staff"}
+              className={`relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 transition-colors duration-300 ${mode === "staff" ? "text-white" : "text-ink-muted hover:text-accent"}`}
+            >
+              <Users className="h-3.5 w-3.5" /> Staff
             </button>
-            <button type="button" onClick={() => switchMode("admin")} aria-current={mode === "admin"} className={`rounded-full px-4 py-2 transition-colors ${mode === "admin" ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>
-              Admin
+            <button
+              type="button"
+              onClick={() => switchMode("admin")}
+              aria-pressed={mode === "admin"}
+              className={`relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 transition-colors duration-300 ${mode === "admin" ? "text-white" : "text-ink-muted hover:text-accent"}`}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" /> Admin
             </button>
           </div>
 
           {mode === "staff" ? (
-            <label className="mt-6 block text-sm font-semibold">
+            <label key="email" className="mt-6 block animate-[rise_.3s_ease-out_both] text-sm font-semibold">
               Email
               <input
                 required
@@ -113,7 +127,7 @@ export default function LoginPage() {
               />
             </label>
           ) : (
-            <label className="mt-6 block text-sm font-semibold">
+            <label key="username" className="mt-6 block animate-[rise_.3s_ease-out_both] text-sm font-semibold">
               Username
               <input
                 required
