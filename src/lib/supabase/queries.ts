@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ADMIN_LOGIN_EMAIL } from "@/lib/auth/admin-account";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, toneForCategory } from "@/lib/format";
 
@@ -460,6 +461,10 @@ export async function getAllProfiles(): Promise<AdminProfile[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select("id, full_name, email, role, status, created_at")
+    // The synthetic account behind the username/password admin sign-in
+    // isn't a real staff member to approve/manage — exclude it from this
+    // list entirely rather than showing a confusing "pending request".
+    .neq("email", ADMIN_LOGIN_EMAIL)
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];

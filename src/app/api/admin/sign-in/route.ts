@@ -1,11 +1,7 @@
+import { ADMIN_LOGIN_EMAIL } from "@/lib/auth/admin-account";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ADMIN_USERNAME = "admin";
-
-// A fixed internal identity — Supabase Auth needs an email-shaped
-// identifier even though the admin signs in with a plain username. Never
-// meant to receive mail, never shown to or typed by anyone.
-const ADMIN_LOGIN_EMAIL = "admin@nisafetyhub.internal";
 
 function textValue(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
