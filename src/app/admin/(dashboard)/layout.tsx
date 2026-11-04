@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
-import { verifyAdminSession } from "@/lib/auth/session";
-import { AdminLogoutButton } from "@/app/_components/admin-logout-button";
+import { getCurrentProfile } from "@/lib/auth/profile";
+import { LogoutButton } from "@/app/_components/logout-button";
 import { AdminNav } from "@/app/_components/admin-nav";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 
 export default async function AdminDashboardLayout({ children }: LayoutProps<"/admin">) {
-  if (!(await verifyAdminSession())) {
-    redirect("/admin/login");
-  }
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (profile.status !== "approved") redirect("/pending-approval");
+  if (profile.role !== "admin") redirect("/");
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
@@ -20,7 +21,7 @@ export default async function AdminDashboardLayout({ children }: LayoutProps<"/a
         <AdminNav />
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <AdminLogoutButton />
+          <LogoutButton />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 pb-24 lg:px-8">{children}</main>

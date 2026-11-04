@@ -3,7 +3,7 @@
     "explore": "Explore records",
     "howItWorks": "How it works",
     "submit": "Submit a record",
-    "adminSignIn": "Admin sign in"
+    "adminDashboard": "Admin dashboard"
   },
   "home": {
     "heroBadge": "PUBLIC SAFETY RECORDS DIRECTORY",
@@ -63,7 +63,7 @@
     "documents": "Documents",
     "goToDirectory": "Go to directory",
     "submitRecord": "Submit a record",
-    "adminSignIn": "Admin sign in",
+    "adminDashboard": "Admin dashboard",
     "noMatch": "No documents match \"{query}\"."
   },
   "submit": {
@@ -87,6 +87,13 @@
     "submitterName": "Your name",
     "submitterNameSuffix": "(submitter)",
     "submitterNamePlaceholder": "Your full name",
+    "addAnotherClientName": "Add another name",
+    "addAnotherTelephone": "Add another telephone number",
+    "addAnotherEmail": "Add another email address",
+    "removeEntry": "Remove",
+    "existingClientsFound": "Existing clients matching your search",
+    "linkedToExistingClient": "This report will be linked to an existing client.",
+    "notThisClient": "Not this client? Clear",
     "publicDataNotice": "By continuing, you confirm these details may be published in the public directory.",
     "attachDocumentQuestion": "Would you like to attach a supporting document?",
     "attachDocumentYes": "Yes, attach a document",
@@ -120,6 +127,8 @@
     "FILE_TOO_LARGE_AFTER_COMPRESSION": "This PDF is still too large after compression. Try a document with fewer pages or a lower scan quality.",
     "FILE_TYPE_CANNOT_COMPRESS": "This file is over 4 MB and DOC/DOCX files can't be compressed automatically. Please reduce the file size or convert it to PDF.",
     "CLIENT_SAVE_ERROR": "We could not save the client record. Please try again.",
+    "DOCUMENT_REQUIRED_FOR_EXISTING_CLIENT": "Attach a document when adding another report to an existing client.",
+    "TOO_MANY_CONTACTS": "You can add up to 4 extra names, telephone numbers, or email addresses each.",
     "UPLOAD_ERROR": "We could not upload the document. Please try again.",
     "DOCUMENT_SAVE_ERROR": "The document was uploaded, but we could not finish the record. Please contact support.",
     "GENERIC": "We could not submit the record. Please try again.",
@@ -148,8 +157,26 @@
     "telephone": "TELEPHONE",
     "email": "EMAIL",
     "submittedBy": "SUBMITTED BY",
+    "alsoLabel": "Also:",
     "printedFrom": "Printed from Nisafety Hub · nisafetyhub.com",
-    "printRecordId": "Record ID: {id}"
+    "printRecordId": "Record ID: {id}",
+    "otherReportsTitle": "OTHER REPORTS FOR THIS CLIENT",
+    "edit": {
+      "editButton": "Edit",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "clientName": "Client name",
+      "companyName": "Company name",
+      "telephone": "Telephone number",
+      "email": "Email address",
+      "submitterName": "Submitted by",
+      "replaceDocument": "Replace document (optional)",
+      "attachDocument": "Attach a document (optional)",
+      "keepExistingFile": "Leave empty to keep the current file.",
+      "NOT_FOUND": "This record no longer exists.",
+      "GENERIC": "We could not save these changes. Please try again."
+    }
   },
   "categories": {
     "groups": {

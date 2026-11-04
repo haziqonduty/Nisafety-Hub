@@ -26,7 +26,7 @@ export function CommandPalette() {
   const navItems = [
     { label: t("goToDirectory"), href: "/" as const, icon: ShieldCheck, external: false },
     { label: t("submitRecord"), href: "/submit" as const, icon: Upload, external: false },
-    { label: t("adminSignIn"), href: "/admin/login", icon: ArrowUpRight, external: true },
+    { label: t("adminDashboard"), href: "/admin", icon: ArrowUpRight, external: true },
   ];
 
   useEffect(() => {

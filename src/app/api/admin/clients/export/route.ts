@@ -1,7 +1,7 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import ExcelJS from "exceljs";
-import { verifyAdminSession } from "@/lib/auth/session";
+import { requireAdminProfile } from "@/lib/auth/profile";
 import { toneForCategory, type CategoryTone } from "@/lib/format";
 import { getAdminClients } from "@/lib/supabase/queries";
 
@@ -83,7 +83,7 @@ function drawStatBox(sheet: ExcelJS.Worksheet, colStart: number, stat: Stat) {
 }
 
 export async function GET() {
-  if (!(await verifyAdminSession())) {
+  if (!(await requireAdminProfile())) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 

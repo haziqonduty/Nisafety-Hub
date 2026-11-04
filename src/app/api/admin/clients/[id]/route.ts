@@ -1,4 +1,4 @@
-import { verifyAdminSession } from "@/lib/auth/session";
+import { requireAdminProfile } from "@/lib/auth/profile";
 import { deleteClientRecord } from "@/lib/supabase/admin-mutations";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
@@ -7,7 +7,7 @@ function textValue(value: unknown, maxLength: number) {
 }
 
 export async function PATCH(request: Request, context: RouteContext<"/api/admin/clients/[id]">) {
-  if (!(await verifyAdminSession())) {
+  if (!(await requireAdminProfile())) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 
@@ -40,7 +40,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
 }
 
 export async function DELETE(_request: Request, context: RouteContext<"/api/admin/clients/[id]">) {
-  if (!(await verifyAdminSession())) {
+  if (!(await requireAdminProfile())) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 

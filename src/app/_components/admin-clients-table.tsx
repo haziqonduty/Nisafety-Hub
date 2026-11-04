@@ -127,6 +127,13 @@ function ClientCard({ client }: { client: AdminClient }) {
                 <span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-accent" />{client.email}</span>
                 <span className="inline-flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-ink-faint" />Submitted by {client.submitterName} on {client.date}</span>
               </div>
+              {(client.additionalClientNames.length > 0 || client.additionalTelephones.length > 0 || client.additionalEmails.length > 0) && (
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-faint">
+                  {client.additionalClientNames.length > 0 && <span>Also: {client.additionalClientNames.join(", ")}</span>}
+                  {client.additionalTelephones.length > 0 && <span>Also: {client.additionalTelephones.join(", ")}</span>}
+                  {client.additionalEmails.length > 0 && <span>Also: {client.additionalEmails.join(", ")}</span>}
+                </div>
+              )}
               {client.documents.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {client.documents.map((document) => (

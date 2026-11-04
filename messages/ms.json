@@ -3,7 +3,7 @@
     "explore": "Terokai rekod",
     "howItWorks": "Cara ia berfungsi",
     "submit": "Hantar rekod",
-    "adminSignIn": "Log masuk admin"
+    "adminDashboard": "Papan pemuka admin"
   },
   "home": {
     "heroBadge": "DIREKTORI REKOD KESELAMATAN AWAM",
@@ -63,7 +63,7 @@
     "documents": "Dokumen",
     "goToDirectory": "Pergi ke direktori",
     "submitRecord": "Hantar rekod",
-    "adminSignIn": "Log masuk admin",
+    "adminDashboard": "Papan pemuka admin",
     "noMatch": "Tiada dokumen sepadan dengan \"{query}\"."
   },
   "submit": {
@@ -87,6 +87,13 @@
     "submitterName": "Nama anda",
     "submitterNameSuffix": "(penghantar)",
     "submitterNamePlaceholder": "Nama penuh anda",
+    "addAnotherClientName": "Tambah nama lain",
+    "addAnotherTelephone": "Tambah nombor telefon lain",
+    "addAnotherEmail": "Tambah alamat emel lain",
+    "removeEntry": "Buang",
+    "existingClientsFound": "Klien sedia ada yang sepadan dengan carian anda",
+    "linkedToExistingClient": "Laporan ini akan dikaitkan dengan klien sedia ada.",
+    "notThisClient": "Bukan klien ini? Kosongkan",
     "publicDataNotice": "Dengan meneruskan, anda mengesahkan butiran ini boleh diterbitkan dalam direktori awam.",
     "attachDocumentQuestion": "Adakah anda ingin melampirkan dokumen sokongan?",
     "attachDocumentYes": "Ya, lampirkan dokumen",
@@ -120,6 +127,8 @@
     "FILE_TOO_LARGE_AFTER_COMPRESSION": "PDF ini masih terlalu besar selepas pemampatan. Cuba dokumen dengan kurang muka surat atau kualiti imbasan yang lebih rendah.",
     "FILE_TYPE_CANNOT_COMPRESS": "Fail ini melebihi 4 MB dan fail DOC/DOCX tidak boleh dimampatkan secara automatik. Sila kurangkan saiz fail atau tukar kepada PDF.",
     "CLIENT_SAVE_ERROR": "Kami tidak dapat menyimpan rekod klien. Sila cuba lagi.",
+    "DOCUMENT_REQUIRED_FOR_EXISTING_CLIENT": "Lampirkan dokumen apabila menambah laporan lain untuk klien sedia ada.",
+    "TOO_MANY_CONTACTS": "Anda boleh menambah sehingga 4 nama, nombor telefon, atau alamat emel tambahan setiap satu.",
     "UPLOAD_ERROR": "Kami tidak dapat memuat naik dokumen. Sila cuba lagi.",
     "DOCUMENT_SAVE_ERROR": "Dokumen telah dimuat naik, tetapi kami tidak dapat menyelesaikan rekod. Sila hubungi sokongan.",
     "GENERIC": "Kami tidak dapat menghantar rekod. Sila cuba lagi.",
@@ -148,8 +157,26 @@
     "telephone": "TELEFON",
     "email": "E-MEL",
     "submittedBy": "DIHANTAR OLEH",
+    "alsoLabel": "Juga:",
     "printedFrom": "Dicetak daripada Nisafety Hub · nisafetyhub.com",
-    "printRecordId": "ID Rekod: {id}"
+    "printRecordId": "ID Rekod: {id}",
+    "otherReportsTitle": "LAPORAN LAIN UNTUK KLIEN INI",
+    "edit": {
+      "editButton": "Edit",
+      "cancel": "Batal",
+      "save": "Simpan perubahan",
+      "saving": "Menyimpan…",
+      "clientName": "Nama klien",
+      "companyName": "Nama syarikat",
+      "telephone": "Nombor telefon",
+      "email": "Alamat emel",
+      "submitterName": "Dihantar oleh",
+      "replaceDocument": "Ganti dokumen (pilihan)",
+      "attachDocument": "Lampirkan dokumen (pilihan)",
+      "keepExistingFile": "Biarkan kosong untuk mengekalkan fail semasa.",
+      "NOT_FOUND": "Rekod ini tidak lagi wujud.",
+      "GENERIC": "Kami tidak dapat menyimpan perubahan ini. Sila cuba lagi."
+    }
   },
   "categories": {
     "groups": {

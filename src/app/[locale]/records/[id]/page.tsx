@@ -4,10 +4,11 @@ import { ViewTransition } from "react";
 import { Download, File } from "@/app/_components/icons";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
+import { RecordDetailBody } from "@/app/_components/record-detail-body";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link } from "@/i18n/routing";
 import { toneBadgeClass } from "@/lib/format";
-import { getRecordById } from "@/lib/supabase/queries";
+import { getOtherDocumentsForClient, getRecordById } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,16 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
   // Historical records may still hold a retired pre-taxonomy category name
   // with no translation entry — fall back to the raw stored value rather
   // than let a missing message crash the page.
-  let categoryLabel = record.category;
-  if (record.category) {
+  function categoryLabelFor(category: string) {
     try {
-      categoryLabel = tCategories(record.category);
+      return tCategories(category);
     } catch {
-      // keep the raw value
+      return category;
     }
   }
+
+  const categoryLabel = record.category ? categoryLabelFor(record.category) : record.category;
+  const otherReports = await getOtherDocumentsForClient(record.clientId, record.hasDocument ? record.id : null);
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
@@ -98,28 +101,26 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
             </div>
           )}
 
-          <div className="mt-10 grid gap-5 border-t border-line pt-8 sm:grid-cols-2">
-            <div>
-              <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("clientName")}</p>
-              <p className="mt-1 text-sm font-semibold">{record.clientName}</p>
+          <RecordDetailBody record={record} />
+
+          {otherReports.length > 0 && (
+            <div className="mt-8 border-t border-line pt-6 print:hidden">
+              <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("otherReportsTitle")}</p>
+              <ul className="mt-3 flex flex-col gap-2">
+                {otherReports.map((report) => (
+                  <li key={report.id}>
+                    <Link
+                      href={`/records/${report.id}`}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-soft px-4 py-3 text-sm transition-colors hover:border-accent hover:bg-accent-soft"
+                    >
+                      <span className="min-w-0 truncate font-medium text-ink">{categoryLabelFor(report.category)}</span>
+                      <span className="shrink-0 text-xs text-ink-muted">{report.date}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div>
-              <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("company")}</p>
-              <p className="mt-1 text-sm font-semibold">{record.companyName}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("telephone")}</p>
-              <p className="mt-1 text-sm font-semibold">{record.telephone}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("email")}</p>
-              <p className="mt-1 text-sm font-semibold">{record.email}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("submittedBy")}</p>
-              <p className="mt-1 text-sm font-semibold">{record.submitterName}</p>
-            </div>
-          </div>
+          )}
 
           <div className="mt-8 hidden border-t border-line pt-4 text-xs text-ink-muted print:block">
             <p>{t("printedFrom")}</p>

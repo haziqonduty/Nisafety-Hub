@@ -9,14 +9,16 @@ import { MagneticLink } from "@/app/_components/magnetic-link";
 import { RealtimeDirectoryBanner } from "@/app/_components/realtime-directory-banner";
 import { Reveal } from "@/app/_components/reveal";
 import { SpotlightCard } from "@/app/_components/spotlight-card";
+import { LogoutButton } from "@/app/_components/logout-button";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link } from "@/i18n/routing";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { getDirectoryDocuments } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [documents, t] = await Promise.all([getDirectoryDocuments(), getTranslations("home")]);
+  const [documents, t, profile] = await Promise.all([getDirectoryDocuments(), getTranslations("home"), getCurrentProfile()]);
   const tNav = await getTranslations("nav");
 
   const steps = [
@@ -43,7 +45,10 @@ export default async function Home() {
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
           <ThemeToggle />
-          <NextLink href="/admin/login" className="rounded-full border border-line bg-surface/70 px-4 py-2 text-sm font-medium transition-all duration-200 hover:border-accent hover:bg-surface hover:text-accent">{tNav("adminSignIn")}</NextLink>
+          {profile?.role === "admin" && (
+            <NextLink href="/admin" className="rounded-full border border-line bg-surface/70 px-4 py-2 text-sm font-medium transition-all duration-200 hover:border-accent hover:bg-surface hover:text-accent">{tNav("adminDashboard")}</NextLink>
+          )}
+          <LogoutButton />
         </div>
       </header>
 

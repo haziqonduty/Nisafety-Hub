@@ -1,15 +1,63 @@
-import createMiddleware from "next-intl/middleware";
+import { NextResponse, type NextRequest } from "next/server";
+import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
+import { updateSession } from "@/lib/supabase/middleware";
 
-export default createMiddleware(routing);
+const intlMiddleware = createIntlMiddleware(routing);
+
+// Outside [locale], English-only, same as /admin — see src/app/login,
+// src/app/signup, src/app/pending-approval. Reachable with no session at all
+// (there's nothing to gate on a sign-in page itself).
+const AUTH_PATHS = ["/login", "/signup", "/pending-approval"];
+
+export default async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const { response, user, supabase } = await updateSession(request);
+
+  if (AUTH_PATHS.includes(pathname)) {
+    return response;
+  }
+
+  // No session at all — nothing to refresh, so no need to carry `response`'s
+  // cookies onto the redirect (matches Supabase's own documented middleware
+  // recipe: a redirect-to-login drops the refresh, since getUser() will just
+  // redo it on whatever request comes next anyway).
+  if (!user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", user.id).single();
+
+  if (!profile || profile.status !== "approved") {
+    return NextResponse.redirect(new URL("/pending-approval", request.url));
+  }
+
+  if (pathname.startsWith("/admin")) {
+    if (profile.role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    // /admin stays entirely outside the i18n system, same as before.
+    return response;
+  }
+
+  // Public, locale-scoped tree: let next-intl resolve the locale, then carry
+  // the Supabase session-refresh cookies over onto its response — both sets
+  // of cookies need to survive this single pass.
+  const intlResponse = intlMiddleware(request);
+  response.cookies.getAll().forEach((cookie) => intlResponse.cookies.set(cookie));
+  return intlResponse;
+}
 
 export const config = {
-  // Runs on every public page but skips /admin, /api, Next internals, and
-  // static/image assets — admin stays entirely outside the i18n system.
-  // icon-192/icon-512/apple-icon/manifest/opengraph-image are code-generated
-  // metadata routes with no dot in their pathname, so they'd otherwise slip
-  // past the ".*\\..*" file-extension exclusion and get wrongly rewritten to
-  // /en/.... robots.txt and sitemap.xml already have a dot, so no entry
-  // needed for those.
-  matcher: ["/((?!admin|api|_next|_vercel|icon-192|icon-512|apple-icon|manifest|opengraph-image|.*\\..*).*)"],
+  // Runs on every page but skips /api, Next internals, and static/metadata
+  // assets. icon-192/icon-512/apple-icon/manifest/opengraph-image are
+  // code-generated routes with no dot in their pathname, so they'd otherwise
+  // slip past the ".*\\..*" file-extension exclusion and get wrongly
+  // rewritten/gated. robots.txt and sitemap.xml already have a dot.
+  //
+  // Unlike before, /admin is NOT excluded — the whole site now requires
+  // login, admin included. /api is still excluded: a redirect response here
+  // would break `fetch()` callers expecting JSON, so every API route keeps
+  // doing its own explicit auth check instead (see src/lib/auth/profile.ts).
+  matcher: ["/((?!api|_next|_vercel|icon-192|icon-512|apple-icon|manifest|opengraph-image|.*\\..*).*)"],
 };

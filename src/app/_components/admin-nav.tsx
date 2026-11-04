@@ -2,11 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { BarChart, Users } from "@/app/_components/icons";
+import { BarChart, ShieldCheck, Users } from "@/app/_components/icons";
 
 const TABS = [
   { href: "/admin", label: "Clients", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart },
+  { href: "/admin/staff", label: "Staff", icon: ShieldCheck },
 ] as const;
 
 export function AdminNav() {

@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRef, useState, type ChangeEvent, type FormEvent, type SVGProps } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type SVGProps } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
+import { addEntry, removeEntry, RepeatableField, updateEntry } from "@/app/_components/repeatable-field";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link, useRouter } from "@/i18n/routing";
 import { compressPdf } from "@/lib/compress-pdf";
@@ -39,6 +40,8 @@ const KNOWN_ERROR_CODES = [
   "RATE_LIMITED",
   "FILE_TOO_LARGE_AFTER_COMPRESSION",
   "FILE_TYPE_CANNOT_COMPRESS",
+  "DOCUMENT_REQUIRED_FOR_EXISTING_CLIENT",
+  "TOO_MANY_CONTACTS",
 ] as const;
 type ErrorCode = (typeof KNOWN_ERROR_CODES)[number];
 
@@ -47,12 +50,18 @@ function errorCodeFrom(value: string | undefined): ErrorCode | "GENERIC" {
 }
 
 type SubmissionValues = {
+  companyName: string;
+  submitterName: string;
+  category: string;
+};
+
+type ClientMatch = {
+  id: string;
   clientName: string;
   companyName: string;
   telephone: string;
   email: string;
   submitterName: string;
-  category: string;
 };
 
 export default function SubmitPage() {
@@ -62,9 +71,15 @@ export default function SubmitPage() {
   const tCategories = useTranslations("categories.items");
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [values, setValues] = useState<SubmissionValues>({ clientName: "", companyName: "", telephone: "", email: "", submitterName: "", category: "" });
+  const [values, setValues] = useState<SubmissionValues>({ companyName: "", submitterName: "", category: "" });
+  const [clientNames, setClientNames] = useState<string[]>([""]);
+  const [telephones, setTelephones] = useState<string[]>([""]);
+  const [emails, setEmails] = useState<string[]>([""]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [attachDocument, setAttachDocument] = useState(true);
+  const [existingClientId, setExistingClientId] = useState<string | null>(null);
+  const [clientMatches, setClientMatches] = useState<ClientMatch[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,6 +132,53 @@ export default function SubmitPage() {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
+  const clientSearchTerm = (values.companyName || clientNames[0]).trim();
+  // Once linked (or the typed term is too short to search), the dropdown has
+  // nothing to show — derived at render time rather than cleared imperatively
+  // from the effect below, so the effect only ever sets state from its async
+  // fetch callback, never synchronously in its body.
+  const visibleClientMatches = !existingClientId && clientSearchTerm.length >= 2 ? clientMatches : [];
+
+  // Lets staff find a company already in the system instead of retyping its
+  // details for every different service report — same debounce + abort
+  // pattern as the command palette's document search.
+  useEffect(() => {
+    if (existingClientId || clientSearchTerm.length < 2) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/clients/search?q=${encodeURIComponent(clientSearchTerm)}`, { signal: controller.signal });
+        const data = (await response.json()) as { clients: ClientMatch[] };
+        setClientMatches(data.clients ?? []);
+      } catch {
+        // ignore aborted/failed requests
+      }
+    }, 150);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [clientSearchTerm, existingClientId]);
+
+  function selectClientMatch(match: ClientMatch) {
+    setValues((current) => ({ ...current, companyName: match.companyName, submitterName: match.submitterName }));
+    setClientNames([match.clientName]);
+    setTelephones([match.telephone]);
+    setEmails([match.email]);
+    setExistingClientId(match.id);
+    setClientMatches([]);
+    setIsSearchFocused(false);
+    // Reusing a client only makes sense when adding a new document to it —
+    // a contact-only resubmission would create nothing new.
+    setAttachDocument(true);
+  }
+
+  function clearExistingClient() {
+    setExistingClientId(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (attachDocument && !selectedFile) {
@@ -128,11 +190,12 @@ export default function SubmitPage() {
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append("website", honeypot);
-    formData.append("clientName", values.clientName);
+    clientNames.filter(Boolean).forEach((name) => formData.append("clientName", name));
     formData.append("companyName", values.companyName);
-    formData.append("telephone", values.telephone);
-    formData.append("email", values.email);
+    telephones.filter(Boolean).forEach((tel) => formData.append("telephone", tel));
+    emails.filter(Boolean).forEach((email) => formData.append("email", email));
     formData.append("submitterName", values.submitterName);
+    if (existingClientId) formData.append("clientId", existingClientId);
     if (attachDocument && selectedFile) {
       formData.append("category", values.category);
       formData.append("file", selectedFile);
@@ -193,16 +256,100 @@ export default function SubmitPage() {
           />
           {step === 1 ? <div key="step-1" className="animate-[rise_.35s_ease-out_both]">
             <div className="flex items-start justify-between gap-5"><div><h2 className="text-xl font-semibold tracking-[-0.04em]">{t("step1Heading")}</h2><p className="mt-1 text-sm text-ink-muted">{t("step1Subheading")}</p></div><span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold text-accent">{t("step1Badge")}</span></div>
-            <div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="text-sm font-semibold">{t("clientName")}<input required name="clientName" value={values.clientName} onChange={(event) => updateField("clientName", event.target.value)} className={fieldClass} placeholder={t("clientNamePlaceholder")} /></label><label className="text-sm font-semibold">{t("companyName")}<input required name="companyName" value={values.companyName} onChange={(event) => updateField("companyName", event.target.value)} className={fieldClass} placeholder={t("companyNamePlaceholder")} /></label><label className="text-sm font-semibold">{t("telephone")}<input required name="telephone" type="tel" value={values.telephone} onChange={(event) => updateField("telephone", event.target.value)} className={fieldClass} placeholder={t("telephonePlaceholder")} /></label><label className="text-sm font-semibold">{t("email")}<input required name="email" type="email" value={values.email} onChange={(event) => updateField("email", event.target.value)} className={fieldClass} placeholder={t("emailPlaceholder")} /></label></div>
+            <div className="relative mt-7">
+              <label className="text-sm font-semibold">
+                {t("companyName")}
+                <input
+                  required
+                  name="companyName"
+                  value={values.companyName}
+                  onChange={(event) => updateField("companyName", event.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
+                  className={fieldClass}
+                  placeholder={t("companyNamePlaceholder")}
+                />
+              </label>
+
+              <div className="mt-5">
+                <RepeatableField
+                  label={t("clientName")}
+                  name="clientName"
+                  placeholder={t("clientNamePlaceholder")}
+                  removeLabel={t("removeEntry")}
+                  addLabel={t("addAnotherClientName")}
+                  values={clientNames}
+                  onChange={(index, value) => updateEntry(setClientNames, index, value)}
+                  onAdd={() => addEntry(setClientNames)}
+                  onRemove={(index) => removeEntry(setClientNames, index)}
+                  onFocusFirst={() => setIsSearchFocused(true)}
+                  onBlurFirst={() => setTimeout(() => setIsSearchFocused(false), 150)}
+                />
+              </div>
+
+              {isSearchFocused && visibleClientMatches.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-10 mt-2 overflow-hidden rounded-xl border border-line bg-surface shadow-[0_20px_40px_rgba(16,42,51,.12)]">
+                  <p className="border-b border-line bg-surface-soft px-4 py-2 font-mono text-[10px] font-bold tracking-[0.1em] text-ink-muted">{t("existingClientsFound")}</p>
+                  {visibleClientMatches.map((match) => (
+                    <button
+                      key={match.id}
+                      type="button"
+                      onClick={() => selectClientMatch(match)}
+                      className="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left transition-colors hover:bg-accent-soft"
+                    >
+                      <span className="text-sm font-semibold text-ink">{match.clientName} — {match.companyName}</span>
+                      <span className="text-xs text-ink-muted">{match.telephone}{match.email ? ` · ${match.email}` : ""}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {existingClientId && (
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-accent-soft bg-accent-soft/40 px-4 py-3 text-sm">
+                <span className="font-semibold text-accent">{t("linkedToExistingClient")}</span>
+                <button type="button" onClick={clearExistingClient} className="font-semibold text-ink-muted transition-colors hover:text-accent">{t("notThisClient")}</button>
+              </div>
+            )}
+
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <RepeatableField
+                label={t("telephone")}
+                name="telephone"
+                type="tel"
+                placeholder={t("telephonePlaceholder")}
+                removeLabel={t("removeEntry")}
+                addLabel={t("addAnotherTelephone")}
+                values={telephones}
+                onChange={(index, value) => updateEntry(setTelephones, index, value)}
+                onAdd={() => addEntry(setTelephones)}
+                onRemove={(index) => removeEntry(setTelephones, index)}
+              />
+              <RepeatableField
+                label={t("email")}
+                name="email"
+                type="email"
+                placeholder={t("emailPlaceholder")}
+                removeLabel={t("removeEntry")}
+                addLabel={t("addAnotherEmail")}
+                values={emails}
+                onChange={(index, value) => updateEntry(setEmails, index, value)}
+                onAdd={() => addEntry(setEmails)}
+                onRemove={(index) => removeEntry(setEmails, index)}
+              />
+            </div>
+
             <label className="mt-5 block text-sm font-semibold">{t("submitterName")}<span className="ml-1 text-accent">{t("submitterNameSuffix")}</span><input required name="submitterName" value={values.submitterName} onChange={(event) => updateField("submitterName", event.target.value)} className={fieldClass} placeholder={t("submitterNamePlaceholder")} /></label>
 
-            <div className="mt-7 rounded-xl border border-line bg-surface-soft p-4">
-              <p className="text-sm font-semibold">{t("attachDocumentQuestion")}</p>
-              <div className="mt-3 inline-flex items-center rounded-full border border-line bg-surface p-1 text-sm font-semibold">
-                <button type="button" onClick={() => setAttachDocument(true)} aria-current={attachDocument} className={`rounded-full px-4 py-2 transition-colors ${attachDocument ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>{t("attachDocumentYes")}</button>
-                <button type="button" onClick={() => setAttachDocument(false)} aria-current={!attachDocument} className={`rounded-full px-4 py-2 transition-colors ${!attachDocument ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>{t("attachDocumentNo")}</button>
+            {!existingClientId && (
+              <div className="mt-7 rounded-xl border border-line bg-surface-soft p-4">
+                <p className="text-sm font-semibold">{t("attachDocumentQuestion")}</p>
+                <div className="mt-3 inline-flex items-center rounded-full border border-line bg-surface p-1 text-sm font-semibold">
+                  <button type="button" onClick={() => setAttachDocument(true)} aria-current={attachDocument} className={`rounded-full px-4 py-2 transition-colors ${attachDocument ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>{t("attachDocumentYes")}</button>
+                  <button type="button" onClick={() => setAttachDocument(false)} aria-current={!attachDocument} className={`rounded-full px-4 py-2 transition-colors ${!attachDocument ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>{t("attachDocumentNo")}</button>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="max-w-xs text-xs leading-5 text-ink-muted">{t("publicDataNotice")}</p><button type="button" onClick={nextStep} className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-hover">{t("continue")} <Arrow className="h-4 w-4" /></button></div>
           </div> : <div key={attachDocument ? "step-2-doc" : "step-2-nodoc"} className="animate-[rise_.35s_ease-out_both]">

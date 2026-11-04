@@ -1,11 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, toneForCategory } from "@/lib/format";
 
 const DIRECTORY_LIMIT = 200;
 
-function publicUrlFor(supabase: SupabaseClient, storagePath: string) {
-  return supabase.storage.from("safety-documents").getPublicUrl(storagePath).data.publicUrl;
+// Short-lived signed URL — the "safety-documents" bucket is private now that
+// the whole site requires login (a public bucket would let anyone with a
+// leaked URL bypass the login wall entirely). 1 hour comfortably covers a
+// single page view/download without over-exposing the link if it's copied
+// or cached somewhere.
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+async function signedUrlFor(supabase: SupabaseClient, storagePath: string) {
+  const { data } = await supabase.storage.from("safety-documents").createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
+  return data?.signedUrl ?? null;
 }
 
 export type DirectoryDocument = {
@@ -47,8 +55,13 @@ function clientSummary(clients: DocumentRow["clients"]): ClientSummary {
   return Array.isArray(clients) ? (clients[0] ?? UNKNOWN_CLIENT) : clients;
 }
 
-function toDirectoryDocument(supabase: SupabaseClient, row: DocumentRow): DirectoryDocument {
+async function toDirectoryDocument(supabase: SupabaseClient, row: DocumentRow): Promise<DirectoryDocument> {
   const client = clientSummary(row.clients);
+  const [publicUrl, thumbnailUrl] = await Promise.all([
+    signedUrlFor(supabase, row.storage_path),
+    row.thumbnail_path ? signedUrlFor(supabase, row.thumbnail_path) : Promise.resolve(null),
+  ]);
+
   return {
     id: row.id,
     hasDocument: true,
@@ -61,8 +74,8 @@ function toDirectoryDocument(supabase: SupabaseClient, row: DocumentRow): Direct
     fileType: extensionFromFileName(row.file_name),
     fileSize: formatFileSize(row.file_size),
     storagePath: row.storage_path,
-    publicUrl: publicUrlFor(supabase, row.storage_path),
-    thumbnailUrl: row.thumbnail_path ? publicUrlFor(supabase, row.thumbnail_path) : null,
+    publicUrl,
+    thumbnailUrl,
     date: formatDate(row.created_at),
     createdAt: row.created_at,
     tone: toneForCategory(row.category),
@@ -101,7 +114,7 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
 }
 
 export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseServerClient();
 
   const [documentsResult, clientsResult] = await Promise.all([
     supabase
@@ -120,7 +133,7 @@ export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
   const clientOnlyRows = ((clientsResult.data ?? []) as unknown as ClientOnlyRow[]).filter((row) => (row.documents?.length ?? 0) === 0);
 
   const combined = [
-    ...documentRows.map((row) => ({ sortKey: row.created_at, document: toDirectoryDocument(supabase, row) })),
+    ...(await Promise.all(documentRows.map(async (row) => ({ sortKey: row.created_at, document: await toDirectoryDocument(supabase, row) })))),
     ...clientOnlyRows.map((row) => ({ sortKey: row.created_at, document: toClientOnlyDirectoryDocument(row) })),
   ];
 
@@ -132,12 +145,16 @@ export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
 
 export type RecordDetail = {
   id: string;
+  clientId: string;
   hasDocument: boolean;
   clientName: string;
   companyName: string;
   telephone: string;
   email: string;
   submitterName: string;
+  additionalClientNames: string[];
+  additionalTelephones: string[];
+  additionalEmails: string[];
   category: string | null;
   fileName: string | null;
   fileType: string | null;
@@ -148,33 +165,33 @@ export type RecordDetail = {
   tone: ReturnType<typeof toneForCategory> | null;
 };
 
+type RecordDetailClient = {
+  client_name: string;
+  company_name: string;
+  telephone: string;
+  email: string;
+  submitter_name: string;
+  additional_client_names: string[] | null;
+  additional_telephones: string[] | null;
+  additional_emails: string[] | null;
+};
+
 type RecordDetailRow = {
   id: string;
+  client_id: string;
   category: string;
   file_name: string;
   file_size: number;
   storage_path: string;
   created_at: string;
-  clients: {
-    client_name: string;
-    company_name: string;
-    telephone: string;
-    email: string;
-    submitter_name: string;
-  } | {
-    client_name: string;
-    company_name: string;
-    telephone: string;
-    email: string;
-    submitter_name: string;
-  }[] | null;
+  clients: RecordDetailClient | RecordDetailClient[] | null;
 };
 
 async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, category, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name)")
+    .select("id, client_id, category, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails)")
     .eq("id", id)
     .single();
 
@@ -186,18 +203,22 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
 
   return {
     id: row.id,
+    clientId: row.client_id,
     hasDocument: true,
     clientName: client.client_name,
     companyName: client.company_name,
     telephone: client.telephone,
     email: client.email,
     submitterName: client.submitter_name,
+    additionalClientNames: client.additional_client_names ?? [],
+    additionalTelephones: client.additional_telephones ?? [],
+    additionalEmails: client.additional_emails ?? [],
     category: row.category,
     fileName: row.file_name,
     fileType: extensionFromFileName(row.file_name),
     fileSize: formatFileSize(row.file_size),
     storagePath: row.storage_path,
-    publicUrl: publicUrlFor(supabase, row.storage_path),
+    publicUrl: await signedUrlFor(supabase, row.storage_path),
     date: formatDate(row.created_at),
     tone: toneForCategory(row.category),
   };
@@ -210,14 +231,32 @@ type ClientOnlyRecordRow = {
   telephone: string;
   email: string;
   submitter_name: string;
+  additional_client_names: string[] | null;
+  additional_telephones: string[] | null;
+  additional_emails: string[] | null;
   created_at: string;
 };
 
 async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null> {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseServerClient();
+
+  // A client that originally had no document may have gained one later via
+  // the "attach a document" edit — show that document's detail instead of
+  // incorrectly claiming no document exists, so an old bookmarked client-id
+  // URL stays correct after the fact.
+  const { data: attachedDocument } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("client_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (attachedDocument) return getDocumentRecordById(attachedDocument.id);
+
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, created_at")
+    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, created_at")
     .eq("id", id)
     .single();
 
@@ -226,12 +265,16 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
   const row = data as unknown as ClientOnlyRecordRow;
   return {
     id: row.id,
+    clientId: row.id,
     hasDocument: false,
     clientName: row.client_name,
     companyName: row.company_name,
     telephone: row.telephone,
     email: row.email,
     submitterName: row.submitter_name,
+    additionalClientNames: row.additional_client_names ?? [],
+    additionalTelephones: row.additional_telephones ?? [],
+    additionalEmails: row.additional_emails ?? [],
     category: null,
     fileName: null,
     fileType: null,
@@ -247,6 +290,47 @@ export async function getRecordById(id: string): Promise<RecordDetail | null> {
   return (await getDocumentRecordById(id)) ?? (await getClientOnlyRecordById(id));
 }
 
+export type OtherClientReport = {
+  id: string;
+  category: string;
+  fileName: string;
+  date: string;
+};
+
+type OtherDocumentRow = {
+  id: string;
+  category: string;
+  file_name: string;
+  created_at: string;
+};
+
+// Now that a client can be reused across multiple service reports, a report
+// page should let staff discover its siblings rather than treat each one as
+// an isolated record. No signed URLs needed here — these are just links to
+// other /records/[id] pages, not downloads.
+export async function getOtherDocumentsForClient(clientId: string, excludeDocumentId: string | null): Promise<OtherClientReport[]> {
+  const supabase = await createSupabaseServerClient();
+  let query = supabase
+    .from("documents")
+    .select("id, category, file_name, created_at")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+
+  if (excludeDocumentId) {
+    query = query.neq("id", excludeDocumentId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  return (data as OtherDocumentRow[]).map((row) => ({
+    id: row.id,
+    category: row.category,
+    fileName: row.file_name,
+    date: formatDate(row.created_at),
+  }));
+}
+
 type AnalyticsDocumentRow = {
   id: string;
   category: string;
@@ -255,7 +339,7 @@ type AnalyticsDocumentRow = {
 };
 
 export async function getAdminAnalyticsData() {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseServerClient();
 
   const [documentsResult, clientsResult] = await Promise.all([
     supabase
@@ -288,6 +372,9 @@ export type AdminClient = {
   telephone: string;
   email: string;
   submitterName: string;
+  additionalClientNames: string[];
+  additionalTelephones: string[];
+  additionalEmails: string[];
   internalNotes: string | null;
   date: string;
   createdAt: string;
@@ -301,6 +388,9 @@ type AdminClientRow = {
   telephone: string;
   email: string;
   submitter_name: string;
+  additional_client_names: string[] | null;
+  additional_telephones: string[] | null;
+  additional_emails: string[] | null;
   internal_notes: string | null;
   created_at: string;
   documents: { id: string; category: string; file_name: string }[] | null;
@@ -314,7 +404,7 @@ export async function getAdminClients(): Promise<AdminClient[]> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, internal_notes, created_at, documents(id, category, file_name)")
+    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, created_at, documents(id, category, file_name)")
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
@@ -326,6 +416,9 @@ export async function getAdminClients(): Promise<AdminClient[]> {
     telephone: row.telephone,
     email: row.email,
     submitterName: row.submitter_name,
+    additionalClientNames: row.additional_client_names ?? [],
+    additionalTelephones: row.additional_telephones ?? [],
+    additionalEmails: row.additional_emails ?? [],
     internalNotes: row.internal_notes,
     date: formatDate(row.created_at),
     createdAt: row.created_at,
@@ -335,4 +428,51 @@ export async function getAdminClients(): Promise<AdminClient[]> {
       fileName: document.file_name,
     })),
   }));
+}
+
+export type AdminProfile = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: "admin" | "staff";
+  status: "pending" | "approved" | "rejected";
+  date: string;
+  createdAt: string;
+};
+
+type AdminProfileRow = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: "admin" | "staff";
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+};
+
+const STATUS_ORDER: Record<AdminProfile["status"], number> = { pending: 0, approved: 1, rejected: 2 };
+
+// Service-role client: listing every staff account (including other
+// people's emails and pending requests) is an admin-only capability, same
+// reasoning as getAdminClients()'s internal_notes — only ever called from
+// the already session-gated /admin/staff route.
+export async function getAllProfiles(): Promise<AdminProfile[]> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role, status, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as unknown as AdminProfileRow[])
+    .map((row) => ({
+      id: row.id,
+      fullName: row.full_name,
+      email: row.email,
+      role: row.role,
+      status: row.status,
+      date: formatDate(row.created_at),
+      createdAt: row.created_at,
+    }))
+    .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
 }

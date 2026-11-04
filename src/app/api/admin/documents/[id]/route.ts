@@ -1,9 +1,9 @@
-import { verifyAdminSession } from "@/lib/auth/session";
+import { requireAdminProfile } from "@/lib/auth/profile";
 import { deleteDocumentRecord } from "@/lib/supabase/admin-mutations";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 export async function DELETE(_request: Request, context: RouteContext<"/api/admin/documents/[id]">) {
-  if (!(await verifyAdminSession())) {
+  if (!(await requireAdminProfile())) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 

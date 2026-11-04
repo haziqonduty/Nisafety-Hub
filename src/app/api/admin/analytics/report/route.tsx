@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { PDFDocument } from "pdf-lib";
-import { verifyAdminSession } from "@/lib/auth/session";
+import { requireAdminProfile } from "@/lib/auth/profile";
 import { computeAnalytics } from "@/lib/analytics";
 import { getAdminAnalyticsData } from "@/lib/supabase/queries";
 import { logoDataUri } from "@/lib/logo-data-uri";
@@ -53,7 +53,7 @@ function CategoryBar({ category, count, tone, max }: { category: string; count: 
 }
 
 export async function GET() {
-  if (!(await verifyAdminSession())) {
+  if (!(await requireAdminProfile())) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 
