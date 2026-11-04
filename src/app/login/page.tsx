@@ -8,13 +8,60 @@ import { Eye, EyeOff } from "@/app/_components/icons";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+type Mode = "staff" | "admin";
+
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>("staff");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError("");
+    setPassword("");
+  }
+
+  async function submitStaff() {
+    const supabase = createSupabaseBrowserClient();
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (signInError || !data.user) {
+      setError("Incorrect email or password.");
+      return;
+    }
+
+    const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", data.user.id).single();
+
+    router.refresh();
+    if (!profile || profile.status !== "approved") {
+      router.push("/pending-approval");
+    } else if (profile.role === "admin") {
+      router.push("/admin");
+    } else {
+      router.push("/");
+    }
+  }
+
+  async function submitAdmin() {
+    const response = await fetch("/api/admin/sign-in", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (!response.ok) {
+      setError("Incorrect username or password.");
+      return;
+    }
+
+    router.push("/admin");
+    router.refresh();
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,24 +69,8 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (signInError || !data.user) {
-        setError("Incorrect email or password.");
-        return;
-      }
-
-      const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", data.user.id).single();
-
-      router.refresh();
-      if (!profile || profile.status !== "approved") {
-        router.push("/pending-approval");
-      } else if (profile.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/");
-      }
+      if (mode === "staff") await submitStaff();
+      else await submitAdmin();
     } catch {
       setError("We could not reach the sign-in service. Please try again.");
     } finally {
@@ -56,20 +87,45 @@ export default function LoginPage() {
         <BrandLogo height={48} className="mb-8 justify-center" />
 
         <form onSubmit={submit} className="rounded-[1.5rem] border border-line bg-surface p-8 shadow-[0_20px_50px_rgba(16,42,51,.07)]">
-          <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">STAFF SIGN IN</p>
+          <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">{mode === "staff" ? "STAFF SIGN IN" : "ADMIN SIGN IN"}</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em]">Welcome back.</h1>
 
-          <label className="mt-6 block text-sm font-semibold">
-            Email
-            <input
-              required
-              autoFocus
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-            />
-          </label>
+          <div className="mt-5 inline-flex items-center rounded-full border border-line bg-surface p-1 text-sm font-semibold">
+            <button type="button" onClick={() => switchMode("staff")} aria-current={mode === "staff"} className={`rounded-full px-4 py-2 transition-colors ${mode === "staff" ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>
+              Staff
+            </button>
+            <button type="button" onClick={() => switchMode("admin")} aria-current={mode === "admin"} className={`rounded-full px-4 py-2 transition-colors ${mode === "admin" ? "bg-brand text-white" : "text-ink-muted hover:text-accent"}`}>
+              Admin
+            </button>
+          </div>
+
+          {mode === "staff" ? (
+            <label className="mt-6 block text-sm font-semibold">
+              Email
+              <input
+                required
+                autoFocus
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+              />
+            </label>
+          ) : (
+            <label className="mt-6 block text-sm font-semibold">
+              Username
+              <input
+                required
+                autoFocus
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+              />
+            </label>
+          )}
 
           <label className="mt-4 block text-sm font-semibold">
             Password
@@ -77,6 +133,7 @@ export default function LoginPage() {
               <input
                 required
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-xl border border-line bg-surface px-3.5 py-3 pr-11 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
@@ -108,18 +165,14 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-ink-muted">
-          New staff member?{" "}
-          <Link href="/signup" className="font-semibold text-accent hover:text-accent-hover">
-            Create an account
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-ink-muted">
-          Admin?{" "}
-          <Link href="/admin/login" className="font-semibold text-accent hover:text-accent-hover">
-            Sign in here
-          </Link>
-        </p>
+        {mode === "staff" && (
+          <p className="mt-6 text-center text-sm text-ink-muted">
+            New staff member?{" "}
+            <Link href="/signup" className="font-semibold text-accent hover:text-accent-hover">
+              Create an account
+            </Link>
+          </p>
+        )}
       </div>
     </main>
   );

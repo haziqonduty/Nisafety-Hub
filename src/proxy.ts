@@ -8,7 +8,7 @@ const intlMiddleware = createIntlMiddleware(routing);
 // Outside [locale], English-only, same as /admin — see src/app/login,
 // src/app/signup, src/app/pending-approval. Reachable with no session at all
 // (there's nothing to gate on a sign-in page itself).
-const AUTH_PATHS = ["/login", "/signup", "/pending-approval", "/admin/login"];
+const AUTH_PATHS = ["/login", "/signup", "/pending-approval"];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
