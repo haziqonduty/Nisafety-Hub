@@ -521,6 +521,16 @@ Items 4 and 5 of 5 — the final two. Kay's wording used "column" but clarified 
 
 **All 5 items from Kay's original request are now complete and individually verified live.**
 
+## Separate admin sign-in with just a username + password (2026-11-04)
+
+After item 1 unified everything into Supabase Auth with roles, Kay asked for a second, separate admin sign-in — just a fixed username ("admin") and a password, no email — deliberately similar to the old pre-item-1 shared admin login that item 1 had removed. Rebuilding a genuinely separate (non-Supabase) auth path would have silently broken every existing admin check (`proxy.ts`, `requireAdminProfile()`, RLS's `is_admin()`) since they all key off a real Supabase session.
+
+- **The approach**: the fixed "admin" username maps to a real Supabase Auth account under a fixed internal, non-deliverable email (`admin@nisafetyhub.internal`) that is never shown to or typed by anyone. New `POST /api/admin/sign-in` (`src/app/api/admin/sign-in/route.ts`) validates `username === "admin"` then calls the normal `createSupabaseServerClient().auth.signInWithPassword()` against that internal email — so the result is a completely ordinary Supabase session and every existing admin-gated page/route/RLS policy keeps working unmodified. No new rate-limiting needed — still rides Supabase Auth's own built-in brute-force protection (same reasoning already documented in `rate-limit.ts` for why the old `admin_login_attempts` table was retired).
+- **New page `src/app/admin/login/page.tsx`**: mirrors `src/app/login/page.tsx`'s styling (same card, same show/hide password toggle) with a Username field instead of Email. `src/proxy.ts`'s `AUTH_PATHS` gained `"/admin/login"` (one-line change) so it's reachable with no session, same as `/login`. Each login page now links to the other ("Staff member? Sign in here" / "Admin? Sign in here").
+- **The existing email-based admin path is untouched** — any account promoted to `admin` via the normal staff-approval flow can still sign in at `/login` exactly as before. This is purely an additional door into the same role, not a replacement.
+- **The account was provisioned once directly** via a throwaway script (service-role `auth.admin.createUser` against the internal email, then one update setting `role='admin', status='approved'`) — **the password itself was never written to any file in this repo, migration, or memory note**; it only ever touched that one local script, deleted immediately after running. Supabase owns the hash, same as every other account.
+- **Verified live**: `/admin/login` loads with no session (no redirect loop); wrong username and wrong password both `401 INVALID_CREDENTIALS`; correct username+password returns `200` with a real session cookie that was then replayed successfully against both `/admin` and `/admin/staff` (`200`, not a redirect).
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

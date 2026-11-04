@@ -114,6 +114,12 @@ export default function LoginPage() {
             Create an account
           </Link>
         </p>
+        <p className="mt-2 text-center text-sm text-ink-muted">
+          Admin?{" "}
+          <Link href="/admin/login" className="font-semibold text-accent hover:text-accent-hover">
+            Sign in here
+          </Link>
+        </p>
       </div>
     </main>
   );
