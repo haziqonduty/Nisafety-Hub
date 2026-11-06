@@ -546,6 +546,10 @@ After shipping items 4/5 (repeatable name/telephone/email fields), the directory
 - `/api/admin/clients/export` gained three columns — "Additional Names," "Additional Telephones," "Additional Emails" (each `; `-joined, "—" when empty) — inserted right after Email and before Submitted By; every column index referenced after that point in the sheet (date format column, category cell, zebra-stripe skip) was shifted accordingly.
 - Verified live end-to-end: submitted a client with one extra name/phone/email, confirmed `/api/documents/search` and `/api/clients/search` both find it by the *extra* value alone, and confirmed the exported `.xlsx` has the new header row and the extra values in the right cells.
 
+## Bug fix: unreadable "Top category" KPI tile on admin analytics (2026-11-06)
+
+Kay screenshotted the "Top Category" stat tile on `/admin/analytics` cut off mid-word ("Chemical Health Risk As…") — category names like "Chemical Health Risk Assessment (CHRA)" or "Hazard Identification, Risk Assessment and Risk Control (HIRARC)" (`CATEGORY_GROUPS` in `format.ts`) are far too long for a single-line `truncate` ellipsis at that tile's width. In `src/app/admin/(dashboard)/analytics/page.tsx`, `KpiTile`'s compact variant switched from `truncate text-lg` (forces one line) to `line-clamp-2 text-base leading-snug` (wraps across two lines before clipping) and gained a `title` attribute carrying the full string as a hover fallback for the rare case a name still doesn't fit in two lines. The three numeric tiles (Total clients/documents, Last 30 days) are untouched — they still use the single-line `truncate text-3xl` path since short numbers never need wrapping. Verified live by fetching the rendered `/admin/analytics` HTML and confirming the tile now carries `line-clamp-2` (not `truncate`) plus the full category name in `title`.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

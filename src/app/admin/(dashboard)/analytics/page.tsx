@@ -12,7 +12,10 @@ function KpiTile({ label, value, compact }: { label: string; value: string | num
   return (
     <div className="rounded-2xl border border-line bg-surface p-5">
       <p className="font-mono text-xs font-semibold tracking-[0.12em] text-ink-faint">{label.toUpperCase()}</p>
-      <p className={`mt-2 truncate font-semibold tracking-[-0.03em] text-ink ${compact ? "text-lg" : "text-3xl"}`}>
+      <p
+        title={typeof value === "string" ? value : undefined}
+        className={`mt-2 font-semibold tracking-[-0.03em] text-ink ${compact ? "line-clamp-2 text-base leading-snug" : "truncate text-3xl"}`}
+      >
         {typeof value === "number" ? <CountUp value={value} /> : value}
       </p>
     </div>
