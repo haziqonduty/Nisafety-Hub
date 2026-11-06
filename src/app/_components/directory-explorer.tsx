@@ -30,7 +30,18 @@ export function DirectoryExplorer({ documents }: { documents: DirectoryDocument[
       (document) =>
         (category === "All records" || document.category === category) &&
         (!normalisedQuery ||
-          `${document.title} ${document.company} ${document.category ?? ""} ${document.clientName} ${document.telephone} ${document.email}`
+          [
+            document.title,
+            document.company,
+            document.category ?? "",
+            document.clientName,
+            document.telephone,
+            document.email,
+            ...document.additionalClientNames,
+            ...document.additionalTelephones,
+            ...document.additionalEmails,
+          ]
+            .join(" ")
             .toLowerCase()
             .includes(normalisedQuery)),
     );

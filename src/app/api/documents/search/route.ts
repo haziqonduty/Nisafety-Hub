@@ -8,7 +8,18 @@ export async function GET(request: Request) {
 
   const matches = query
     ? documents.filter((document) =>
-        `${document.title} ${document.company} ${document.category ?? ""} ${document.clientName} ${document.telephone} ${document.email}`
+        [
+          document.title,
+          document.company,
+          document.category ?? "",
+          document.clientName,
+          document.telephone,
+          document.email,
+          ...document.additionalClientNames,
+          ...document.additionalTelephones,
+          ...document.additionalEmails,
+        ]
+          .join(" ")
           .toLowerCase()
           .includes(query),
       )

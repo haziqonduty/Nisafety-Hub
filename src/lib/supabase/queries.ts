@@ -25,6 +25,9 @@ export type DirectoryDocument = {
   clientName: string;
   telephone: string;
   email: string;
+  additionalClientNames: string[];
+  additionalTelephones: string[];
+  additionalEmails: string[];
   category: string | null;
   fileType: string | null;
   fileSize: string | null;
@@ -36,7 +39,15 @@ export type DirectoryDocument = {
   tone: ReturnType<typeof toneForCategory> | null;
 };
 
-type ClientSummary = { client_name: string; company_name: string; telephone: string; email: string };
+type ClientSummary = {
+  client_name: string;
+  company_name: string;
+  telephone: string;
+  email: string;
+  additional_client_names: string[] | null;
+  additional_telephones: string[] | null;
+  additional_emails: string[] | null;
+};
 
 type DocumentRow = {
   id: string;
@@ -49,7 +60,15 @@ type DocumentRow = {
   clients: ClientSummary | ClientSummary[] | null;
 };
 
-const UNKNOWN_CLIENT: ClientSummary = { client_name: "Unknown client", company_name: "Unknown organisation", telephone: "", email: "" };
+const UNKNOWN_CLIENT: ClientSummary = {
+  client_name: "Unknown client",
+  company_name: "Unknown organisation",
+  telephone: "",
+  email: "",
+  additional_client_names: [],
+  additional_telephones: [],
+  additional_emails: [],
+};
 
 function clientSummary(clients: DocumentRow["clients"]): ClientSummary {
   if (!clients) return UNKNOWN_CLIENT;
@@ -71,6 +90,9 @@ async function toDirectoryDocument(supabase: SupabaseClient, row: DocumentRow): 
     clientName: client.client_name,
     telephone: client.telephone,
     email: client.email,
+    additionalClientNames: client.additional_client_names ?? [],
+    additionalTelephones: client.additional_telephones ?? [],
+    additionalEmails: client.additional_emails ?? [],
     category: row.category,
     fileType: extensionFromFileName(row.file_name),
     fileSize: formatFileSize(row.file_size),
@@ -89,6 +111,9 @@ type ClientOnlyRow = {
   company_name: string;
   telephone: string;
   email: string;
+  additional_client_names: string[] | null;
+  additional_telephones: string[] | null;
+  additional_emails: string[] | null;
   created_at: string;
   documents: { id: string }[] | null;
 };
@@ -102,6 +127,9 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
     clientName: row.client_name,
     telephone: row.telephone,
     email: row.email,
+    additionalClientNames: row.additional_client_names ?? [],
+    additionalTelephones: row.additional_telephones ?? [],
+    additionalEmails: row.additional_emails ?? [],
     category: null,
     fileType: null,
     fileSize: null,
@@ -120,12 +148,14 @@ export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
   const [documentsResult, clientsResult] = await Promise.all([
     supabase
       .from("documents")
-      .select("id, category, file_name, file_size, storage_path, thumbnail_path, created_at, clients(client_name, company_name, telephone, email)")
+      .select(
+        "id, category, file_name, file_size, storage_path, thumbnail_path, created_at, clients(client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails)",
+      )
       .order("created_at", { ascending: false })
       .limit(DIRECTORY_LIMIT),
     supabase
       .from("clients")
-      .select("id, client_name, company_name, telephone, email, created_at, documents(id)")
+      .select("id, client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails, created_at, documents(id)")
       .order("created_at", { ascending: false })
       .limit(DIRECTORY_LIMIT),
   ]);

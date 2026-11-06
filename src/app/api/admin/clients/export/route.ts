@@ -26,6 +26,9 @@ const COLUMNS: { header: string; width: number }[] = [
   { header: "Company Name", width: 28 },
   { header: "Telephone", width: 18 },
   { header: "Email", width: 30 },
+  { header: "Additional Names", width: 24 },
+  { header: "Additional Telephones", width: 24 },
+  { header: "Additional Emails", width: 28 },
   { header: "Submitted By", width: 20 },
   { header: "Submission Date", width: 18 },
   { header: "Category", width: 44 },
@@ -94,6 +97,9 @@ export async function GET() {
     companyName: string;
     telephone: string;
     email: string;
+    additionalClientNames: string;
+    additionalTelephones: string;
+    additionalEmails: string;
     submitterName: string;
     createdAt: string;
     category: string | null;
@@ -106,6 +112,9 @@ export async function GET() {
       companyName: client.companyName,
       telephone: client.telephone,
       email: client.email,
+      additionalClientNames: client.additionalClientNames.join("; ") || "—",
+      additionalTelephones: client.additionalTelephones.join("; ") || "—",
+      additionalEmails: client.additionalEmails.join("; ") || "—",
       submitterName: client.submitterName,
       createdAt: client.createdAt,
     };
@@ -197,17 +206,29 @@ export async function GET() {
 
   rows.forEach((row, index) => {
     const excelRow = sheet.getRow(HEADER_ROW + 1 + index);
-    const values = [row.clientName, row.companyName, row.telephone, row.email, row.submitterName, new Date(row.createdAt), row.category ?? "—", row.fileName ?? "—"];
+    const values = [
+      row.clientName,
+      row.companyName,
+      row.telephone,
+      row.email,
+      row.additionalClientNames,
+      row.additionalTelephones,
+      row.additionalEmails,
+      row.submitterName,
+      new Date(row.createdAt),
+      row.category ?? "—",
+      row.fileName ?? "—",
+    ];
     values.forEach((value, columnIndex) => {
       const cell = excelRow.getCell(columnIndex + 1);
       cell.value = value;
       cell.border = thinBorder(BRAND.line);
       cell.font = { size: 10.5, color: { argb: BRAND.ink } };
       cell.alignment = { vertical: "middle" };
-      if (columnIndex === 5) cell.numFmt = "dd mmm yyyy";
+      if (columnIndex === 8) cell.numFmt = "dd mmm yyyy";
     });
 
-    const categoryCell = excelRow.getCell(7);
+    const categoryCell = excelRow.getCell(10);
     if (row.category) {
       const tone = toneForCategory(row.category);
       categoryCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: tone === "teal" ? BRAND.tealSoft : tone === "amber" ? BRAND.amberSoft : BRAND.line } };
@@ -216,7 +237,7 @@ export async function GET() {
 
     if (index % 2 === 1) {
       excelRow.eachCell((cell, columnIndex) => {
-        if (columnIndex === 7 && row.category) return;
+        if (columnIndex === 10 && row.category) return;
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND.zebra } };
       });
     }
