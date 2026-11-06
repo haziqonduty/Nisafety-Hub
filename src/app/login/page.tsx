@@ -203,8 +203,16 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <p className="mt-6 text-center text-xs text-ink-faint">
+          By signing in, you agree to our{" "}
+          <Link href="/terms" className="font-semibold text-accent hover:text-accent-hover">
+            Terms &amp; Conditions
+          </Link>
+          .
+        </p>
+
         {mode === "staff" && (
-          <p className="mt-6 text-center text-sm text-ink-muted">
+          <p className="mt-4 text-center text-sm text-ink-muted">
             New staff member?{" "}
             <Link href="/signup" className="font-semibold text-accent hover:text-accent-hover">
               Create an account
