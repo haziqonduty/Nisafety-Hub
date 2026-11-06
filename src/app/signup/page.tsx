@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkEmailNotice, setCheckEmailNotice] = useState(false);
   const router = useRouter();
@@ -130,6 +131,23 @@ export default function SignupPage() {
                   {error}
                 </p>
               )}
+
+              <label className="mt-5 flex items-start gap-2.5 text-sm text-ink-muted">
+                <input
+                  required
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(event) => setAgreedToTerms(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-accent focus:ring-2 focus:ring-accent-soft"
+                />
+                <span>
+                  I have read and agree to the{" "}
+                  <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:text-accent-hover">
+                    Terms &amp; Conditions
+                  </Link>
+                  .
+                </span>
+              </label>
 
               <button
                 type="submit"

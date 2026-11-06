@@ -7,8 +7,11 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 // Outside [locale], English-only, same as /admin — see src/app/login,
 // src/app/signup, src/app/pending-approval. Reachable with no session at all
-// (there's nothing to gate on a sign-in page itself).
-const AUTH_PATHS = ["/login", "/signup", "/pending-approval"];
+// (there's nothing to gate on a sign-in page itself). /reset-password in
+// particular is always visited with no session yet — the recovery session
+// it needs arrives via the URL hash from the email link, which this
+// middleware never sees (hash fragments never reach the server).
+const AUTH_PATHS = ["/login", "/signup", "/pending-approval", "/forgot-password", "/reset-password", "/terms"];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

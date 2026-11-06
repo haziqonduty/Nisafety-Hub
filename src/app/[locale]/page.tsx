@@ -132,7 +132,12 @@ export default async function Home() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-ink-muted sm:flex-row sm:items-center sm:justify-between">
           <BrandLogo height={24} />
           <p>{t("footerTagline")}</p>
-          <a href="#top" className="font-semibold text-accent hover:text-accent-hover">{t("backToTop")}</a>
+          <div className="flex items-center gap-5">
+            <NextLink href="/terms" className="font-semibold text-accent hover:text-accent-hover">
+              {t("termsLink")}
+            </NextLink>
+            <a href="#top" className="font-semibold text-accent hover:text-accent-hover">{t("backToTop")}</a>
+          </div>
         </div>
       </footer>
     </main>
