@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { AuthVideoBackground } from "@/app/_components/auth-video-background";
 import { BrandLogo } from "@/app/_components/brand-logo";
-import { Arrow } from "@/app/_components/icons";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function ForgotPasswordPage() {
@@ -34,13 +33,6 @@ export default function ForgotPasswordPage() {
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white">
       <AuthVideoBackground />
-      <Link
-        href="/login"
-        aria-label="Back to sign in"
-        className="absolute left-6 top-6 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-xl backdrop-saturate-150 transition-colors hover:border-teal-300 hover:text-teal-300"
-      >
-        <Arrow className="h-4 w-4 rotate-180" />
-      </Link>
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
           <BrandLogo height={48} className="justify-center drop-shadow-[0_4px_18px_rgba(0,0,0,0.7)]" />
