@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import { AuthVideoBackground } from "@/app/_components/auth-video-background";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { Eye, EyeOff, ShieldCheck, Users } from "@/app/_components/icons";
-import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Mode = "staff" | "admin";
@@ -103,27 +103,32 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative grid min-h-screen place-items-center bg-canvas px-6 text-ink">
-      <div className="absolute right-6 top-6">
-        <ThemeToggle />
-      </div>
-      <div className="w-full max-w-sm">
-        <BrandLogo height={48} className="mb-8 justify-center" />
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white">
+      <AuthVideoBackground />
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="mb-8 flex justify-center">
+          <div className="rounded-2xl bg-white/95 px-5 py-3 shadow-[0_10px_30px_rgba(0,0,0,.35)] backdrop-blur">
+            <BrandLogo height={40} />
+          </div>
+        </div>
 
-        <form onSubmit={submit} className="rounded-[1.5rem] border border-line bg-surface p-8 shadow-[0_20px_50px_rgba(16,42,51,.07)]">
-          <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">{mode === "staff" ? "STAFF SIGN IN" : "ADMIN SIGN IN"}</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em]">Welcome back.</h1>
+        <form
+          onSubmit={submit}
+          className="rounded-[1.5rem] border border-white/15 bg-white/10 p-8 shadow-[0_25px_70px_rgba(0,0,0,.55)] backdrop-blur-2xl backdrop-saturate-150"
+        >
+          <p className="font-mono text-xs font-semibold tracking-[0.14em] text-teal-300">{mode === "staff" ? "STAFF SIGN IN" : "ADMIN SIGN IN"}</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-white">Welcome back.</h1>
 
-          <div className="relative mt-5 grid grid-cols-2 rounded-full border border-line bg-surface-soft p-1 text-sm font-semibold">
+          <div className="relative mt-5 grid grid-cols-2 rounded-full border border-white/15 bg-white/5 p-1 text-sm font-semibold">
             <span
               aria-hidden="true"
-              className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-br from-accent to-brand shadow-[0_8px_20px_rgba(15,118,110,.35)] transition-transform duration-300 ease-out ${mode === "admin" ? "translate-x-full" : "translate-x-0"}`}
+              className={`absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-br from-teal-400 to-teal-600 shadow-[0_8px_20px_rgba(45,212,191,.35)] transition-transform duration-300 ease-out ${mode === "admin" ? "translate-x-full" : "translate-x-0"}`}
             />
             <button
               type="button"
               onClick={() => switchMode("staff")}
               aria-pressed={mode === "staff"}
-              className={`relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 transition-colors duration-300 ${mode === "staff" ? "text-white" : "text-ink-muted hover:text-accent"}`}
+              className={`relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 transition-colors duration-300 ${mode === "staff" ? "text-slate-950" : "text-white/60 hover:text-teal-200"}`}
             >
               <Users className="h-3.5 w-3.5" /> Staff
             </button>
@@ -131,14 +136,14 @@ export default function LoginPage() {
               type="button"
               onClick={() => switchMode("admin")}
               aria-pressed={mode === "admin"}
-              className={`relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 transition-colors duration-300 ${mode === "admin" ? "text-white" : "text-ink-muted hover:text-accent"}`}
+              className={`relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 transition-colors duration-300 ${mode === "admin" ? "text-slate-950" : "text-white/60 hover:text-teal-200"}`}
             >
               <ShieldCheck className="h-3.5 w-3.5" /> Admin
             </button>
           </div>
 
           {mode === "staff" ? (
-            <label key="email" className="mt-6 block animate-[rise_.3s_ease-out_both] text-sm font-semibold">
+            <label key="email" className="mt-6 block animate-[rise_.3s_ease-out_both] text-sm font-semibold text-white">
               Email
               <input
                 required
@@ -147,11 +152,11 @@ export default function LoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                className="mt-2 w-full rounded-xl border border-white/20 bg-white/5 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-teal-300 focus:ring-4 focus:ring-teal-400/30"
               />
             </label>
           ) : (
-            <label key="username" className="mt-6 block animate-[rise_.3s_ease-out_both] text-sm font-semibold">
+            <label key="username" className="mt-6 block animate-[rise_.3s_ease-out_both] text-sm font-semibold text-white">
               Username
               <input
                 required
@@ -160,17 +165,17 @@ export default function LoginPage() {
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                className="mt-2 w-full rounded-xl border border-white/20 bg-white/5 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-teal-300 focus:ring-4 focus:ring-teal-400/30"
               />
             </label>
           )}
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <label htmlFor="login-password" className="text-sm font-semibold">
+            <label htmlFor="login-password" className="text-sm font-semibold text-white">
               Password
             </label>
             {mode === "staff" && (
-              <Link href="/forgot-password" className="text-xs font-semibold text-accent hover:text-accent-hover">
+              <Link href="/forgot-password" className="text-xs font-semibold text-teal-300 hover:text-teal-200">
                 Forgot password?
               </Link>
             )}
@@ -183,21 +188,21 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-line bg-surface px-3.5 py-3 pr-11 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+              className="w-full rounded-xl border border-white/20 bg-white/5 px-3.5 py-3 pr-11 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-teal-300 focus:ring-4 focus:ring-teal-400/30"
             />
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
               aria-label={showPassword ? "Hide password" : "Show password"}
               aria-pressed={showPassword}
-              className="absolute inset-y-0 right-0 grid w-11 place-items-center text-ink-muted transition-colors hover:text-accent"
+              className="absolute inset-y-0 right-0 grid w-11 place-items-center text-white/50 transition-colors hover:text-teal-300"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
 
           {error && (
-            <p className="mt-4 rounded-xl border border-danger-soft bg-danger-soft p-3 text-sm text-danger" role="alert">
+            <p className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200" role="alert">
               {error}
             </p>
           )}
@@ -205,16 +210,16 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-6 w-full rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 w-full rounded-full bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
 
         {mode === "staff" && (
-          <p className="mt-6 text-center text-sm text-ink-muted">
+          <p className="mt-6 text-center text-sm text-white/70">
             New staff member?{" "}
-            <Link href="/signup" className="font-semibold text-accent hover:text-accent-hover">
+            <Link href="/signup" className="font-semibold text-teal-300 hover:text-teal-200">
               Create an account
             </Link>
           </p>

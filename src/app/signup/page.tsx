@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import { AuthVideoBackground } from "@/app/_components/auth-video-background";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { Eye, EyeOff } from "@/app/_components/icons";
-import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function SignupPage() {
@@ -72,55 +72,60 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="relative grid min-h-screen place-items-center bg-canvas px-6 text-ink">
-      <div className="absolute right-6 top-6">
-        <ThemeToggle />
-      </div>
-      <div className="w-full max-w-sm">
-        <BrandLogo height={48} className="mb-8 justify-center" />
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white">
+      <AuthVideoBackground />
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="mb-8 flex justify-center">
+          <div className="rounded-2xl bg-white/95 px-5 py-3 shadow-[0_10px_30px_rgba(0,0,0,.35)] backdrop-blur">
+            <BrandLogo height={40} />
+          </div>
+        </div>
 
         {checkEmailNotice ? (
-          <div className="rounded-[1.5rem] border border-line bg-surface p-8 text-center shadow-[0_20px_50px_rgba(16,42,51,.07)]">
-            <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">ALMOST THERE</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em]">Check your email.</h1>
-            <p className="mt-3 text-sm text-ink-muted">
-              We&apos;ve sent a confirmation link to <span className="font-semibold text-ink">{email}</span>. Once confirmed, an admin still
+          <div className="rounded-[1.5rem] border border-white/15 bg-white/10 p-8 text-center shadow-[0_25px_70px_rgba(0,0,0,.55)] backdrop-blur-2xl backdrop-saturate-150">
+            <p className="font-mono text-xs font-semibold tracking-[0.14em] text-teal-300">ALMOST THERE</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-white">Check your email.</h1>
+            <p className="mt-3 text-sm text-white/70">
+              We&apos;ve sent a confirmation link to <span className="font-semibold text-white">{email}</span>. Once confirmed, an admin still
               needs to approve your account before you can sign in.
             </p>
-            <Link href="/login" className="mt-6 inline-block text-sm font-semibold text-accent hover:text-accent-hover">
+            <Link href="/login" className="mt-6 inline-block text-sm font-semibold text-teal-300 hover:text-teal-200">
               ← Back to sign in
             </Link>
           </div>
         ) : (
           <>
-            <form onSubmit={submit} className="rounded-[1.5rem] border border-line bg-surface p-8 shadow-[0_20px_50px_rgba(16,42,51,.07)]">
-              <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">CREATE STAFF ACCOUNT</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em]">Join Nisafety Hub.</h1>
-              <p className="mt-2 text-sm text-ink-muted">An admin reviews and approves every new account before it can sign in.</p>
+            <form
+              onSubmit={submit}
+              className="rounded-[1.5rem] border border-white/15 bg-white/10 p-8 shadow-[0_25px_70px_rgba(0,0,0,.55)] backdrop-blur-2xl backdrop-saturate-150"
+            >
+              <p className="font-mono text-xs font-semibold tracking-[0.14em] text-teal-300">CREATE STAFF ACCOUNT</p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-white">Join Nisafety Hub.</h1>
+              <p className="mt-2 text-sm text-white/70">An admin reviews and approves every new account before it can sign in.</p>
 
-              <label className="mt-6 block text-sm font-semibold">
+              <label className="mt-6 block text-sm font-semibold text-white">
                 Full name
                 <input
                   required
                   autoFocus
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/5 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-teal-300 focus:ring-4 focus:ring-teal-400/30"
                 />
               </label>
 
-              <label className="mt-4 block text-sm font-semibold">
+              <label className="mt-4 block text-sm font-semibold text-white">
                 Email
                 <input
                   required
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/5 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-teal-300 focus:ring-4 focus:ring-teal-400/30"
                 />
               </label>
 
-              <label className="mt-4 block text-sm font-semibold">
+              <label className="mt-4 block text-sm font-semibold text-white">
                 Password
                 <div className="relative mt-2">
                   <input
@@ -129,14 +134,14 @@ export default function SignupPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="w-full rounded-xl border border-line bg-surface px-3.5 py-3 pr-11 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                    className="w-full rounded-xl border border-white/20 bg-white/5 px-3.5 py-3 pr-11 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-teal-300 focus:ring-4 focus:ring-teal-400/30"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     aria-pressed={showPassword}
-                    className="absolute inset-y-0 right-0 grid w-11 place-items-center text-ink-muted transition-colors hover:text-accent"
+                    className="absolute inset-y-0 right-0 grid w-11 place-items-center text-white/50 transition-colors hover:text-teal-300"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -144,22 +149,22 @@ export default function SignupPage() {
               </label>
 
               {error && (
-                <p className="mt-4 rounded-xl border border-danger-soft bg-danger-soft p-3 text-sm text-danger" role="alert">
+                <p className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200" role="alert">
                   {error}
                 </p>
               )}
 
-              <label className="mt-5 flex items-start gap-2.5 text-sm text-ink-muted">
+              <label className="mt-5 flex items-start gap-2.5 text-sm text-white/70">
                 <input
                   required
                   type="checkbox"
                   checked={agreedToTerms}
                   onChange={(event) => setAgreedToTerms(event.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-accent focus:ring-2 focus:ring-accent-soft"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 text-teal-400 focus:ring-2 focus:ring-teal-400/30"
                 />
                 <span>
                   I have read and agree to the{" "}
-                  <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:text-accent-hover">
+                  <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-teal-300 hover:text-teal-200">
                     Terms &amp; Conditions
                   </Link>
                   .
@@ -169,15 +174,15 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-6 w-full rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-6 w-full rounded-full bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? "Creating account…" : "Create account"}
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-ink-muted">
+            <p className="mt-6 text-center text-sm text-white/70">
               Already have an account?{" "}
-              <Link href="/login" className="font-semibold text-accent hover:text-accent-hover">
+              <Link href="/login" className="font-semibold text-teal-300 hover:text-teal-200">
                 Sign in
               </Link>
             </p>
