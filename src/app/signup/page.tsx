@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { Eye, EyeOff } from "@/app/_components/icons";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
@@ -18,6 +18,18 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkEmailNotice, setCheckEmailNotice] = useState(false);
   const router = useRouter();
+
+  // Safety net for a slow-but-not-failed navigation (cold start, network
+  // blip) — see the matching watchdog in src/app/login/page.tsx for why this
+  // is needed on top of the error-path-only reset above.
+  useEffect(() => {
+    if (!isSubmitting) return;
+    const watchdog = setTimeout(() => {
+      setIsSubmitting(false);
+      setError("That's taking longer than expected. Please try again.");
+    }, 12000);
+    return () => clearTimeout(watchdog);
+  }, [isSubmitting]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

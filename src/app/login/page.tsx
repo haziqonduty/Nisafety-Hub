@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { Eye, EyeOff, ShieldCheck, Users } from "@/app/_components/icons";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
@@ -19,6 +19,24 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  // router.push() never throws and never resolves a promise we can await —
+  // if the destination is just slow (a cold serverless function, a cold
+  // Supabase connection, a network blip) rather than broken, there was
+  // previously no feedback at all: isSubmitting is deliberately left `true`
+  // after a successful sign-in until the navigation actually swaps the page
+  // out, so a slow-but-not-failed navigation froze the button on "Signing
+  // in…" forever, recoverable only by a manual tab refresh. This recovers
+  // on its own instead: if we're still here after a generous window, surface
+  // an error and let the user just press the button again.
+  useEffect(() => {
+    if (!isSubmitting) return;
+    const watchdog = setTimeout(() => {
+      setIsSubmitting(false);
+      setError("That's taking longer than expected. Please try again.");
+    }, 12000);
+    return () => clearTimeout(watchdog);
+  }, [isSubmitting]);
 
   function switchMode(next: Mode) {
     setMode(next);

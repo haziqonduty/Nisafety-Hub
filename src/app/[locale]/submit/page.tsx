@@ -83,6 +83,7 @@ export default function SubmitPage() {
   const [honeypot, setHoneypot] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isNavigatingAway, setIsNavigatingAway] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionNotice, setCompressionNotice] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
@@ -179,6 +180,23 @@ export default function SubmitPage() {
     setExistingClientId(null);
   }
 
+  // Scoped to the post-upload navigation only, not the whole submit — the
+  // upload itself can legitimately take a while on a slow connection, and a
+  // watchdog covering that too would misfire mid-upload. router.push() never
+  // throws or resolves a promise we can await, so without this a slow (but
+  // not failed) navigation after a successful upload left the button frozen
+  // on its submitting label forever, recoverable only by a manual refresh —
+  // same gap as src/app/login/page.tsx.
+  useEffect(() => {
+    if (!isNavigatingAway) return;
+    const watchdog = setTimeout(() => {
+      setIsNavigatingAway(false);
+      setIsSubmitting(false);
+      setError(tErrors("NETWORK_ERROR"));
+    }, 12000);
+    return () => clearTimeout(watchdog);
+  }, [isNavigatingAway, tErrors]);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (attachDocument && !selectedFile) {
@@ -219,6 +237,7 @@ export default function SubmitPage() {
       // its idle label the instant push() was called, not when
       // /submission-success was actually ready, which read as a stuck or
       // failed submit during the real wait for the destination page.
+      setIsNavigatingAway(true);
       router.push("/submission-success");
     } catch {
       setError(tErrors("NETWORK_ERROR"));
