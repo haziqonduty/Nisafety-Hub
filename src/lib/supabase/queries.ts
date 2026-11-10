@@ -17,6 +17,23 @@ async function signedUrlFor(supabase: SupabaseClient, storagePath: string) {
   return data?.signedUrl ?? null;
 }
 
+// Batched sibling of signedUrlFor — the directory page needs a signed URL for
+// every file AND thumbnail on the page, and signing one path at a time means
+// one Storage API round trip per path (up to ~400 for a full page). This
+// does it in a single request and hands back a path->url map instead.
+async function signedUrlsFor(supabase: SupabaseClient, storagePaths: string[]) {
+  const uniquePaths = [...new Set(storagePaths)];
+  if (uniquePaths.length === 0) return new Map<string, string>();
+
+  const { data } = await supabase.storage.from("safety-documents").createSignedUrls(uniquePaths, SIGNED_URL_TTL_SECONDS);
+
+  const map = new Map<string, string>();
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) map.set(entry.path, entry.signedUrl);
+  }
+  return map;
+}
+
 export type DirectoryDocument = {
   id: string;
   hasDocument: boolean;
@@ -75,12 +92,10 @@ function clientSummary(clients: DocumentRow["clients"]): ClientSummary {
   return Array.isArray(clients) ? (clients[0] ?? UNKNOWN_CLIENT) : clients;
 }
 
-async function toDirectoryDocument(supabase: SupabaseClient, row: DocumentRow): Promise<DirectoryDocument> {
+function toDirectoryDocument(row: DocumentRow, urls: Map<string, string>): DirectoryDocument {
   const client = clientSummary(row.clients);
-  const [publicUrl, thumbnailUrl] = await Promise.all([
-    signedUrlFor(supabase, row.storage_path),
-    row.thumbnail_path ? signedUrlFor(supabase, row.thumbnail_path) : Promise.resolve(null),
-  ]);
+  const publicUrl = urls.get(row.storage_path) ?? null;
+  const thumbnailUrl = row.thumbnail_path ? (urls.get(row.thumbnail_path) ?? null) : null;
 
   return {
     id: row.id,
@@ -163,8 +178,11 @@ export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
   const documentRows = (documentsResult.data ?? []) as unknown as DocumentRow[];
   const clientOnlyRows = ((clientsResult.data ?? []) as unknown as ClientOnlyRow[]).filter((row) => (row.documents?.length ?? 0) === 0);
 
+  const allPaths = documentRows.flatMap((row) => [row.storage_path, row.thumbnail_path].filter((path): path is string => Boolean(path)));
+  const urls = await signedUrlsFor(supabase, allPaths);
+
   const combined = [
-    ...(await Promise.all(documentRows.map(async (row) => ({ sortKey: row.created_at, document: await toDirectoryDocument(supabase, row) })))),
+    ...documentRows.map((row) => ({ sortKey: row.created_at, document: toDirectoryDocument(row, urls) })),
     ...clientOnlyRows.map((row) => ({ sortKey: row.created_at, document: toClientOnlyDirectoryDocument(row) })),
   ];
 

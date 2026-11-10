@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
+import { PROFILE_HEADER_NAME } from "@/lib/auth/profile-header";
 import { updateSession } from "@/lib/supabase/middleware";
 
 const intlMiddleware = createIntlMiddleware(routing);
@@ -29,23 +30,43 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", user.id).single();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role, status")
+    .eq("id", user.id)
+    .single();
 
   if (!profile || profile.status !== "approved") {
     return NextResponse.redirect(new URL("/pending-approval", request.url));
   }
 
+  // Hand the profile we just fetched to the page render via a request
+  // header, so getCurrentProfile() (src/lib/auth/profile.ts) can read it
+  // instead of re-running the exact same auth.getUser() + profiles query a
+  // second time — middleware and the page render are separate invocations,
+  // so React's cache() alone can't dedupe across them.
+  request.headers.set(
+    PROFILE_HEADER_NAME,
+    JSON.stringify({ id: profile.id, email: profile.email, fullName: profile.full_name, role: profile.role, status: profile.status }),
+  );
+
   if (pathname.startsWith("/admin")) {
     if (profile.role !== "admin") {
       return NextResponse.redirect(new URL("/", request.url));
     }
-    // /admin stays entirely outside the i18n system, same as before.
-    return response;
+    // /admin stays entirely outside the i18n system, same as before — just
+    // rebuilt (instead of reusing `response`) so it picks up the header set
+    // above, then carries the session-refresh cookies over the same way.
+    const adminResponse = NextResponse.next({ request });
+    response.cookies.getAll().forEach((cookie) => adminResponse.cookies.set(cookie));
+    return adminResponse;
   }
 
   // Public, locale-scoped tree: let next-intl resolve the locale, then carry
   // the Supabase session-refresh cookies over onto its response — both sets
-  // of cookies need to survive this single pass.
+  // of cookies need to survive this single pass. next-intl builds its
+  // response from `new Headers(request.headers)` internally, so the header
+  // set above rides along automatically.
   const intlResponse = intlMiddleware(request);
   response.cookies.getAll().forEach((cookie) => intlResponse.cookies.set(cookie));
   return intlResponse;

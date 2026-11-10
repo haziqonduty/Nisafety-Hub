@@ -1,6 +1,8 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import { cache } from "react";
+import { PROFILE_HEADER_NAME } from "@/lib/auth/profile-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type CurrentProfile = {
@@ -26,6 +28,9 @@ type ProfileRow = {
  * from the old single-shared-password admin login.
  */
 export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> => {
+  const fromMiddleware = await profileFromMiddlewareHeader();
+  if (fromMiddleware !== undefined) return fromMiddleware;
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -50,6 +55,23 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
     status: row.status,
   };
 });
+
+// `undefined` means "no header, fall back to a live Supabase lookup" — only
+// set when src/proxy.ts has already resolved the profile for this request
+// (API routes bypass middleware entirely and never see this header).
+async function profileFromMiddlewareHeader(): Promise<CurrentProfile | null | undefined> {
+  const headerList = await headers();
+  const raw = headerList.get(PROFILE_HEADER_NAME);
+  if (!raw) return undefined;
+
+  try {
+    const parsed = JSON.parse(raw) as CurrentProfile;
+    if (!parsed.id || !parsed.role || !parsed.status) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Null unless the caller is a signed-in, approved admin. */
 export async function requireAdminProfile(): Promise<CurrentProfile | null> {
