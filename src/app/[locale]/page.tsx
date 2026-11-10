@@ -136,9 +136,6 @@ export default async function Home() {
             <p className="mt-1 text-xs text-ink-faint">{t("credit")}</p>
           </div>
           <div className="flex items-center gap-5">
-            <NextLink href="/terms" className="font-semibold text-accent hover:text-accent-hover">
-              {t("termsLink")}
-            </NextLink>
             <a href="#top" className="font-semibold text-accent hover:text-accent-hover">{t("backToTop")}</a>
           </div>
         </div>
