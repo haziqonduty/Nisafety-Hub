@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { AuthVideoBackground } from "@/app/_components/auth-video-background";
 import { BrandLogo } from "@/app/_components/brand-logo";
-import { ThemeToggle } from "@/app/_components/theme-toggle";
+import { Arrow } from "@/app/_components/icons";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function ForgotPasswordPage() {
@@ -31,33 +32,43 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="relative grid min-h-screen place-items-center bg-canvas px-6 text-ink">
-      <div className="absolute right-6 top-6">
-        <ThemeToggle />
-      </div>
-      <div className="w-full max-w-sm">
-        <BrandLogo height={48} className="mb-8 justify-center" />
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white">
+      <AuthVideoBackground />
+      <Link
+        href="/login"
+        aria-label="Back to sign in"
+        className="absolute left-6 top-6 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-xl backdrop-saturate-150 transition-colors hover:border-teal-300 hover:text-teal-300"
+      >
+        <Arrow className="h-4 w-4 rotate-180" />
+      </Link>
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="mb-8 flex justify-center">
+          <BrandLogo height={48} className="justify-center drop-shadow-[0_4px_18px_rgba(0,0,0,0.7)]" />
+        </div>
 
         {submitted ? (
-          <div className="rounded-[1.5rem] border border-line bg-surface p-8 text-center shadow-[0_20px_50px_rgba(16,42,51,.07)]">
-            <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">CHECK YOUR EMAIL</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em]">Reset link sent.</h1>
-            <p className="mt-3 text-sm text-ink-muted">
-              If an account exists for <span className="font-semibold text-ink">{email}</span>, we&apos;ve sent a link to reset your
+          <div className="rounded-[1.5rem] border border-white/15 bg-white/10 p-8 text-center shadow-[0_25px_70px_rgba(0,0,0,.55)] backdrop-blur-2xl backdrop-saturate-150">
+            <p className="font-mono text-xs font-semibold tracking-[0.14em] text-teal-300">CHECK YOUR EMAIL</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-white">Reset link sent.</h1>
+            <p className="mt-3 text-sm text-white/70">
+              If an account exists for <span className="font-semibold text-white">{email}</span>, we&apos;ve sent a link to reset your
               password.
             </p>
-            <Link href="/login" className="mt-6 inline-block text-sm font-semibold text-accent hover:text-accent-hover">
+            <Link href="/login" className="mt-6 inline-block text-sm font-semibold text-teal-300 hover:text-teal-200">
               ← Back to sign in
             </Link>
           </div>
         ) : (
           <>
-            <form onSubmit={submit} className="rounded-[1.5rem] border border-line bg-surface p-8 shadow-[0_20px_50px_rgba(16,42,51,.07)]">
-              <p className="font-mono text-xs font-semibold tracking-[0.14em] text-accent">STAFF ACCOUNT</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em]">Forgot your password?</h1>
-              <p className="mt-2 text-sm text-ink-muted">Enter your email and we&apos;ll send you a link to reset it.</p>
+            <form
+              onSubmit={submit}
+              className="rounded-[1.5rem] border border-white/15 bg-white/10 p-8 shadow-[0_25px_70px_rgba(0,0,0,.55)] backdrop-blur-2xl backdrop-saturate-150"
+            >
+              <p className="font-mono text-xs font-semibold tracking-[0.14em] text-teal-300">STAFF ACCOUNT</p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-white">Forgot your password?</h1>
+              <p className="mt-2 text-sm text-white/70">Enter your email and we&apos;ll send you a link to reset it.</p>
 
-              <label className="mt-6 block text-sm font-semibold">
+              <label className="mt-6 block text-sm font-semibold text-white">
                 Email
                 <input
                   required
@@ -66,22 +77,22 @@ export default function ForgotPasswordPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/5 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-teal-300 focus:ring-4 focus:ring-teal-400/30"
                 />
               </label>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-6 w-full rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-6 w-full rounded-full bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? "Sending…" : "Send reset link"}
               </button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-ink-muted">
+            <p className="mt-6 text-center text-sm text-white/70">
               Remembered it?{" "}
-              <Link href="/login" className="font-semibold text-accent hover:text-accent-hover">
+              <Link href="/login" className="font-semibold text-teal-300 hover:text-teal-200">
                 Sign in
               </Link>
             </p>
