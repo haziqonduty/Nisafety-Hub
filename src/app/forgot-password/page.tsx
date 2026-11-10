@@ -16,10 +16,11 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true);
 
     try {
+      // No redirectTo here — the Supabase dashboard's "Reset Password" email
+      // template builds its own link straight to /api/auth/confirm (see that
+      // route for why), so this call only needs to know who to email.
       const supabase = createSupabaseBrowserClient();
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      await supabase.auth.resetPasswordForEmail(email);
     } finally {
       // Always show the same confirmation, whether or not the email is
       // registered — Supabase itself never reveals that either, to stop

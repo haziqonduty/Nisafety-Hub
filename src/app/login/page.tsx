@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { Eye, EyeOff, ShieldCheck, Users } from "@/app/_components/icons";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
@@ -19,22 +19,6 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-
-  // A password-reset email link should always land on /reset-password, but
-  // if it's ever misrouted here instead (e.g. Supabase's Redirect URL
-  // allow-list doesn't have the exact domain it was requested from yet, so
-  // Supabase falls back to the bare Site URL, which this app's auth gate
-  // then bounces straight to /login) the recovery session is still sitting
-  // in the URL hash — forward it on to /reset-password instead of leaving
-  // the visitor stuck looking at an ordinary sign-in form. Runs once on
-  // mount; the brief instant the form is visible first in that rare case is
-  // a better trade-off than adding a loading gate that delays every normal
-  // sign-in just to cover this edge case.
-  useEffect(() => {
-    if (window.location.hash.includes("type=recovery") && window.location.hash.includes("access_token")) {
-      router.replace(`/reset-password${window.location.hash}`);
-    }
-  }, [router]);
 
   function switchMode(next: Mode) {
     setMode(next);

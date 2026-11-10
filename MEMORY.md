@@ -591,6 +591,32 @@ Kay reported the sign-in loading state "not proper" — found the actual root ca
 - Also removed the now-pointless `router.refresh()` calls that sat right before each `router.push()` to a different route (login's two sign-in paths, sign-up's post-signup path) — refreshing the route being left behind serves no purpose once an immediate navigation away is about to independently fetch the destination fresh anyway; it was just extra work competing with the real navigation.
 - Pure client-side timing fix, no change to any auth/business logic — `npm run lint`/`npm run build` both clean afterward.
 
+## Real root cause found: password-reset links never actually worked (2026-11-10)
+
+Kay flagged the forgot-password flow was "the one left" still broken after the other loading-state fixes. Investigated properly rather than guessing — traced it all the way into `node_modules/@supabase/auth-js`'s actual source, not just docs:
+
+- `@supabase/ssr`'s `createBrowserClient` (`src/lib/supabase/browser.ts`'s client) **unconditionally hardcodes `flowType: "pkce"`** — not overridable via options (confirmed by reading `createBrowserClient.js` directly).
+- Supabase's own `/auth/v1/verify` endpoint (what the default `{{ .ConfirmationURL }}` email template variable points at) answers a password-recovery click with an **implicit-flow** callback — `access_token`/`refresh_token` straight in the URL **hash fragment** — confirmed empirically earlier this session by following the real redirect.
+- `GoTrueClient._getSessionFromURL()` explicitly checks for this mismatch and **throws `AuthPKCEGrantCodeExchangeError`** whenever an implicit-style callback reaches a pkce-flow client, discarding the session (`node_modules/@supabase/auth-js/dist/main/GoTrueClient.js` around line 3266). Confirmed live with a Node script that shimmed just enough of `window`/`document.cookie` to run the real `@supabase/ssr` browser client against a real Supabase-issued recovery link.
+- Net effect: **every** password-reset link, for every user, on every browser, would reach `/reset-password`, sit on "Checking your reset link…", and always fall through to "This link isn't valid" — a hard, permanent failure, not a rare timing race. My earlier "verified live" checks of this flow (this session, 2026-11-06) only ever used manual `setSession()`/plain `createClient()` calls to test the Supabase API mechanics directly — never the actual browser auto-detection code path the real page used, which is why this was missed until now.
+
+**The fix — switched to Supabase's own documented token-hash pattern, which sidesteps the whole PKCE/implicit mismatch (and also the separate problem, fixed earlier, of email links breaking across different redirect-URL domains) by never putting anything in the URL hash or relying on PKCE code-verifier cookies at all:**
+
+- **New `src/app/api/auth/confirm/route.ts`**: takes `token_hash` + `type` as plain, server-visible query params, calls `supabase.auth.verifyOtp({ type: "recovery", token_hash })` server-side — this establishes a real session via cookies *before* the browser ever reaches `/reset-password`. Redirects to `next` (default `/reset-password`) on success, or to `/reset-password` (showing its "link expired" state) on failure.
+- **`src/app/reset-password/page.tsx`** rewritten as a plain async Server Component: just `const { data: { user } } = await supabase.auth.getUser()` and render the form or the "link expired" card accordingly — no more client-side `checking`/`ready` state machine, no `onAuthStateChange`/`getSession()`/timeout race at all, because by the time this page runs server-side the session (if any) is already real.
+- **New `src/app/_components/reset-password-form.tsx`**: the interactive new-password form, extracted as a client component so the page itself can stay a server component.
+- **`src/app/forgot-password/page.tsx`**: dropped the now-meaningless `redirectTo` option from `resetPasswordForEmail()` — the email template builds its own confirm URL now, ignoring it.
+- **`src/app/login/page.tsx`**: removed the hash-sniffing safety-net `useEffect` added 2026-11-06 — it defended against a stray recovery hash landing on `/login`, which can no longer happen now that the flow never puts anything in the hash.
+- **Verified live, end to end, against the real dev server + real Supabase project**: generated a real `hashed_token` via the admin API, hit `/api/auth/confirm` cold (no cookies) exactly like a fresh browser clicking the email link would, confirmed it set a real session cookie and redirected to `/reset-password`, then confirmed `/reset-password` with those cookies renders the real form (not "LINK EXPIRED"). Also confirmed the negative path: an invalid token, or no session at all, still correctly shows "LINK EXPIRED".
+
+**One required manual step — code alone does not fix this.** Kay must edit the "Reset Password" email template in the Supabase dashboard (Authentication → Email Templates → Reset Password), replacing the `{{ .ConfirmationURL }}` link with:
+```html
+<a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password">Reset Password</a>
+```
+Until that's done, Supabase keeps sending the old broken-style link regardless of this code deploy.
+
+## Planned Screen Flow
+
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).
 - `/signup` — self-service staff account request; stays `pending` until an admin approves it (implemented).
 - `/pending-approval` — shown to an authenticated-but-not-yet-approved (or rejected) account (implemented).
