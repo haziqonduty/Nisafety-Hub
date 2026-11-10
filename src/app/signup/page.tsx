@@ -76,9 +76,7 @@ export default function SignupPage() {
       <AuthVideoBackground />
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
-          <div className="rounded-2xl bg-white/95 px-5 py-3 shadow-[0_10px_30px_rgba(0,0,0,.35)] backdrop-blur">
-            <BrandLogo height={40} />
-          </div>
+          <BrandLogo height={48} className="justify-center drop-shadow-[0_4px_18px_rgba(0,0,0,0.7)]" />
         </div>
 
         {checkEmailNotice ? (
