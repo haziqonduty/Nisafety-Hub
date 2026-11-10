@@ -48,12 +48,19 @@ export default function LoginPage() {
 
     if (signInError || !data.user) {
       setError("Incorrect email or password.");
+      setIsSubmitting(false);
       return;
     }
 
     const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", data.user.id).single();
 
-    router.refresh();
+    // Deliberately leave isSubmitting(true) here: the button stays disabled
+    // and showing "Signing in…" for as long as this page is still on
+    // screen, right up until the navigation below actually swaps it out.
+    // Clearing it immediately (the old behaviour) made the button pop back
+    // to "Sign in" the instant push() was *called*, not when the new page
+    // was actually ready — so during the real network/render wait for the
+    // destination, the form looked idle again as if nothing had happened.
     if (!profile || profile.status !== "approved") {
       router.push("/pending-approval");
     } else if (profile.role === "admin") {
@@ -72,11 +79,11 @@ export default function LoginPage() {
 
     if (!response.ok) {
       setError("Incorrect username or password.");
+      setIsSubmitting(false);
       return;
     }
 
     router.push("/admin");
-    router.refresh();
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -89,7 +96,6 @@ export default function LoginPage() {
       else await submitAdmin();
     } catch {
       setError("We could not reach the sign-in service. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   }

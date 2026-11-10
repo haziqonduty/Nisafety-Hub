@@ -34,6 +34,7 @@ export default function SignupPage() {
 
       if (signUpError) {
         setError(signUpError.message || "We could not create your account. Please try again.");
+        setIsSubmitting(false);
         return;
       }
 
@@ -42,14 +43,18 @@ export default function SignupPage() {
       // first. Both outcomes lead to the same place (waiting for admin
       // approval), just with a different first step.
       if (data.session) {
-        router.refresh();
+        // Left deliberately in its "Creating account…" state here — the
+        // button only resets on an error path. Resetting it unconditionally
+        // (the old behaviour) made it pop back to "Create account" the
+        // instant push() was called, not when /pending-approval was
+        // actually ready, which read as the click doing nothing.
         router.push("/pending-approval");
       } else {
         setCheckEmailNotice(true);
+        setIsSubmitting(false);
       }
     } catch {
       setError("We could not reach the sign-up service. Please try again.");
-    } finally {
       setIsSubmitting(false);
     }
   }

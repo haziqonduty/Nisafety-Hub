@@ -211,12 +211,17 @@ export default function SubmitPage() {
       const result = (await response.json()) as { error?: string };
       if (!response.ok) {
         setError(tErrors(errorCodeFrom(result.error)));
+        setIsSubmitting(false);
         return;
       }
+      // Left deliberately in its submitting state here rather than reset in
+      // a finally — resetting unconditionally made the button pop back to
+      // its idle label the instant push() was called, not when
+      // /submission-success was actually ready, which read as a stuck or
+      // failed submit during the real wait for the destination page.
       router.push("/submission-success");
     } catch {
       setError(tErrors("NETWORK_ERROR"));
-    } finally {
       setIsSubmitting(false);
     }
   }
