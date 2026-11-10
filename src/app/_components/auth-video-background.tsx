@@ -24,7 +24,13 @@ export function AuthVideoBackground() {
   }, []);
 
   return (
-    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-slate-950">
+    // Not -z-10: <main> never establishes its own stacking context (plain
+    // position: relative, no z-index/transform/opacity of its own), so a
+    // negative z-index here would paint this behind <main>'s own background
+    // fill instead of just behind its z-10 foreground content — invisible
+    // either way. z-0 sits above the parent's background and below the
+    // foreground content's explicit z-10, which is the actual goal.
+    <div aria-hidden="true" className="absolute inset-0 z-0 overflow-hidden bg-slate-950">
       {allowMotion ? (
         <video autoPlay muted loop playsInline preload="auto" poster={POSTER_SRC} className="absolute inset-0 h-full w-full object-cover">
           <source src={VIDEO_SRC} type="video/mp4" />
