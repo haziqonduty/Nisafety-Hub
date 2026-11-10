@@ -25,6 +25,7 @@ export default async function AdminDashboardLayout({ children }: LayoutProps<"/a
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 pb-24 lg:px-8">{children}</main>
+      <footer className="mx-auto max-w-6xl px-6 pb-8 text-xs text-ink-faint lg:px-8">Developed by Caryn Smart Tech</footer>
     </div>
   );
 }

@@ -130,8 +130,11 @@ export default async function Home() {
 
       <footer className="border-t border-line bg-surface px-6 py-8 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-ink-muted sm:flex-row sm:items-center sm:justify-between">
-          <BrandLogo height={24} />
-          <p>{t("footerTagline")}</p>
+          <div>
+            <BrandLogo height={24} />
+            <p className="mt-2">{t("footerTagline")}</p>
+            <p className="mt-1 text-xs text-ink-faint">{t("credit")}</p>
+          </div>
           <div className="flex items-center gap-5">
             <NextLink href="/terms" className="font-semibold text-accent hover:text-accent-hover">
               {t("termsLink")}
