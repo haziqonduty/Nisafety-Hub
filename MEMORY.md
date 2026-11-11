@@ -636,6 +636,12 @@ Kay reported the same symptom four times across two sessions: click Sign in → 
 - **Lesson: this class of bug does not reproduce in `next dev`** (prefetching is disabled there) — only against `next build` + `next start` or production. Server-side `curl` timings cannot see it either, because the hang is a client-cache no-op with no request at all. Reproduce auth-flow bugs in a real browser: scratchpad project with `playwright` + `chromium.launch({ channel: "chrome" })` (Chrome/Edge are installed; no browser download needed), create a throwaway approved user via the service role, log every request/response, delete the user after.
 - Latent bug found while testing, **not fixed**: `handle_new_user()` (migration `20261104_add_staff_auth.sql`) inserts `coalesce(raw_user_meta_data->>'full_name', '')`, but `profiles.full_name` has `check (char_length between 1 and 160)`, so any `auth.admin.createUser()` without `user_metadata.full_name` fails with "Database error creating new user". The signup page always sends a name, so real users aren't affected; admin-side provisioning scripts must pass `user_metadata: { full_name }`.
 
+## Admin can delete a staff account outright (2026-11-11)
+
+Kay asked for a remove/delete-user feature for admins (previously only Revoke access existed; a hard delete needed the service-role console). `DELETE /api/admin/staff/[id]` added next to the existing `PATCH` — `requireAdminProfile()`, self-delete blocked (400), `auth.admin.deleteUser(id)` via the service client; the `profiles` row cascades, and `clients.created_by` / `profiles.approved_by` are `ON DELETE SET NULL` so everything the person submitted or approved is kept. UI: a trash icon button on every non-self card in `admin-staff-table.tsx` (all statuses) that swaps the action row for an inline "Delete this account permanently? Yes, delete / Cancel" confirmation — no `window.confirm`. Verified end to end against a local `next start`: 401 unauthenticated, 400 self, 200 real delete (auth user + profile gone), 404 on repeat, page renders the button.
+
+- Gotcha: `TaskStop` on a background `npx next start` kills the npx wrapper but can leave the actual server child alive on the port, silently serving the *previous* build (got 405s from a route that clearly existed). After stopping a test server, check `netstat -ano | grep :<port>` and `taskkill` the PID.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

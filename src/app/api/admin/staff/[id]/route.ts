@@ -40,3 +40,31 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
 
   return Response.json({ ok: true });
 }
+
+export async function DELETE(_request: Request, context: RouteContext<"/api/admin/staff/[id]">) {
+  const adminProfile = await requireAdminProfile();
+  if (!adminProfile) {
+    return Response.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+  if (id === adminProfile.id) {
+    return Response.json({ error: "You can't delete your own account here." }, { status: 400 });
+  }
+
+  // Deleting the auth user cascades to its profiles row; clients.created_by
+  // and profiles.approved_by are ON DELETE SET NULL, so anything this person
+  // submitted or approved stays — only the account itself goes.
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase.auth.admin.deleteUser(id);
+
+  if (error) {
+    const notFound = error.status === 404;
+    return Response.json(
+      { error: notFound ? "This account no longer exists." : "We could not delete this account. Please try again." },
+      { status: notFound ? 404 : 500 },
+    );
+  }
+
+  return Response.json({ ok: true });
+}

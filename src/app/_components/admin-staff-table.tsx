@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Calendar, Mail } from "@/app/_components/icons";
+import { Calendar, Mail, Trash } from "@/app/_components/icons";
 import type { AdminProfile } from "@/lib/supabase/queries";
 
 function initialsFor(name: string) {
@@ -23,21 +23,18 @@ const STATUS_LABEL: Record<AdminProfile["status"], string> = {
 
 function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean }) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  async function patch(body: { status?: string; role?: string }) {
+  async function send(init: RequestInit, fallbackError: string) {
     setError("");
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/staff/${profile.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const response = await fetch(`/api/admin/staff/${profile.id}`, init);
       const result = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setError(result.error ?? "We could not update this account.");
+        setError(result.error ?? fallbackError);
         return;
       }
       router.refresh();
@@ -46,6 +43,18 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
     } finally {
       setIsUpdating(false);
     }
+  }
+
+  function patch(body: { status?: string; role?: string }) {
+    return send(
+      { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      "We could not update this account.",
+    );
+  }
+
+  async function remove() {
+    await send({ method: "DELETE" }, "We could not delete this account.");
+    setConfirmingDelete(false);
   }
 
   return (
@@ -83,7 +92,29 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
           </div>
         </div>
 
-        {!isSelf && (
+        {!isSelf && confirmingDelete && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-danger-soft bg-danger-soft px-3 py-2">
+            <span className="text-xs font-semibold text-danger">Delete this account permanently?</span>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={isUpdating}
+              className="rounded-full bg-danger px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+            >
+              {isUpdating ? "Deleting…" : "Yes, delete"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={isUpdating}
+              className="rounded-full border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink-muted transition hover:border-accent hover:text-accent disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {!isSelf && !confirmingDelete && (
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {profile.status === "pending" && (
               <>
@@ -135,6 +166,19 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
                 Approve
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setConfirmingDelete(true);
+              }}
+              disabled={isUpdating}
+              aria-label={`Delete account for ${profile.fullName || profile.email}`}
+              title="Delete account"
+              className="grid h-8 w-8 place-items-center rounded-full border border-line text-ink-muted transition hover:border-danger hover:bg-danger-soft hover:text-danger disabled:opacity-60"
+            >
+              <Trash className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
       </div>
