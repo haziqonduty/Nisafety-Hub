@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthVideoBackground } from "@/app/_components/auth-video-background";
 import { BrandLogo } from "@/app/_components/brand-logo";
@@ -18,17 +17,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
 
-  // router.push() never throws and never resolves a promise we can await —
-  // if the destination is just slow (a cold serverless function, a cold
-  // Supabase connection, a network blip) rather than broken, there was
-  // previously no feedback at all: isSubmitting is deliberately left `true`
-  // after a successful sign-in until the navigation actually swaps the page
-  // out, so a slow-but-not-failed navigation froze the button on "Signing
-  // in…" forever, recoverable only by a manual tab refresh. This recovers
-  // on its own instead: if we're still here after a generous window, surface
-  // an error and let the user just press the button again.
+  // Safety net only: isSubmitting is deliberately left `true` after a
+  // successful sign-in until the full-page navigation below unloads this
+  // page. If the destination is genuinely slow to respond, recover on our
+  // own after a generous window instead of freezing the button forever.
   useEffect(() => {
     if (!isSubmitting) return;
     const watchdog = setTimeout(() => {
@@ -56,19 +49,24 @@ export default function LoginPage() {
 
     const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", data.user.id).single();
 
-    // Deliberately leave isSubmitting(true) here: the button stays disabled
-    // and showing "Signing in…" for as long as this page is still on
-    // screen, right up until the navigation below actually swaps it out.
-    // Clearing it immediately (the old behaviour) made the button pop back
-    // to "Sign in" the instant push() was *called*, not when the new page
-    // was actually ready — so during the real network/render wait for the
-    // destination, the form looked idle again as if nothing had happened.
+    // Full-page navigation on purpose, NOT router.push(). The router
+    // prefetches every <Link> on this page while the user is still signed
+    // out — including "/" via the logo — and the middleware answers that
+    // prefetch with a redirect back to /login. router.push("/") then
+    // serves that stale prefetched redirect straight from the client cache
+    // with no server round trip, so it "navigates" to /login (where we
+    // already are) and the page never changes: the button sat on "Signing
+    // in…" until a refresh cleared the cache. A document load always asks
+    // the server, which now sees the fresh session cookie.
+    // replace() rather than assign() so Back doesn't land on the login form.
+    // isSubmitting stays true until this page unloads, so the button keeps
+    // showing "Signing in…" for exactly as long as the form is on screen.
     if (!profile || profile.status !== "approved") {
-      router.push("/pending-approval");
+      window.location.replace("/pending-approval");
     } else if (profile.role === "admin") {
-      router.push("/admin");
+      window.location.replace("/admin");
     } else {
-      router.push("/");
+      window.location.replace("/");
     }
   }
 
@@ -85,7 +83,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/admin");
+    window.location.replace("/admin");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

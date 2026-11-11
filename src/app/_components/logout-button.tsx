@@ -1,20 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export function LogoutButton() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
 
-  // Same watchdog as src/app/login/page.tsx: router.push() never throws or
-  // resolves a promise we can await, so a slow-but-not-failed /login load
-  // (cold start, network blip) after a successful sign-out previously froze
-  // this button on "Signing out…" forever, recoverable only by a manual
-  // refresh. Also, unlike the login form, this had no try/catch at all —
-  // signOut() itself throwing left the same frozen button with no feedback.
+  // Safety net for a genuinely slow /login load after a successful
+  // sign-out — same pattern as src/app/login/page.tsx.
   useEffect(() => {
     if (!isSigningOut) return;
     const watchdog = setTimeout(() => {
@@ -30,8 +24,11 @@ export function LogoutButton() {
 
     try {
       await createSupabaseBrowserClient().auth.signOut();
-      router.push("/login");
-      router.refresh();
+      // Full-page navigation, not router.push() + router.refresh(): the
+      // session just ended, so nothing the client router cached for this
+      // user (prefetched pages, the homepage payload) should survive — a
+      // document load throws all of it away, and Back can't resurface it.
+      window.location.replace("/login");
     } catch {
       setError("We could not reach the sign-in service. Please try again.");
       setIsSigningOut(false);

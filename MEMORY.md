@@ -615,6 +615,27 @@ Kay flagged the forgot-password flow was "the one left" still broken after the o
 ```
 Until that's done, Supabase keeps sending the old broken-style link regardless of this code deploy.
 
+## Glassmorphism + looping drone-video background on the auth pages (2026-11-10)
+
+Kay asked for a "real-looking" aerial drone loop behind sign-in/sign-up with glass-style forms. Built as `src/app/_components/auth-video-background.tsx` (used by `/login`, `/signup`, `/forgot-password`): muted/autoplay/loop `<video>` over a dark gradient, poster-image fallback for `prefers-reduced-motion`, `preload="metadata"`, and the `<video>` is fully unmounted while `paused` (= `isSubmitting`) is true so it can't compete for bandwidth during a submit. Assets: `public/auth-drone-bg.mp4` + `public/auth-drone-bg.jpg`. Kay supplied a 4K/60fps 162MB clip; re-encoded with ffmpeg (installed via winget) to 1080p/30fps, no audio, ~12.6MB — never ship the original. Theme toggle removed from these three pages (glass look is fixed-dark); logo gets a drop-shadow instead of a white chip (Kay asked for the chip removed). Forgot-password briefly had a top-left back button; Kay asked for it removed the same day.
+
+- Gotcha hit along the way: the background wrapper first used `-z-10`, which painted it *behind* `<main>`'s own `bg-slate-950` (plain `position: relative` establishes no stacking context), so the video was invisible — fixed with `z-0`.
+
+## Real root cause of "sign-in button stuck, works after refresh": stale router prefetch cache, NOT cold start, NOT bandwidth (2026-11-11)
+
+Kay reported the same symptom four times across two sessions: click Sign in → stuck on "Signing in…" (12s watchdog fires) → refresh/reopen the tab → already logged in. Three wrong diagnoses were shipped before the real one — recorded here so none are repeated:
+
+1. ~~Cold serverless/Supabase start~~ (2026-11-10, led to the 12s watchdog — kept as a safety net, but it was never the cause).
+2. ~~The 12.6MB background video starving the auth request of bandwidth~~ (`preload="metadata"`, then `video.pause()`, then unmounting it on submit). Harmless, kept, but direct measurements showed Supabase sign-in ~200–400ms and the authenticated homepage render ~350ms the whole time.
+3. The decisive clue was Kay's "close the tab, reopen, and I'm on the homepage" — i.e. **the sign-in had succeeded**; only the navigation was stuck.
+
+**Actual cause (reproduced deterministically in real Chrome via Playwright against production, unthrottled):** on `/login`, Next.js prefetches every `<Link>` on the page — including `/` via `BrandLogo`. That prefetch reaches `src/proxy.ts` *before* the user is signed in, so middleware answers it with a **307 → /login**, and the client router caches "`/` → `/login`". After a successful sign-in, `router.push("/")` served that stale prefetched redirect **with zero network requests** (the network log literally showed nothing after the profiles query), "navigating" to `/login` where the user already was. A refresh clears the router cache and the next prefetch of `/` happens while authenticated — hence "works the second time". The pattern is generic: *any* `router.push()` across a session boundary (sign-in, sign-up, sign-out) can hit a cache entry fetched under the previous auth state.
+
+**Fix:** `window.location.replace(...)` instead of `router.push()` for every post-auth navigation — `src/app/login/page.tsx` (staff + admin paths), `src/app/signup/page.tsx`, `src/app/_components/logout-button.tsx` (also drops the previous user's cached pages so Back can't resurface them). `useRouter` removed from all three. Verified in Chrome against a local `next start` build: real `GET /` document request, navigated in ~1.1s.
+
+- **Lesson: this class of bug does not reproduce in `next dev`** (prefetching is disabled there) — only against `next build` + `next start` or production. Server-side `curl` timings cannot see it either, because the hang is a client-cache no-op with no request at all. Reproduce auth-flow bugs in a real browser: scratchpad project with `playwright` + `chromium.launch({ channel: "chrome" })` (Chrome/Edge are installed; no browser download needed), create a throwaway approved user via the service role, log every request/response, delete the user after.
+- Latent bug found while testing, **not fixed**: `handle_new_user()` (migration `20261104_add_staff_auth.sql`) inserts `coalesce(raw_user_meta_data->>'full_name', '')`, but `profiles.full_name` has `check (char_length between 1 and 160)`, so any `auth.admin.createUser()` without `user_metadata.full_name` fails with "Database error creating new user". The signup page always sends a name, so real users aren't affected; admin-side provisioning scripts must pass `user_metadata: { full_name }`.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

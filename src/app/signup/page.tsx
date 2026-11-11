@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthVideoBackground } from "@/app/_components/auth-video-background";
 import { BrandLogo } from "@/app/_components/brand-logo";
@@ -17,11 +16,9 @@ export default function SignupPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkEmailNotice, setCheckEmailNotice] = useState(false);
-  const router = useRouter();
 
-  // Safety net for a slow-but-not-failed navigation (cold start, network
-  // blip) — see the matching watchdog in src/app/login/page.tsx for why this
-  // is needed on top of the error-path-only reset above.
+  // Safety net for a genuinely slow destination — see the matching watchdog
+  // in src/app/login/page.tsx.
   useEffect(() => {
     if (!isSubmitting) return;
     const watchdog = setTimeout(() => {
@@ -55,12 +52,11 @@ export default function SignupPage() {
       // first. Both outcomes lead to the same place (waiting for admin
       // approval), just with a different first step.
       if (data.session) {
-        // Left deliberately in its "Creating account…" state here — the
-        // button only resets on an error path. Resetting it unconditionally
-        // (the old behaviour) made it pop back to "Create account" the
-        // instant push() was called, not when /pending-approval was
-        // actually ready, which read as the click doing nothing.
-        router.push("/pending-approval");
+        // Full-page navigation, not router.push(): the session just changed,
+        // and anything the router prefetched on this page was fetched while
+        // signed out — see the sign-in handler in src/app/login/page.tsx.
+        // The button stays on "Creating account…" until this page unloads.
+        window.location.replace("/pending-approval");
       } else {
         setCheckEmailNotice(true);
         setIsSubmitting(false);
