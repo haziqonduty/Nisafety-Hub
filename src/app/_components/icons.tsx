@@ -90,6 +90,26 @@ export function Plus(props: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>;
 }
 
+export function Inbox(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M4 13.5 6.2 5.8A1.5 1.5 0 0 1 7.6 4.7h8.8a1.5 1.5 0 0 1 1.4 1.1L20 13.5v4a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5v-4Z" strokeLinejoin="round" /><path d="M4 13.5h4.5l1 2h5l1-2H20" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+export function Activity(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M3 12h3.5l2.5-6 4 12 2.5-6H21" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+export function Paperclip(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="m16.5 11.5-5.3 5.3a3.2 3.2 0 0 1-4.5-4.5l6.4-6.4a2.1 2.1 0 0 1 3 3l-6.4 6.4a1 1 0 0 1-1.5-1.5l5.3-5.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+export function Check(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+export function Grid(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>;
+}
+
 export function Close(props: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" /></svg>;
 }

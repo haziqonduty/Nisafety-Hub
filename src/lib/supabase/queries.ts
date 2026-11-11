@@ -479,6 +479,125 @@ export async function getAdminClients(): Promise<AdminClient[]> {
   }));
 }
 
+export type WorkspaceRecord = {
+  /** `/records/[id]` target — the latest document's id, or the client's own id when no report is attached yet. */
+  id: string;
+  company: string;
+  clientName: string;
+  category: string | null;
+  fileType: string | null;
+  thumbnailUrl: string | null;
+  documentCount: number;
+  date: string;
+  createdAt: string;
+};
+
+export type WorkspaceData = {
+  totalDocuments: number;
+  totalClients: number;
+  /** Documents published per day over the last 14 days, oldest first. */
+  dailyDocuments: number[];
+  thisWeekDocuments: number;
+  lastWeekDocuments: number;
+  /** Records the signed-in user created, newest first (max 5). */
+  myRecent: WorkspaceRecord[];
+  /** The signed-in user's client records that still have no report attached (max 3 shown). */
+  myIncomplete: WorkspaceRecord[];
+  myIncompleteCount: number;
+  /** Admin only — sign-ups waiting for approval. */
+  pendingApprovals: { count: number; names: string[] } | null;
+};
+
+type WorkspaceClientRow = {
+  id: string;
+  client_name: string;
+  company_name: string;
+  created_at: string;
+  documents: { id: string; file_name: string; category: string; thumbnail_path: string | null; created_at: string }[] | null;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const PULSE_DAYS = 14;
+
+/**
+ * Everything the staff workspace (/) shows above the directory. One round of
+ * parallel queries, all through the session client so RLS applies as the
+ * signed-in user — except the pending-approvals peek, which is admin-only
+ * data and goes through the service client only when the caller is an admin
+ * (same reasoning as getAllProfiles()).
+ */
+export async function getWorkspaceData(profile: { id: string; role: "admin" | "staff" }): Promise<WorkspaceData> {
+  const supabase = await createSupabaseServerClient();
+  const since = new Date(Date.now() - PULSE_DAYS * DAY_MS).toISOString();
+
+  const [documentsCount, clientsCount, recentDocuments, myClients, pendingProfiles] = await Promise.all([
+    supabase.from("documents").select("id", { count: "exact", head: true }),
+    supabase.from("clients").select("id", { count: "exact", head: true }),
+    supabase.from("documents").select("created_at").gte("created_at", since),
+    supabase
+      .from("clients")
+      .select("id, client_name, company_name, created_at, documents(id, file_name, category, thumbnail_path, created_at)")
+      .eq("created_by", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    profile.role === "admin"
+      ? createSupabaseServiceClient()
+          .from("profiles")
+          .select("full_name", { count: "exact" })
+          .eq("status", "pending")
+          .neq("email", ADMIN_LOGIN_EMAIL)
+          .order("created_at", { ascending: true })
+          .limit(3)
+      : Promise.resolve(null),
+  ]);
+
+  // Day buckets relative to "now" so the last bar is always today.
+  const dailyDocuments = Array.from({ length: PULSE_DAYS }, () => 0);
+  const now = Date.now();
+  for (const row of recentDocuments.data ?? []) {
+    const ageDays = Math.floor((now - new Date(row.created_at as string).getTime()) / DAY_MS);
+    const index = PULSE_DAYS - 1 - ageDays;
+    if (index >= 0 && index < PULSE_DAYS) dailyDocuments[index] += 1;
+  }
+  const lastWeekDocuments = dailyDocuments.slice(0, 7).reduce((sum, value) => sum + value, 0);
+  const thisWeekDocuments = dailyDocuments.slice(7).reduce((sum, value) => sum + value, 0);
+
+  const clientRows = (myClients.data ?? []) as unknown as WorkspaceClientRow[];
+  const thumbnailPaths = clientRows.flatMap((row) => (row.documents ?? []).map((document) => document.thumbnail_path)).filter((path): path is string => Boolean(path));
+  const urls = await signedUrlsFor(supabase, thumbnailPaths);
+
+  const myRecords = clientRows.map((row): WorkspaceRecord => {
+    const documents = [...(row.documents ?? [])].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    const latest = documents[0] ?? null;
+    return {
+      id: latest?.id ?? row.id,
+      company: row.company_name,
+      clientName: row.client_name,
+      category: latest?.category ?? null,
+      fileType: latest ? extensionFromFileName(latest.file_name) : null,
+      thumbnailUrl: latest?.thumbnail_path ? (urls.get(latest.thumbnail_path) ?? null) : null,
+      documentCount: documents.length,
+      date: formatDate(latest?.created_at ?? row.created_at),
+      createdAt: latest?.created_at ?? row.created_at,
+    };
+  });
+  const incomplete = myRecords.filter((record) => record.documentCount === 0);
+
+  return {
+    totalDocuments: documentsCount.count ?? 0,
+    totalClients: clientsCount.count ?? 0,
+    dailyDocuments,
+    thisWeekDocuments,
+    lastWeekDocuments,
+    myRecent: myRecords.slice(0, 5),
+    myIncomplete: incomplete.slice(0, 3),
+    myIncompleteCount: incomplete.length,
+    pendingApprovals: pendingProfiles
+      ? { count: pendingProfiles.count ?? 0, names: ((pendingProfiles.data ?? []) as { full_name: string }[]).map((row) => row.full_name) }
+      : null,
+  };
+}
+
 export type AdminProfile = {
   id: string;
   fullName: string;
