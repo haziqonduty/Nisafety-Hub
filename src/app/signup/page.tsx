@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { AuthVideoBackground } from "@/app/_components/auth-video-background";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { Eye, EyeOff } from "@/app/_components/icons";
+import { TermsDialog } from "@/app/_components/terms-dialog";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function SignupPage() {
@@ -14,6 +15,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkEmailNotice, setCheckEmailNotice] = useState(false);
 
@@ -70,6 +72,14 @@ export default function SignupPage() {
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white">
       <AuthVideoBackground paused={isSubmitting} />
+      <TermsDialog
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+        onAgree={() => {
+          setAgreedToTerms(true);
+          setTermsOpen(false);
+        }}
+      />
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
           <BrandLogo height={48} className="justify-center drop-shadow-[0_4px_18px_rgba(0,0,0,0.7)]" />
@@ -148,22 +158,27 @@ export default function SignupPage() {
                 </p>
               )}
 
-              <label className="mt-5 flex items-start gap-2.5 text-sm text-white/70">
+              <div className="mt-5 flex items-start gap-2.5 text-sm text-white/70">
                 <input
+                  id="agree-terms"
                   required
                   type="checkbox"
                   checked={agreedToTerms}
                   onChange={(event) => setAgreedToTerms(event.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 text-teal-400 focus:ring-2 focus:ring-teal-400/30"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 accent-teal-400 focus:ring-2 focus:ring-teal-400/30"
                 />
                 <span>
-                  I have read and agree to the{" "}
-                  <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-teal-300 hover:text-teal-200">
+                  <label htmlFor="agree-terms">I have read and agree to the</label>{" "}
+                  <button
+                    type="button"
+                    onClick={() => setTermsOpen(true)}
+                    className="font-semibold text-teal-300 underline-offset-4 transition-colors hover:text-teal-200 hover:underline"
+                  >
                     Terms &amp; Conditions
-                  </Link>
+                  </button>
                   .
                 </span>
-              </label>
+              </div>
 
               <button
                 type="submit"

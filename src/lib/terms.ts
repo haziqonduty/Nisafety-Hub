@@ -1,14 +1,6 @@
-import Link from "next/link";
-import { BrandLogo } from "@/app/_components/brand-logo";
-import { ThemeToggle } from "@/app/_components/theme-toggle";
+export const TERMS_LAST_UPDATED = "6 November 2026";
 
-export const metadata = {
-  title: "Terms & Conditions — Nisafety Hub",
-};
-
-const LAST_UPDATED = "6 November 2026";
-
-const SECTIONS: { title: string; body: string[] }[] = [
+export const TERMS_SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "1. About this platform",
     body: [
@@ -75,50 +67,3 @@ const SECTIONS: { title: string; body: string[] }[] = [
     body: ["If anything here is unclear, ask your system administrator before creating an account or submitting client data."],
   },
 ];
-
-export default function TermsPage() {
-  return (
-    <main className="min-h-screen bg-canvas px-6 py-12 text-ink sm:py-16">
-      <div className="mx-auto max-w-2xl">
-        <div className="flex items-center justify-between">
-          <BrandLogo height={40} />
-          <ThemeToggle />
-        </div>
-
-        <p className="mt-10 font-mono text-xs font-semibold tracking-[0.14em] text-accent">LEGAL</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">Terms &amp; Conditions</h1>
-        <p className="mt-2 text-sm text-ink-muted">Last updated: {LAST_UPDATED}</p>
-
-        <p className="mt-6 text-sm leading-7 text-ink-muted">
-          These terms govern the use of Nisafety Hub by Nisafety Consultancy staff. By creating an account or signing in, you agree to
-          them.
-        </p>
-
-        <div className="mt-6 rounded-2xl border border-line bg-surface-soft p-4 text-xs leading-6 text-ink-muted">
-          This page is an operational description of how this internal platform is meant to be used — not a substitute for legal
-          advice. Nisafety Consultancy should have it reviewed by qualified legal counsel, particularly the data-protection section,
-          before relying on it for compliance purposes.
-        </div>
-
-        <div className="mt-10 space-y-8">
-          {SECTIONS.map((section) => (
-            <section key={section.title}>
-              <h2 className="text-base font-semibold tracking-[-0.02em] text-ink">{section.title}</h2>
-              {section.body.map((paragraph) => (
-                <p key={paragraph} className="mt-2 text-sm leading-7 text-ink-muted">
-                  {paragraph}
-                </p>
-              ))}
-            </section>
-          ))}
-        </div>
-
-        <div className="mt-12 border-t border-line pt-6">
-          <Link href="/signup" className="text-sm font-semibold text-accent hover:text-accent-hover">
-            ← Back to sign up
-          </Link>
-        </div>
-      </div>
-    </main>
-  );
-}
