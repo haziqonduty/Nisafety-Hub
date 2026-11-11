@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white">
-      <AuthVideoBackground />
+      <AuthVideoBackground paused={isSubmitting} />
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
           <BrandLogo height={48} className="justify-center drop-shadow-[0_4px_18px_rgba(0,0,0,0.7)]" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const VIDEO_SRC = "/auth-drone-bg.mp4";
 const POSTER_SRC = "/auth-drone-bg.jpg";
@@ -10,9 +10,23 @@ const POSTER_SRC = "/auth-drone-bg.jpg";
  * in the static-poster branch (so server and first client render match, and
  * so prefers-reduced-motion never even mounts a <video>), then switches to
  * the real video once we've confirmed motion is allowed.
+ *
+ * `paused`: this ~12.6MB file streams continuously at ~4.7Mbps for as long as
+ * it's playing — on a weaker connection that competes for bandwidth with a
+ * real in-flight request. Callers should set this true while something
+ * latency-sensitive is in flight (e.g. a login submit) so the auth request
+ * always wins, instead of queuing behind the video.
  */
-export function AuthVideoBackground() {
+export function AuthVideoBackground({ paused = false }: { paused?: boolean }) {
   const [allowMotion, setAllowMotion] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (paused) video.pause();
+    else video.play().catch(() => {});
+  }, [paused]);
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -32,7 +46,13 @@ export function AuthVideoBackground() {
     // foreground content's explicit z-10, which is the actual goal.
     <div aria-hidden="true" className="absolute inset-0 z-0 overflow-hidden bg-slate-950">
       {allowMotion ? (
-        <video autoPlay muted loop playsInline preload="auto" poster={POSTER_SRC} className="absolute inset-0 h-full w-full object-cover">
+        // preload="metadata": this file is ~12.6MB and was competing for
+        // bandwidth with the actual sign-in request on slower connections —
+        // preload="auto" tells the browser to start pulling the whole thing
+        // down immediately, at the exact moment a real user is submitting the
+        // login form. This is cosmetic, not functional, so it should never
+        // outrank the auth call for bandwidth.
+        <video ref={videoRef} autoPlay muted loop playsInline preload="metadata" poster={POSTER_SRC} className="absolute inset-0 h-full w-full object-cover">
           <source src={VIDEO_SRC} type="video/mp4" />
         </video>
       ) : (
