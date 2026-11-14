@@ -1,9 +1,8 @@
-import { DOCUMENT_CATEGORIES } from "@/lib/format";
 import { clientIpFrom } from "@/lib/request-ip";
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
-import { uploadThumbnail, validateDocumentFile } from "@/lib/document-upload";
+import { storeReport, validateReport } from "@/lib/document-upload";
 
 const RATE_LIMIT_WINDOW_MINUTES = 15;
 const RATE_LIMIT_MAX_ATTEMPTS = 5;
@@ -24,26 +23,16 @@ function multiTextValue(formData: FormData, key: string, maxLength: number): str
     .filter(Boolean);
 }
 
-// A document was intended but the submission couldn't be completed partway
-// through (upload failed, or the document row failed to save after a
-// successful upload). Rather than leave a misleading document-less client
-// row or an orphaned storage file behind, undo exactly what this request
-// itself just created so the caller gets a clean error and can retry.
-//
-// The clients row is only deleted when THIS request created it. When the
-// request instead reused an existing client (picked via the search
-// autocomplete), that row is a real company's record that may already have
-// other documents attached — deleting it over an unrelated upload failure
-// would be data loss, not a rollback.
-async function rollbackFailedSubmission(clientId: string, isNewClient: boolean, storagePath?: string, thumbnailPath?: string) {
-  const serviceClient = createSupabaseServiceClient();
-  const paths = [storagePath, thumbnailPath].filter((path): path is string => Boolean(path));
-  if (paths.length > 0) {
-    await serviceClient.storage.from("safety-documents").remove(paths);
-  }
-  if (isNewClient) {
-    await serviceClient.from("clients").delete().eq("id", clientId);
-  }
+// The first report couldn't be saved after the client row was written. A
+// brand-new client is removed again so the caller gets a clean error and can
+// retry without creating a duplicate company. A reused client is never
+// deleted — it's a real company's record that may already have other
+// reports attached, and deleting it over an unrelated upload failure would
+// be data loss, not a rollback. (storeReport() already cleaned up its own
+// storage objects.)
+async function rollbackNewClient(clientId: string, isNewClient: boolean) {
+  if (!isNewClient) return;
+  await createSupabaseServiceClient().from("clients").delete().eq("id", clientId);
 }
 
 export async function POST(request: Request) {
@@ -83,6 +72,7 @@ export async function POST(request: Request) {
   const emails = multiTextValue(formData, "email", 254).map((value) => value.toLowerCase());
   const submitterName = textValue(formData.get("submitterName"), 160);
   const category = textValue(formData.get("category"), 80);
+  const serviceDate = textValue(formData.get("serviceDate"), 10);
   const existingClientId = textValue(formData.get("clientId"), 36);
   const file = formData.get("file");
   const thumbnail = formData.get("thumbnail");
@@ -106,19 +96,19 @@ export async function POST(request: Request) {
     return Response.json({ error: "INVALID_EMAIL" }, { status: 400 });
   }
 
+  // This route saves the client plus the FIRST service report of a visit.
+  // Any further services from the same visit (or a later one) are added one
+  // request each via POST /api/clients/[id]/reports — Vercel caps a request
+  // body at 4.5MB, so several reports can never travel together.
   const hasDocument = file instanceof File;
-  let extension: string | undefined;
+  let report: { extension: string; file: File } | null = null;
 
   if (hasDocument) {
-    if (!category || !(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) {
-      return Response.json({ error: "INVALID_CATEGORY" }, { status: 400 });
-    }
-
-    const validation = validateDocumentFile(file);
+    const validation = validateReport(category, serviceDate, file);
     if ("error" in validation) {
       return Response.json({ error: validation.error }, { status: 400 });
     }
-    extension = validation.extension;
+    report = validation;
   }
 
   const supabase = await createSupabaseServerClient();
@@ -192,38 +182,15 @@ export async function POST(request: Request) {
     clientId = client.id;
   }
 
-  if (!hasDocument) {
+  if (!report) {
     return Response.json({ clientId }, { status: 201 });
   }
 
-  const documentId = crypto.randomUUID();
-  const storagePath = `submissions/${documentId}.${extension}`;
-  const { error: uploadError } = await supabase.storage.from("safety-documents").upload(storagePath, file, {
-    contentType: file.type,
-    upsert: false,
-  });
-
-  if (uploadError) {
-    await rollbackFailedSubmission(clientId, isNewClient);
-    return Response.json({ error: "UPLOAD_ERROR" }, { status: 500 });
+  const stored = await storeReport(supabase, { clientId, category, serviceDate, file: report.file, extension: report.extension, thumbnail });
+  if ("error" in stored) {
+    await rollbackNewClient(clientId, isNewClient);
+    return Response.json({ error: stored.error }, { status: 500 });
   }
 
-  const thumbnailPath = await uploadThumbnail(documentId, thumbnail);
-
-  const { error: documentError } = await supabase.from("documents").insert({
-    client_id: clientId,
-    category,
-    file_name: file.name.slice(0, 255),
-    storage_path: storagePath,
-    file_type: file.type,
-    file_size: file.size,
-    thumbnail_path: thumbnailPath,
-  });
-
-  if (documentError) {
-    await rollbackFailedSubmission(clientId, isNewClient, storagePath, thumbnailPath ?? undefined);
-    return Response.json({ error: "DOCUMENT_SAVE_ERROR" }, { status: 500 });
-  }
-
-  return Response.json({ clientId }, { status: 201 });
+  return Response.json({ clientId, documentId: stored.documentId }, { status: 201 });
 }

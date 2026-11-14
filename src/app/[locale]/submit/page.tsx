@@ -1,30 +1,26 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type SVGProps } from "react";
+import { useEffect, useRef, useState, type FormEvent, type SVGProps } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { addEntry, removeEntry, RepeatableField, updateEntry } from "@/app/_components/repeatable-field";
+import {
+  appendServiceReport,
+  knownErrorCode,
+  newServiceRow,
+  ServiceReportsFields,
+  uploadServiceRows,
+  validateServiceRows,
+  type ServiceRow,
+} from "@/app/_components/service-reports-fields";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link, useRouter } from "@/i18n/routing";
-import { compressPdf } from "@/lib/compress-pdf";
-import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
-import { CATEGORY_GROUPS } from "@/lib/format";
-
-// Matches the server's own MAX_FILE_SIZE in src/app/api/submissions/route.ts —
-// both driven by Vercel's hard 4.5MB request-body limit, confirmed directly
-// (a 6MB upload returns 413 FUNCTION_PAYLOAD_TOO_LARGE before our code runs).
-const MAX_FILE_SIZE = 4 * 1024 * 1024;
-
-function formatMegabytes(bytes: number) {
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { todayInMalaysia } from "@/lib/format";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
-function Upload(props: IconProps) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15.5v3A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-3" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
 function Arrow(props: IconProps) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M5 12h14m-5-5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-function File(props: IconProps) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M14 3H6.8A1.8 1.8 0 0 0 5 4.8v14.4A1.8 1.8 0 0 0 6.8 21h10.4a1.8 1.8 0 0 0 1.8-1.8V7l-5-4Z" strokeLinejoin="round" /><path d="M14 3v4h5" strokeLinejoin="round" /></svg>; }
 
 const fieldClass = "mt-2 w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft";
 
@@ -42,6 +38,7 @@ const KNOWN_ERROR_CODES = [
   "FILE_TYPE_CANNOT_COMPRESS",
   "DOCUMENT_REQUIRED_FOR_EXISTING_CLIENT",
   "TOO_MANY_CONTACTS",
+  "INVALID_SERVICE_DATE",
 ] as const;
 type ErrorCode = (typeof KNOWN_ERROR_CODES)[number];
 
@@ -52,8 +49,11 @@ function errorCodeFrom(value: string | undefined): ErrorCode | "GENERIC" {
 type SubmissionValues = {
   companyName: string;
   submitterName: string;
-  category: string;
 };
+
+// Errors about the report itself (shown on its service row) rather than
+// about the client details (shown under the form).
+const REPORT_ERROR_CODES = new Set(["INVALID_CATEGORY", "INVALID_SERVICE_DATE", "INVALID_FILE_TYPE", "FILE_SIZE", "UPLOAD_ERROR", "DOCUMENT_SAVE_ERROR"]);
 
 type ClientMatch = {
   id: string;
@@ -67,15 +67,19 @@ type ClientMatch = {
 export default function SubmitPage() {
   const t = useTranslations("submit");
   const tErrors = useTranslations("submissionErrors");
-  const tGroups = useTranslations("categories.groups");
-  const tCategories = useTranslations("categories.items");
+  const tServices = useTranslations("services");
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [values, setValues] = useState<SubmissionValues>({ companyName: "", submitterName: "", category: "" });
+  const [values, setValues] = useState<SubmissionValues>({ companyName: "", submitterName: "" });
   const [clientNames, setClientNames] = useState<string[]>([""]);
   const [telephones, setTelephones] = useState<string[]>([""]);
   const [emails, setEmails] = useState<string[]>([""]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [serviceDate, setServiceDate] = useState(todayInMalaysia);
+  const [serviceRows, setServiceRows] = useState<ServiceRow[]>(() => [newServiceRow()]);
+  // Set once the client (and its first report) is saved but a later service
+  // failed — from then on, submitting again only retries what failed instead
+  // of creating the client a second time.
+  const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [attachDocument, setAttachDocument] = useState(true);
   const [existingClientId, setExistingClientId] = useState<string | null>(null);
   const [clientMatches, setClientMatches] = useState<ClientMatch[]>([]);
@@ -84,8 +88,7 @@ export default function SubmitPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNavigatingAway, setIsNavigatingAway] = useState(false);
-  const [isCompressing, setIsCompressing] = useState(false);
-  const [compressionNotice, setCompressionNotice] = useState("");
+  const isCompressing = serviceRows.some((row) => row.compressing);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
 
@@ -93,39 +96,6 @@ export default function SubmitPage() {
     if (formRef.current?.reportValidity()) {
       setError("");
       setStep(2);
-    }
-  }
-
-  async function chooseFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    setError("");
-    setCompressionNotice("");
-
-    if (!file || file.size <= MAX_FILE_SIZE) {
-      setSelectedFile(file);
-      return;
-    }
-
-    if (file.type !== "application/pdf") {
-      setSelectedFile(null);
-      event.target.value = "";
-      setError(tErrors("FILE_TYPE_CANNOT_COMPRESS"));
-      return;
-    }
-
-    setIsCompressing(true);
-    setSelectedFile(null);
-    try {
-      const result = await compressPdf(file, MAX_FILE_SIZE);
-      if (!result.ok) {
-        event.target.value = "";
-        setError(tErrors("FILE_TOO_LARGE_AFTER_COMPRESSION"));
-        return;
-      }
-      setSelectedFile(result.file);
-      setCompressionNotice(t("compressedNotice", { originalSize: formatMegabytes(result.originalSize), newSize: formatMegabytes(result.compressedSize) }));
-    } finally {
-      setIsCompressing(false);
     }
   }
 
@@ -197,53 +167,87 @@ export default function SubmitPage() {
     return () => clearTimeout(watchdog);
   }, [isNavigatingAway, tErrors]);
 
+  function markRow(key: string, patch: Partial<ServiceRow>) {
+    setServiceRows((rows) => rows.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (attachDocument && !selectedFile) {
-      setError(tErrors("noFile"));
+    if (isCompressing) return;
+    if (attachDocument && !validateServiceRows(serviceRows, setServiceRows)) {
+      setError("");
       return;
     }
 
     setError("");
     setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append("website", honeypot);
-    clientNames.filter(Boolean).forEach((name) => formData.append("clientName", name));
-    formData.append("companyName", values.companyName);
-    telephones.filter(Boolean).forEach((tel) => formData.append("telephone", tel));
-    emails.filter(Boolean).forEach((email) => formData.append("email", email));
-    formData.append("submitterName", values.submitterName);
-    if (existingClientId) formData.append("clientId", existingClientId);
-    if (attachDocument && selectedFile) {
-      formData.append("category", values.category);
-      formData.append("file", selectedFile);
 
-      if (selectedFile.type === "application/pdf") {
-        const thumbnail = await generatePdfThumbnail(selectedFile).catch(() => null);
-        if (thumbnail) formData.append("thumbnail", thumbnail);
+    let clientId = savedClientId;
+    let rowsToUpload = serviceRows;
+
+    if (!clientId) {
+      // The client plus the FIRST service of the visit go together, exactly
+      // like a single-report submission always has; every further service is
+      // its own request afterwards (Vercel's 4.5MB body cap).
+      const firstRow = attachDocument ? serviceRows[0] : undefined;
+      const formData = new FormData();
+      formData.append("website", honeypot);
+      clientNames.filter(Boolean).forEach((name) => formData.append("clientName", name));
+      formData.append("companyName", values.companyName);
+      telephones.filter(Boolean).forEach((tel) => formData.append("telephone", tel));
+      emails.filter(Boolean).forEach((email) => formData.append("email", email));
+      formData.append("submitterName", values.submitterName);
+      if (existingClientId) formData.append("clientId", existingClientId);
+      if (firstRow) {
+        markRow(firstRow.key, { status: "uploading", errorCode: "" });
+        await appendServiceReport(formData, firstRow, serviceDate);
       }
-    }
 
-    try {
-      const response = await fetch("/api/submissions", { method: "POST", body: formData });
-      const result = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        setError(tErrors(errorCodeFrom(result.error)));
+      try {
+        const response = await fetch("/api/submissions", { method: "POST", body: formData });
+        const result = (await response.json()) as { error?: string; clientId?: string };
+        if (!response.ok || !result.clientId) {
+          const code = errorCodeFrom(result.error);
+          if (firstRow && REPORT_ERROR_CODES.has(code)) {
+            markRow(firstRow.key, { status: "error", errorCode: knownErrorCode(code) });
+          } else {
+            if (firstRow) markRow(firstRow.key, { status: "idle" });
+            setError(tErrors(code));
+          }
+          setIsSubmitting(false);
+          return;
+        }
+        clientId = result.clientId;
+        if (firstRow) {
+          markRow(firstRow.key, { status: "done" });
+          rowsToUpload = serviceRows.map((row) => (row.key === firstRow.key ? { ...row, status: "done" as const } : row));
+        }
+      } catch {
+        if (firstRow) markRow(firstRow.key, { status: "idle" });
+        setError(tErrors("NETWORK_ERROR"));
         setIsSubmitting(false);
         return;
       }
-      // Left deliberately in its submitting state here rather than reset in
-      // a finally — resetting unconditionally made the button pop back to
-      // its idle label the instant push() was called, not when
-      // /submission-success was actually ready, which read as a stuck or
-      // failed submit during the real wait for the destination page.
-      setIsNavigatingAway(true);
-      router.push("/submission-success");
-    } catch {
-      setError(tErrors("NETWORK_ERROR"));
-      setIsSubmitting(false);
     }
+
+    if (attachDocument) {
+      const allSaved = await uploadServiceRows(clientId, rowsToUpload, serviceDate, setServiceRows);
+      if (!allSaved) {
+        setSavedClientId(clientId);
+        setError(tServices("partialSaved"));
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // Left deliberately in its submitting state here rather than reset in
+    // a finally — resetting made the button pop back to its idle label the
+    // instant push() was called, not when /submission-success was ready.
+    setIsNavigatingAway(true);
+    router.push("/submission-success");
   }
+
+  const pendingServiceCount = serviceRows.filter((row) => row.status !== "done").length;
 
   return <main className="min-h-screen bg-canvas text-ink">
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 lg:px-8">
@@ -378,20 +382,12 @@ export default function SubmitPage() {
             <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="max-w-xs text-xs leading-5 text-ink-muted">{t("publicDataNotice")}</p><button type="button" onClick={nextStep} className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-hover">{t("continue")} <Arrow className="h-4 w-4" /></button></div>
           </div> : <div key={attachDocument ? "step-2-doc" : "step-2-nodoc"} className="animate-[rise_.35s_ease-out_both]">
             <div className="flex items-start justify-between gap-5"><div><h2 className="text-xl font-semibold tracking-[-0.04em]">{attachDocument ? t("step2Heading") : t("step2SkippedHeading")}</h2><p className="mt-1 text-sm text-ink-muted">{attachDocument ? t("step2Subheading") : t("step2SkippedText")}</p></div><span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold text-accent">{t("step2Badge")}</span></div>
-            {attachDocument && <>
-              <label className="mt-7 block text-sm font-semibold">{t("documentCategory")}<select required name="category" value={values.category} onChange={(event) => updateField("category", event.target.value)} className={fieldClass}><option value="" disabled>{t("selectCategory")}</option>{CATEGORY_GROUPS.map((group) => <optgroup key={group.group} label={tGroups(group.group)}>{group.categories.map((category) => <option key={category} value={category}>{tCategories(category)}</option>)}</optgroup>)}</select></label>
-              <label className={`mt-5 block rounded-2xl border border-dashed border-accent-soft bg-accent-soft/60 p-8 text-center transition-colors ${isCompressing ? "pointer-events-none opacity-60" : "cursor-pointer hover:bg-accent-soft"}`}>
-                <input required disabled={isCompressing} type="file" accept=".pdf,.doc,.docx" onChange={chooseFile} className="sr-only" />
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-surface text-accent shadow-sm">{isCompressing ? <Upload className="h-5 w-5 animate-pulse" /> : <Upload className="h-5 w-5" />}</span>
-                <span className="mt-4 block text-sm font-semibold">{isCompressing ? t("compressing") : selectedFile?.name || t("chooseDocument")}</span>
-                <span className="mt-1 block text-xs text-ink-muted">{t("fileHint")}</span>
-              </label>
-              {selectedFile && !isCompressing && <div className="mt-4 flex items-center gap-3 rounded-xl border border-line bg-surface-soft p-3 text-sm"><File className="h-5 w-5 text-accent" /><span className="min-w-0 flex-1 truncate font-medium">{selectedFile.name}</span><span className="font-mono text-[10px] text-ink-muted">{t("ready")}</span></div>}
-              {compressionNotice && <p className="mt-2 text-xs text-ink-muted">{compressionNotice}</p>}
+            {attachDocument && <div className="mt-7">
+              <ServiceReportsFields serviceDate={serviceDate} onServiceDateChange={setServiceDate} rows={serviceRows} setRows={setServiceRows} locked={isSubmitting || Boolean(savedClientId)} />
               <div className="mt-5 rounded-xl border border-amber-soft bg-amber-soft p-4 text-xs leading-5 text-amber"><strong>{t("beforeSubmitStrong")}</strong> {t("beforeSubmitText")}</div>
-            </>}
+            </div>}
             {error && <p className="mt-5 rounded-xl border border-danger-soft bg-danger-soft p-3 text-sm text-danger" role="alert">{error}</p>}
-            <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={() => setStep(1)} className="rounded-full px-4 py-3 text-sm font-semibold text-ink-muted transition-colors hover:text-accent">{t("back")}</button><button type="submit" disabled={isSubmitting || isCompressing} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(15,118,110,.18)] transition-all hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? t("submitting") : t("submitButton")} <Arrow className="h-4 w-4" /></button></div>
+            <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">{savedClientId ? <span /> : <button type="button" onClick={() => setStep(1)} className="rounded-full px-4 py-3 text-sm font-semibold text-ink-muted transition-colors hover:text-accent">{t("back")}</button>}<button type="submit" disabled={isSubmitting || isCompressing} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(15,118,110,.18)] transition-all hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? t("submitting") : savedClientId ? tServices("retryFailed", { count: pendingServiceCount }) : attachDocument ? tServices("submitServices", { count: serviceRows.length }) : t("submitButton")} <Arrow className="h-4 w-4" /></button></div>
           </div>}
         </form>
       </div>

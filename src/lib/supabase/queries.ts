@@ -36,6 +36,8 @@ async function signedUrlsFor(supabase: SupabaseClient, storagePaths: string[]) {
 
 export type DirectoryDocument = {
   id: string;
+  /** The owning client's id — lets the directory group several service reports under one company. */
+  clientId: string;
   hasDocument: boolean;
   title: string;
   company: string;
@@ -53,6 +55,8 @@ export type DirectoryDocument = {
   thumbnailUrl: string | null;
   date: string;
   createdAt: string;
+  /** YYYY-MM-DD day the service was carried out; null for a client with no report yet. */
+  serviceDate: string | null;
   tone: ReturnType<typeof toneForCategory> | null;
 };
 
@@ -68,7 +72,9 @@ type ClientSummary = {
 
 type DocumentRow = {
   id: string;
+  client_id: string;
   category: string;
+  service_date: string;
   file_name: string;
   file_size: number;
   storage_path: string;
@@ -99,6 +105,7 @@ function toDirectoryDocument(row: DocumentRow, urls: Map<string, string>): Direc
 
   return {
     id: row.id,
+    clientId: row.client_id,
     hasDocument: true,
     title: titleFromFileName(row.file_name),
     company: client.company_name,
@@ -116,6 +123,7 @@ function toDirectoryDocument(row: DocumentRow, urls: Map<string, string>): Direc
     thumbnailUrl,
     date: formatDate(row.created_at),
     createdAt: row.created_at,
+    serviceDate: row.service_date,
     tone: toneForCategory(row.category),
   };
 }
@@ -136,6 +144,7 @@ type ClientOnlyRow = {
 function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
   return {
     id: row.id,
+    clientId: row.id,
     hasDocument: false,
     title: row.company_name,
     company: row.company_name,
@@ -153,6 +162,7 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
     thumbnailUrl: null,
     date: formatDate(row.created_at),
     createdAt: row.created_at,
+    serviceDate: null,
     tone: null,
   };
 }
@@ -164,7 +174,7 @@ export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
     supabase
       .from("documents")
       .select(
-        "id, category, file_name, file_size, storage_path, thumbnail_path, created_at, clients(client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails)",
+        "id, client_id, category, service_date, file_name, file_size, storage_path, thumbnail_path, created_at, clients(client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails)",
       )
       .order("created_at", { ascending: false })
       .limit(DIRECTORY_LIMIT),
@@ -211,6 +221,8 @@ export type RecordDetail = {
   storagePath: string | null;
   publicUrl: string | null;
   date: string;
+  /** YYYY-MM-DD day the service was carried out; null for a client with no report yet. */
+  serviceDate: string | null;
   tone: ReturnType<typeof toneForCategory> | null;
 };
 
@@ -229,6 +241,7 @@ type RecordDetailRow = {
   id: string;
   client_id: string;
   category: string;
+  service_date: string;
   file_name: string;
   file_size: number;
   storage_path: string;
@@ -240,7 +253,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, client_id, category, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails)")
+    .select("id, client_id, category, service_date, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails)")
     .eq("id", id)
     .single();
 
@@ -269,6 +282,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
     storagePath: row.storage_path,
     publicUrl: await signedUrlFor(supabase, row.storage_path),
     date: formatDate(row.created_at),
+    serviceDate: row.service_date,
     tone: toneForCategory(row.category),
   };
 }
@@ -331,6 +345,7 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
     storagePath: null,
     publicUrl: null,
     date: formatDate(row.created_at),
+    serviceDate: null,
     tone: null,
   };
 }
@@ -339,44 +354,44 @@ export async function getRecordById(id: string): Promise<RecordDetail | null> {
   return (await getDocumentRecordById(id)) ?? (await getClientOnlyRecordById(id));
 }
 
-export type OtherClientReport = {
+export type ServiceHistoryEntry = {
   id: string;
   category: string;
   fileName: string;
-  date: string;
+  fileType: string;
+  /** YYYY-MM-DD */
+  serviceDate: string;
 };
 
-type OtherDocumentRow = {
+type ServiceHistoryRow = {
   id: string;
   category: string;
   file_name: string;
+  service_date: string;
   created_at: string;
 };
 
-// Now that a client can be reused across multiple service reports, a report
-// page should let staff discover its siblings rather than treat each one as
-// an isolated record. No signed URLs needed here — these are just links to
+// Every service report for one client, newest visit first (and newest
+// upload first within a visit) — the record page groups these by
+// service_date into a visit timeline. No signed URLs: these are links to
 // other /records/[id] pages, not downloads.
-export async function getOtherDocumentsForClient(clientId: string, excludeDocumentId: string | null): Promise<OtherClientReport[]> {
+export async function getClientServiceHistory(clientId: string): Promise<ServiceHistoryEntry[]> {
   const supabase = await createSupabaseServerClient();
-  let query = supabase
+  const { data, error } = await supabase
     .from("documents")
-    .select("id, category, file_name, created_at")
+    .select("id, category, file_name, service_date, created_at")
     .eq("client_id", clientId)
+    .order("service_date", { ascending: false })
     .order("created_at", { ascending: false });
 
-  if (excludeDocumentId) {
-    query = query.neq("id", excludeDocumentId);
-  }
-
-  const { data, error } = await query;
   if (error || !data) return [];
 
-  return (data as OtherDocumentRow[]).map((row) => ({
+  return (data as ServiceHistoryRow[]).map((row) => ({
     id: row.id,
     category: row.category,
     fileName: row.file_name,
-    date: formatDate(row.created_at),
+    fileType: extensionFromFileName(row.file_name),
+    serviceDate: row.service_date,
   }));
 }
 

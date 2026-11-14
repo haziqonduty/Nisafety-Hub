@@ -6,7 +6,7 @@ import { addEntry, removeEntry, RepeatableField, updateEntry } from "@/app/_comp
 import { useRouter } from "@/i18n/routing";
 import { compressPdf } from "@/lib/compress-pdf";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
-import { CATEGORY_GROUPS } from "@/lib/format";
+import { CATEGORY_GROUPS, todayInMalaysia } from "@/lib/format";
 import type { RecordDetail } from "@/lib/supabase/queries";
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
@@ -29,6 +29,7 @@ const KNOWN_ERROR_CODES = [
   "FILE_TOO_LARGE_AFTER_COMPRESSION",
   "FILE_TYPE_CANNOT_COMPRESS",
   "TOO_MANY_CONTACTS",
+  "INVALID_SERVICE_DATE",
 ] as const;
 
 export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDone: () => void }) {
@@ -37,6 +38,7 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
   const tErrors = useTranslations("submissionErrors");
   const tGroups = useTranslations("categories.groups");
   const tCategories = useTranslations("categories.items");
+  const tServices = useTranslations("services");
   const router = useRouter();
 
   const [clientNames, setClientNames] = useState<string[]>([record.clientName, ...record.additionalClientNames]);
@@ -45,6 +47,7 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
   const [emails, setEmails] = useState<string[]>([record.email, ...record.additionalEmails]);
   const [submitterName, setSubmitterName] = useState(record.submitterName);
   const [category, setCategory] = useState(record.category ?? "");
+  const [serviceDate, setServiceDate] = useState(record.serviceDate ?? todayInMalaysia());
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionNotice, setCompressionNotice] = useState("");
@@ -102,6 +105,7 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
     emails.filter(Boolean).forEach((value) => formData.append("email", value));
     formData.append("submitterName", submitterName);
     if (category) formData.append("category", category);
+    if (record.hasDocument || selectedFile) formData.append("serviceDate", serviceDate);
     if (selectedFile) {
       formData.append("file", selectedFile);
       if (selectedFile.type === "application/pdf") {
@@ -205,6 +209,13 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
               </optgroup>
             ))}
           </select>
+        </label>
+      )}
+
+      {(record.hasDocument || selectedFile) && (
+        <label className="mt-5 block text-sm font-semibold">
+          {tServices("serviceDate")}
+          <input required type="date" min="2000-01-01" max={todayInMalaysia()} value={serviceDate} onChange={(event) => setServiceDate(event.target.value)} className={`${fieldClass} max-w-[13rem] tabular-nums`} />
         </label>
       )}
 

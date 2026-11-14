@@ -91,3 +91,45 @@ const NEW_BADGE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 export function isRecentlySubmitted(isoDate: string) {
   return Date.now() - new Date(isoDate).getTime() < NEW_BADGE_WINDOW_MS;
 }
+
+// ---------------------------------------------------------------------------
+// Service dates — the day a service was actually carried out, stored as a
+// plain `date` (YYYY-MM-DD, no time or timezone). Nisafety operates in
+// Malaysia, so "today" is always Kuala Lumpur's today, not the server's or
+// the viewer's.
+
+const SERVICE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const EARLIEST_SERVICE_DATE = "2000-01-01";
+
+export function todayInMalaysia() {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kuala_Lumpur" }).format(new Date());
+}
+
+/** A real calendar date, not before 2000 and not in the future (Malaysia time). */
+export function isValidServiceDate(value: string) {
+  if (!SERVICE_DATE_PATTERN.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return false;
+  return value >= EARLIEST_SERVICE_DATE && value <= todayInMalaysia();
+}
+
+/** "12 Nov 2026" — formatted in UTC so a date-only value never shifts a day. */
+export function formatServiceDate(value: string, locale = "en-GB") {
+  return new Date(`${value}T00:00:00Z`).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+/**
+ * "CHRA" from "Chemical Health Risk Assessment (CHRA)", "IAQ" from "Indoor
+ * Air Quality (IAQ) Testing", "WN/WD" from "DOE Written Notification (WN) &
+ * Written Declaration (WD)"; the full name when there's no abbreviation.
+ */
+export function shortCategoryLabel(label: string) {
+  const abbreviations = [...label.matchAll(/\(([^()]+)\)/g)].map((match) => match[1]);
+  return abbreviations.length > 0 ? abbreviations.join("/") : label;
+}
+
+/** The category name with its abbreviations removed — shown next to the short label. */
+export function categoryNameWithoutAbbreviation(label: string) {
+  return label.replace(/\s*\([^()]+\)/g, "").replace(/\s+/g, " ").trim();
+}

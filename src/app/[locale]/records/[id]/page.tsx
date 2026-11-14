@@ -1,20 +1,28 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ViewTransition } from "react";
-import { Download, File } from "@/app/_components/icons";
+import { AddServicePanel } from "@/app/_components/add-service-panel";
+import { Calendar, Download, File } from "@/app/_components/icons";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { RecordDetailBody } from "@/app/_components/record-detail-body";
+import { ServiceTimeline } from "@/app/_components/service-timeline";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link } from "@/i18n/routing";
-import { toneBadgeClass } from "@/lib/format";
-import { getOtherDocumentsForClient, getRecordById } from "@/lib/supabase/queries";
+import { formatServiceDate, toneBadgeClass } from "@/lib/format";
+import { getClientServiceHistory, getRecordById } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecordPage(props: PageProps<"/[locale]/records/[id]">) {
   const { id } = await props.params;
-  const [record, t, tCategories] = await Promise.all([getRecordById(id), getTranslations("record"), getTranslations("categories.items")]);
+  const [record, t, tCategories, tServices, locale] = await Promise.all([
+    getRecordById(id),
+    getTranslations("record"),
+    getTranslations("categories.items"),
+    getTranslations("services"),
+    getLocale(),
+  ]);
 
   if (!record) notFound();
 
@@ -30,7 +38,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
   }
 
   const categoryLabel = record.category ? categoryLabelFor(record.category) : record.category;
-  const otherReports = await getOtherDocumentsForClient(record.clientId, record.hasDocument ? record.id : null);
+  const history = await getClientServiceHistory(record.clientId);
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
@@ -49,7 +57,15 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
             <span className={`rounded-full px-3 py-1.5 font-mono text-xs font-bold tracking-wide ${record.hasDocument ? toneBadgeClass(record.tone!) : "bg-badge-neutral-bg text-badge-neutral-text"}`}>
               {record.hasDocument ? categoryLabel : t("noDocumentBadge")}
             </span>
-            <span className="text-xs text-ink-muted">{t("submitted", { date: record.date })}</span>
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
+              {record.serviceDate && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 font-semibold text-ink">
+                  <Calendar className="h-3.5 w-3.5 text-accent" />
+                  {tServices("servicedOn", { date: formatServiceDate(record.serviceDate, locale === "ms" ? "ms-MY" : "en-GB") })}
+                </span>
+              )}
+              <span>{t("submitted", { date: record.date })}</span>
+            </span>
           </div>
 
           <ViewTransition name={`${record.hasDocument ? "document" : "client"}-${record.id}`}>
@@ -103,24 +119,18 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
 
           <RecordDetailBody record={record} />
 
-          {otherReports.length > 0 && (
-            <div className="mt-8 border-t border-line pt-6 print:hidden">
-              <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("otherReportsTitle")}</p>
-              <ul className="mt-3 flex flex-col gap-2">
-                {otherReports.map((report) => (
-                  <li key={report.id}>
-                    <Link
-                      href={`/records/${report.id}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-soft px-4 py-3 text-sm transition-colors hover:border-accent hover:bg-accent-soft"
-                    >
-                      <span className="min-w-0 truncate font-medium text-ink">{categoryLabelFor(report.category)}</span>
-                      <span className="shrink-0 text-xs text-ink-muted">{report.date}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          <section className="mt-10 border-t border-line pt-8 print:hidden" aria-labelledby="service-history-title">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-accent">{tServices("historyEyebrow")}</p>
+                <h2 id="service-history-title" className="mt-1 text-xl font-semibold tracking-[-0.04em]">
+                  {tServices("historyTitle")}
+                </h2>
+              </div>
+              <AddServicePanel clientId={record.clientId} companyName={record.companyName} />
             </div>
-          )}
+            <ServiceTimeline history={history} currentId={record.id} />
+          </section>
 
           <div className="mt-8 hidden border-t border-line pt-4 text-xs text-ink-muted print:block">
             <p>{t("printedFrom")}</p>
