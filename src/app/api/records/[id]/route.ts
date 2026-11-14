@@ -1,4 +1,5 @@
-import { DOCUMENT_CATEGORIES, isValidServiceDate, todayInMalaysia } from "@/lib/format";
+import { DOCUMENT_CATEGORIES, isValidServiceDate, resolveExpiryInput, todayInMalaysia } from "@/lib/format";
+import { defaultExpiryFor } from "@/lib/validity";
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { removeStorageObjects, uploadThumbnail, validateDocumentFile } from "@/lib/document-upload";
@@ -24,6 +25,7 @@ type ExistingDocument = {
   client_id: string;
   category: string;
   service_date: string;
+  expiry_date: string | null;
   storage_path: string;
   thumbnail_path: string | null;
 };
@@ -41,7 +43,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
   // either an existing document's id, or a document-less client's own id.
   const { data: existingDocument } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, storage_path, thumbnail_path")
+    .select("id, client_id, category, service_date, expiry_date, storage_path, thumbnail_path")
     .eq("id", id)
     .maybeSingle<ExistingDocument>();
 
@@ -64,6 +66,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
   const submitterName = textValue(formData.get("submitterName"), 160);
   const category = textValue(formData.get("category"), 80);
   const serviceDateInput = textValue(formData.get("serviceDate"), 10);
+  const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
   const file = formData.get("file");
   const thumbnail = formData.get("thumbnail");
 
@@ -111,7 +114,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     // No replacement/attachment file — the only other possible document
     // changes are the category and/or service date of an existing report.
     if (existingDocument) {
-      const changes: { category?: string; service_date?: string } = {};
+      const changes: { category?: string; service_date?: string; expiry_date?: string | null } = {};
       if (category && category !== existingDocument.category) {
         if (!(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) {
           return Response.json({ error: "INVALID_CATEGORY" }, { status: 400 });
@@ -119,6 +122,12 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
         changes.category = category;
       }
       if (serviceDateInput && serviceDateInput !== existingDocument.service_date) changes.service_date = serviceDateInput;
+      if (expiryInput !== null) {
+        const effectiveServiceDate = changes.service_date ?? existingDocument.service_date;
+        const expiry = resolveExpiryInput(expiryInput, effectiveServiceDate, null);
+        if ("error" in expiry) return Response.json({ error: expiry.error }, { status: 400 });
+        if (expiry.expiryDate !== existingDocument.expiry_date) changes.expiry_date = expiry.expiryDate;
+      }
       if (Object.keys(changes).length > 0) {
         const { error } = await supabase.from("documents").update(changes).eq("id", existingDocument.id);
         if (error) return Response.json({ error: "DOCUMENT_SAVE_ERROR" }, { status: 500 });
@@ -139,6 +148,12 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     return Response.json({ error: validation.error }, { status: 400 });
   }
 
+  const effectiveServiceDate = serviceDateInput || existingDocument?.service_date || todayInMalaysia();
+  const expiry = resolveExpiryInput(expiryInput, effectiveServiceDate, defaultExpiryFor(category, effectiveServiceDate));
+  if ("error" in expiry) {
+    return Response.json({ error: expiry.error }, { status: 400 });
+  }
+
   const newDocumentId = crypto.randomUUID();
   const storagePath = `submissions/${newDocumentId}.${validation.extension}`;
   const { error: uploadError } = await supabase.storage.from("safety-documents").upload(storagePath, file, {
@@ -157,7 +172,8 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
       .from("documents")
       .update({
         category,
-        service_date: serviceDateInput || existingDocument.service_date,
+        service_date: effectiveServiceDate,
+        expiry_date: expiry.expiryDate,
         file_name: file.name.slice(0, 255),
         storage_path: storagePath,
         file_type: file.type,
@@ -178,7 +194,8 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
   const { error: insertError } = await supabase.from("documents").insert({
     client_id: clientId,
     category,
-    service_date: serviceDateInput || todayInMalaysia(),
+    service_date: effectiveServiceDate,
+    expiry_date: expiry.expiryDate,
     file_name: file.name.slice(0, 255),
     storage_path: storagePath,
     file_type: file.type,

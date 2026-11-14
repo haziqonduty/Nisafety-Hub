@@ -1,8 +1,10 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
 import { categoryNameWithoutAbbreviation, formatServiceDate, shortCategoryLabel, todayInMalaysia, toneDotClass, toneForCategory } from "@/lib/format";
 import type { ServiceHistoryEntry } from "@/lib/supabase/queries";
+import { expiryStatus } from "@/lib/validity";
 
 type Visit = { date: string; services: ServiceHistoryEntry[] };
 
@@ -26,11 +28,19 @@ function daysBetween(from: string, to: string) {
  * "what have we done for this client, and when" at a glance.
  */
 export async function ServiceTimeline({ history, currentId }: { history: ServiceHistoryEntry[]; currentId: string }) {
-  const [t, tCategories, locale] = await Promise.all([getTranslations("services"), getTranslations("categories.items"), getLocale()]);
+  const [t, tExpiry, tCategories, locale] = await Promise.all([getTranslations("services"), getTranslations("expiry"), getTranslations("categories.items"), getLocale()]);
   const intlLocale = locale === "ms" ? "ms-MY" : "en-GB";
   const today = todayInMalaysia();
   const visits = groupByVisit(history);
   const uniqueServices = new Set(history.map((entry) => entry.category)).size;
+  // Newest-first, so the first report seen per category is its latest; any
+  // older report of the same service has been renewed.
+  const latestPerCategory = new Set<string>();
+  const superseded = new Set<string>();
+  for (const entry of history) {
+    if (latestPerCategory.has(entry.category)) superseded.add(entry.id);
+    else latestPerCategory.add(entry.category);
+  }
 
   function label(category: string) {
     try {
@@ -106,7 +116,15 @@ export async function ServiceTimeline({ history, currentId }: { history: Service
                               {short}
                               {short !== full && <span className="ml-1.5 font-normal text-ink-muted">{categoryNameWithoutAbbreviation(full)}</span>}
                             </span>
-                            <span className="block truncate text-xs text-ink-muted">{service.fileName}</span>
+                            <span className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-ink-muted">
+                              <span className="truncate">{service.fileName}</span>
+                              {(service.expiryDate || superseded.has(service.id)) &&
+                                (() => {
+                                  const { status, daysLeft } = expiryStatus(service.expiryDate, today, superseded.has(service.id));
+                                  const label = expiryLabel(status, daysLeft);
+                                  return <ExpiryBadge status={status} label={tExpiry(label.key as Parameters<typeof tExpiry>[0], label.values)} className="shrink-0" />;
+                                })()}
+                            </span>
                           </span>
                           {isCurrent ? (
                             <span className="shrink-0 font-mono text-[10px] font-bold tracking-wide text-accent">{t("viewing")}</span>

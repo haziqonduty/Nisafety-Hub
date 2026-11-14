@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Close, Plus } from "@/app/_components/icons";
 import { newServiceRow, ServiceReportsFields, uploadServiceRows, validateServiceRows, type ServiceRow } from "@/app/_components/service-reports-fields";
 import { useRouter } from "@/i18n/routing";
@@ -13,12 +13,27 @@ import { todayInMalaysia } from "@/lib/format";
  * the company. Same date + service rows as /submit, each report uploaded
  * on its own to the existing client.
  */
-export function AddServicePanel({ clientId, companyName }: { clientId: string; companyName: string }) {
+export function AddServicePanel({
+  clientId,
+  companyName,
+  renewCategory = null,
+}: {
+  clientId: string;
+  companyName: string;
+  /** Opens the panel straight away with this service pre-selected — the "Renew" action from expiry alerts. */
+  renewCategory?: string | null;
+}) {
   const t = useTranslations("services");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(Boolean(renewCategory));
   const [serviceDate, setServiceDate] = useState(todayInMalaysia);
-  const [rows, setRows] = useState<ServiceRow[]>(() => [newServiceRow()]);
+  const [rows, setRows] = useState<ServiceRow[]>(() => [{ ...newServiceRow(), category: renewCategory ?? "" }]);
+
+  // Arriving via a "Renew" link: bring the pre-filled panel into view.
+  useEffect(() => {
+    if (renewCategory) panelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [renewCategory]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [justSaved, setJustSaved] = useState(0);
@@ -35,7 +50,7 @@ export function AddServicePanel({ clientId, companyName }: { clientId: string; c
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isCompressing || !validateServiceRows(rows, setRows)) return;
+    if (isCompressing || !validateServiceRows(rows, setRows, serviceDate)) return;
     setError("");
     setIsSaving(true);
     const savedCount = rows.length;
@@ -74,6 +89,7 @@ export function AddServicePanel({ clientId, companyName }: { clientId: string; c
   }
 
   return (
+    <div ref={panelRef} className="w-full">
     <form onSubmit={save} className="mt-5 w-full rounded-[1.5rem] border border-accent-soft bg-accent-soft/25 p-5 animate-[rise_.35s_ease-out_both] sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -114,5 +130,6 @@ export function AddServicePanel({ clientId, companyName }: { clientId: string; c
         </button>
       </div>
     </form>
+    </div>
   );
 }

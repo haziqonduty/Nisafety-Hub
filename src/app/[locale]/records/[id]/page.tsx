@@ -8,14 +8,18 @@ import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { RecordDetailBody } from "@/app/_components/record-detail-body";
 import { ServiceTimeline } from "@/app/_components/service-timeline";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
+import { ValidityCard } from "@/app/_components/validity-card";
 import { Link } from "@/i18n/routing";
-import { formatServiceDate, toneBadgeClass } from "@/lib/format";
+import { DOCUMENT_CATEGORIES, formatServiceDate, toneBadgeClass } from "@/lib/format";
 import { getClientServiceHistory, getRecordById } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecordPage(props: PageProps<"/[locale]/records/[id]">) {
-  const { id } = await props.params;
+  const [{ id }, searchParams] = await Promise.all([props.params, props.searchParams]);
+  // ?renew=<category> — arriving from an expiry alert's "Renew" action.
+  const renewParam = typeof searchParams.renew === "string" ? searchParams.renew : null;
+  const renewCategory = renewParam && (DOCUMENT_CATEGORIES as readonly string[]).includes(renewParam) ? renewParam : null;
   const [record, t, tCategories, tServices, locale] = await Promise.all([
     getRecordById(id),
     getTranslations("record"),
@@ -73,6 +77,10 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
           </ViewTransition>
           {record.hasDocument && <p className="mt-2 text-sm text-ink-muted">{record.fileType} · {record.fileSize}</p>}
 
+          {record.hasDocument && record.category && record.serviceDate && (
+            <ValidityCard id={record.id} category={record.category} serviceDate={record.serviceDate} expiryDate={record.expiryDate} history={history} />
+          )}
+
           {record.hasDocument ? (
             <>
               <div className="mt-7 flex flex-wrap items-center gap-3 print:hidden">
@@ -119,7 +127,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
 
           <RecordDetailBody record={record} />
 
-          <section className="mt-10 border-t border-line pt-8 print:hidden" aria-labelledby="service-history-title">
+          <section id="service-history" className="mt-10 scroll-mt-6 border-t border-line pt-8 print:hidden" aria-labelledby="service-history-title">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-accent">{tServices("historyEyebrow")}</p>
@@ -127,7 +135,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
                   {tServices("historyTitle")}
                 </h2>
               </div>
-              <AddServicePanel clientId={record.clientId} companyName={record.companyName} />
+              <AddServicePanel key={renewCategory ?? "add"} clientId={record.clientId} companyName={record.companyName} renewCategory={renewCategory} />
             </div>
             <ServiceTimeline history={history} currentId={record.id} />
           </section>

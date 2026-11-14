@@ -22,8 +22,9 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
   const formData = await request.formData();
   const category = textValue(formData.get("category"), 80);
   const serviceDate = textValue(formData.get("serviceDate"), 10);
+  const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
 
-  const validation = validateReport(category, serviceDate, formData.get("file"));
+  const validation = validateReport(category, serviceDate, expiryInput, formData.get("file"));
   if ("error" in validation) {
     return Response.json({ error: validation.error }, { status: 400 });
   }
@@ -40,6 +41,7 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
     clientId,
     category,
     serviceDate,
+    expiryDate: validation.expiryDate,
     file: validation.file,
     extension: validation.extension,
     thumbnail: formData.get("thumbnail"),

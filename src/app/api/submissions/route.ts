@@ -73,6 +73,7 @@ export async function POST(request: Request) {
   const submitterName = textValue(formData.get("submitterName"), 160);
   const category = textValue(formData.get("category"), 80);
   const serviceDate = textValue(formData.get("serviceDate"), 10);
+  const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
   const existingClientId = textValue(formData.get("clientId"), 36);
   const file = formData.get("file");
   const thumbnail = formData.get("thumbnail");
@@ -101,10 +102,10 @@ export async function POST(request: Request) {
   // request each via POST /api/clients/[id]/reports — Vercel caps a request
   // body at 4.5MB, so several reports can never travel together.
   const hasDocument = file instanceof File;
-  let report: { extension: string; file: File } | null = null;
+  let report: { extension: string; file: File; expiryDate: string | null } | null = null;
 
   if (hasDocument) {
-    const validation = validateReport(category, serviceDate, file);
+    const validation = validateReport(category, serviceDate, expiryInput, file);
     if ("error" in validation) {
       return Response.json({ error: validation.error }, { status: 400 });
     }
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
     return Response.json({ clientId }, { status: 201 });
   }
 
-  const stored = await storeReport(supabase, { clientId, category, serviceDate, file: report.file, extension: report.extension, thumbnail });
+  const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, file: report.file, extension: report.extension, thumbnail });
   if ("error" in stored) {
     await rollbackNewClient(clientId, isNewClient);
     return Response.json({ error: stored.error }, { status: 500 });

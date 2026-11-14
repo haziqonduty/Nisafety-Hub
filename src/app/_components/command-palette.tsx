@@ -3,7 +3,7 @@
 import { Command } from "cmdk";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Search, ShieldCheck, Upload } from "@/app/_components/icons";
+import { ArrowUpRight, Hourglass, Search, ShieldCheck, Upload } from "@/app/_components/icons";
 import { useRouter } from "@/i18n/routing";
 
 type DocumentResult = {
@@ -26,6 +26,7 @@ export function CommandPalette() {
   const navItems = [
     { label: t("goToDirectory"), href: "/" as const, icon: ShieldCheck, external: false },
     { label: t("submitRecord"), href: "/submit" as const, icon: Upload, external: false },
+    { label: t("renewals"), href: "/renewals" as const, icon: Hourglass, external: false },
     { label: t("adminDashboard"), href: "/admin", icon: ArrowUpRight, external: true },
   ];
 
@@ -68,7 +69,7 @@ export function CommandPalette() {
     };
   }, [open, query]);
 
-  function goLocalized(href: "/" | "/submit") {
+  function goLocalized(href: "/" | "/submit" | "/renewals") {
     setOpen(false);
     setQuery("");
     router.push(href);
@@ -125,7 +126,7 @@ export function CommandPalette() {
             <Command.Item
               key={item.href}
               value={item.label}
-              onSelect={() => (item.external ? goExternal(item.href) : goLocalized(item.href as "/" | "/submit"))}
+              onSelect={() => (item.external ? goExternal(item.href) : goLocalized(item.href as "/" | "/submit" | "/renewals"))}
               className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm normal-case tracking-normal font-medium text-ink data-[selected=true]:bg-accent-soft data-[selected=true]:text-accent"
             >
               <item.icon className="h-4 w-4" />

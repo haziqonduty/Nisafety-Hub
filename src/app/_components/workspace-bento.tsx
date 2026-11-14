@@ -10,7 +10,7 @@ import type { WorkspaceData, WorkspaceRecord } from "@/lib/supabase/queries";
 
 const CARD = "rounded-[1.5rem] border border-line bg-surface shadow-[0_18px_44px_rgba(16,42,51,.06)]";
 
-export async function WorkspaceBento({ data, isAdmin }: { data: WorkspaceData; isAdmin: boolean }) {
+export async function WorkspaceBento({ data, isAdmin, renewalAlerts }: { data: WorkspaceData; isAdmin: boolean; renewalAlerts: number }) {
   const [t, tCategories] = await Promise.all([getTranslations("workspace"), getTranslations("categories.items")]);
 
   function categoryLabel(category: string | null) {
@@ -122,17 +122,17 @@ export async function WorkspaceBento({ data, isAdmin }: { data: WorkspaceData; i
             </p>
           </SpotlightCard>
 
-          <SpotlightCard className={`${CARD} flex flex-col p-6 ${queueIsEmpty ? "" : "border-amber/30"}`}>
+          <SpotlightCard className={`${CARD} flex flex-col p-6 ${queueIsEmpty && renewalAlerts === 0 ? "" : "border-amber/30"}`}>
             <div className="flex items-start justify-between gap-4">
               <p className="font-mono text-[11px] font-semibold tracking-[0.14em] text-ink-muted">{t("needsAttention")}</p>
-              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${queueIsEmpty ? "bg-accent-soft text-accent" : "bg-amber-soft text-amber"}`}>
-                {queueIsEmpty ? <Check className="h-5 w-5" /> : <Inbox className="h-5 w-5" />}
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${queueIsEmpty && renewalAlerts === 0 ? "bg-accent-soft text-accent" : "bg-amber-soft text-amber"}`}>
+                {queueIsEmpty && renewalAlerts === 0 ? <Check className="h-5 w-5" /> : <Inbox className="h-5 w-5" />}
               </span>
             </div>
-            <p className={`mt-auto pt-6 text-5xl font-semibold tracking-[-0.06em] tabular-nums ${queueIsEmpty ? "" : "text-amber"}`}>
-              <CountUp value={data.myIncompleteCount + (pending?.count ?? 0)} />
+            <p className={`mt-auto pt-6 text-5xl font-semibold tracking-[-0.06em] tabular-nums ${queueIsEmpty && renewalAlerts === 0 ? "" : "text-amber"}`}>
+              <CountUp value={data.myIncompleteCount + (pending?.count ?? 0) + renewalAlerts} />
             </p>
-            <p className="mt-2 text-sm text-ink-muted">{queueIsEmpty ? t("allClearHint") : t("needsAttentionHint")}</p>
+            <p className="mt-2 text-sm text-ink-muted">{queueIsEmpty && renewalAlerts === 0 ? t("allClearHint") : t("needsAttentionHint")}</p>
           </SpotlightCard>
         </div>
       </Reveal>

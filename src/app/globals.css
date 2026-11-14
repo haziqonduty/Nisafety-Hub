@@ -166,6 +166,16 @@ body {
   }
 }
 
+/* Validity progress bars fill from the left on first paint. */
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* Soft "live" indicator — a ring expanding out of the status dot. */
 @keyframes ping-soft {
   0% {

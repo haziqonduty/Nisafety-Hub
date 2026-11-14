@@ -3,7 +3,8 @@
     "workspace": "Ruang kerja",
     "directory": "Direktori",
     "submit": "Laporan baharu",
-    "adminDashboard": "Papan pemuka admin"
+    "adminDashboard": "Papan pemuka admin",
+    "renewals": "Pembaharuan"
   },
   "home": {
     "directoryEyebrow": "DIREKTORI",
@@ -94,7 +95,8 @@
     "goToDirectory": "Pergi ke direktori",
     "submitRecord": "Hantar rekod",
     "adminDashboard": "Papan pemuka admin",
-    "noMatch": "Tiada dokumen sepadan dengan \"{query}\"."
+    "noMatch": "Tiada dokumen sepadan dengan \"{query}\".",
+    "renewals": "Penjejak pembaharuan"
   },
   "submit": {
     "backToDirectory": "← Kembali ke direktori",
@@ -165,7 +167,8 @@
     "NETWORK_ERROR": "Kami tidak dapat menghubungi perkhidmatan penghantaran. Sila cuba lagi.",
     "RATE_LIMITED": "Terlalu banyak penghantaran dari rangkaian anda baru-baru ini. Sila tunggu beberapa minit dan cuba lagi.",
     "INVALID_SERVICE_DATE": "Pilih tarikh perkhidmatan yang sah — ia tidak boleh pada masa hadapan.",
-    "NOT_FOUND": "Klien ini tidak lagi wujud."
+    "NOT_FOUND": "Klien ini tidak lagi wujud.",
+    "INVALID_EXPIRY_DATE": "Tarikh tamat mestilah selepas tarikh pemantauan."
   },
   "submissionSuccess": {
     "eyebrow": "PENGHANTARAN DITERIMA",
@@ -279,6 +282,66 @@
     "showLess": "Tunjuk kurang",
     "otherServicesHidden": "+{count} perkhidmatan lain tidak sepadan dengan penapis",
     "lastVisit": "Lawatan terakhir {date} · {visits} lawatan",
-    "viewClient": "Lihat klien"
+    "viewClient": "Lihat klien",
+    "monitoringDate": "Tarikh pemantauan"
+  },
+  "expiry": {
+    "validUntil": "Sah sehingga",
+    "customExpiryLabel": "Tarikh tamat tersuai",
+    "useDefault": "Guna lalai",
+    "noExpiry": "Tiada tarikh tamat tetap",
+    "noFixedInterval": "Tiada tempoh pembaharuan tetap untuk perkhidmatan ini",
+    "setDate": "Tetapkan tarikh",
+    "autoMonths": "AUTO · {months} BLN",
+    "change": "Tukar",
+    "noExpiryAction": "Tiada tarikh tamat",
+    "expiredAgo": "{count, plural, =0 {Tamat hari ini} =1 {Tamat semalam} other {Tamat # hari lepas}}",
+    "expiresIn": "{count, plural, =0 {Tamat hari ini} =1 {Tamat esok} other {Tamat dalam # hari}}",
+    "validFor": "Sah · {months} bulan lagi",
+    "renewed": "Diperbaharui",
+    "complianceValidity": "KESAHAN PEMATUHAN",
+    "renewedBy": "Digantikan oleh laporan lebih baharu pada {date}.",
+    "noExpiryHint": "Laporan ini tiada tarikh tamat, jadi ia tidak dijejak untuk pembaharuan.",
+    "viewLatest": "Lihat laporan terkini",
+    "renewNow": "Perbaharui",
+    "monitoredOn": "DIPANTAU",
+    "expiresOn": "TAMAT",
+    "today": "HARI INI",
+    "percentElapsed": "{percent}% tempoh sah telah digunakan",
+    "statutory": "BERKANUN",
+    "typical": "LAZIM — SAHKAN",
+    "resetToDefault": "Tetapkan semula ke lalai ({months} bulan)",
+    "bannerExpired": "{count} laporan telah tamat",
+    "bannerExpiring": "{count} akan tamat dalam 30 hari",
+    "bannerHint": "Perbaharui sebelum klien anda tidak lagi mematuhi peraturan.",
+    "andMore": "+{count} lagi",
+    "openTracker": "Buka penjejak pembaharuan",
+    "tileExpired": "Tamat",
+    "tileExpiring": "Dalam 30 hari",
+    "tileUpcoming": "Dalam 90 hari",
+    "tileValid": "Sah",
+    "radarEyebrow": "PEMBAHARUAN",
+    "radarTitle": "Yang perlu dibuat seterusnya",
+    "radarClear": "Tiada yang perlu dalam 90 hari akan datang.",
+    "radarClearHint": "Setiap laporan yang dijejak masih jauh dalam tempoh sahnya.",
+    "groupOverdue": "Lewat",
+    "groupCount": "{count} pembaharuan",
+    "filterAll": "Semua",
+    "filterLabel": "Tapis mengikut status",
+    "searchPlaceholder": "Cari syarikat, kenalan atau perkhidmatan",
+    "trackerEmpty": "Belum ada laporan yang dijejak.",
+    "trackerEmptyHint": "Laporan dengan tarikh tamat muncul di sini secara automatik, yang paling hampir dahulu.",
+    "trackerNoMatch": "Tiada yang sepadan dengan penapis ini.",
+    "trackerNoMatchHint": "Cuba status lain atau kosongkan carian.",
+    "monitoredShort": "Dipantau",
+    "expiresShort": "Tamat",
+    "viewReport": "Lihat laporan",
+    "trackerEyebrow": "PENJEJAK PEMATUHAN",
+    "trackerTitle": "Setiap pembaharuan, sebelum tiba masanya.",
+    "trackerSubtitle": "Laporan terkini setiap klien bagi setiap perkhidmatan, disusun mengikut tarikh tamat. Memuat naik pembaharuan akan mengosongkan amarannya secara automatik.",
+    "rulesEyebrow": "CARA TARIKH TAMAT DIKIRA",
+    "rulesTitle": "Tempoh sah mengikut perkhidmatan",
+    "rulesIntro": "Tarikh tamat diisi secara automatik daripada tarikh pemantauan ditambah tempoh di bawah, dan boleh diubah pada mana-mana laporan (contohnya, kepada tarikh pemantauan seterusnya yang disyorkan oleh penilai). Tempoh berkanun diambil daripada peraturan JKKP/JAS yang dinyatakan; tempoh lazim bergantung pada lesen klien, syarat kelulusan atau dapatan CHRA dan perlu disahkan bagi setiap klien.",
+    "monthsShort": "{months} bln"
   }
 }

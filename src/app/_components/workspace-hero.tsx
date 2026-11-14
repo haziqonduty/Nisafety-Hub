@@ -22,7 +22,7 @@ function greetingKey(hour: number) {
 const ACTION_TILE =
   "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-left backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-teal-300/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-400/30";
 
-export async function WorkspaceHero({ profile, data }: { profile: CurrentProfile; data: WorkspaceData }) {
+export async function WorkspaceHero({ profile, data, renewalAlerts }: { profile: CurrentProfile; data: WorkspaceData; renewalAlerts: number }) {
   const [t, locale] = await Promise.all([getTranslations("workspace"), getLocale()]);
   const now = new Date();
   const intlLocale = locale === "ms" ? "ms-MY" : "en-GB";
@@ -30,7 +30,7 @@ export async function WorkspaceHero({ profile, data }: { profile: CurrentProfile
   const dateLine = new Intl.DateTimeFormat(intlLocale, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: WORKSPACE_TIME_ZONE }).format(now);
   const firstName = profile.fullName.trim().split(/\s+/)[0] || profile.fullName;
   const isAdmin = profile.role === "admin";
-  const attention = data.myIncompleteCount + (data.pendingApprovals?.count ?? 0);
+  const attention = data.myIncompleteCount + (data.pendingApprovals?.count ?? 0) + renewalAlerts;
 
   return (
     <section

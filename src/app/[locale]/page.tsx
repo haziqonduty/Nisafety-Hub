@@ -5,13 +5,15 @@ import { DirectoryExplorer } from "@/app/_components/directory-explorer";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { LogoutButton } from "@/app/_components/logout-button";
 import { RealtimeDirectoryBanner } from "@/app/_components/realtime-directory-banner";
+import { RenewalBanner } from "@/app/_components/renewal-banner";
+import { RenewalsRadar } from "@/app/_components/renewals-radar";
 import { Reveal } from "@/app/_components/reveal";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { WorkspaceBento } from "@/app/_components/workspace-bento";
 import { WorkspaceHero } from "@/app/_components/workspace-hero";
 import { Link } from "@/i18n/routing";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { getDirectoryDocuments, getWorkspaceData } from "@/lib/supabase/queries";
+import { getDirectoryDocuments, getRenewals, getWorkspaceData } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +21,15 @@ export default async function Home() {
   // Middleware already guarantees a signed-in, approved profile here; the
   // fallback only exists so the page can't crash if that invariant ever slips.
   const profile = (await getCurrentProfile()) ?? { id: "", email: "", fullName: "there", role: "staff" as const, status: "approved" as const };
-  const [documents, workspace, t, tNav] = await Promise.all([
+  const [documents, workspace, renewals, t, tNav] = await Promise.all([
     getDirectoryDocuments(),
     getWorkspaceData(profile),
+    getRenewals(),
     getTranslations("home"),
     getTranslations("nav"),
   ]);
   const isAdmin = profile.role === "admin";
+  const renewalAlerts = renewals.expired + renewals.expiring;
 
   return (
     <main className="min-h-screen overflow-x-clip bg-canvas text-ink">
@@ -40,6 +44,12 @@ export default async function Home() {
         <nav className="hidden items-center gap-1 rounded-full border border-line bg-surface/80 p-1 text-sm font-medium text-ink-muted backdrop-blur md:flex" aria-label="Primary navigation">
           <a href="#top" className="rounded-full bg-brand px-3.5 py-1.5 text-white">{tNav("workspace")}</a>
           <a href="#directory" className="rounded-full px-3.5 py-1.5 transition-colors hover:text-accent">{tNav("directory")}</a>
+          <Link href="/renewals" className="relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 transition-colors hover:text-accent">
+            {tNav("renewals")}
+            {renewalAlerts > 0 && (
+              <span className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold text-white ${renewals.expired > 0 ? "bg-danger" : "bg-amber"}`}>{renewalAlerts}</span>
+            )}
+          </Link>
           <Link href="/submit" className="rounded-full px-3.5 py-1.5 transition-colors hover:text-accent">{tNav("submit")}</Link>
         </nav>
         <div className="flex items-center gap-3">
@@ -54,12 +64,21 @@ export default async function Home() {
         </div>
       </header>
 
+      {renewalAlerts > 0 && (
+        <div className="relative mx-auto max-w-7xl px-6 pb-4 lg:px-8">
+          <RenewalBanner renewals={renewals} />
+        </div>
+      )}
+
       <div className="relative mx-auto max-w-7xl px-6 pt-2 lg:px-8">
-        <WorkspaceHero profile={profile} data={workspace} />
+        <WorkspaceHero profile={profile} data={workspace} renewalAlerts={renewalAlerts} />
       </div>
 
       <section className="relative mx-auto max-w-7xl px-6 pt-5 lg:px-8">
-        <WorkspaceBento data={workspace} isAdmin={isAdmin} />
+        <WorkspaceBento data={workspace} isAdmin={isAdmin} renewalAlerts={renewalAlerts} />
+        <div className="mt-5 grid lg:grid-cols-12">
+          <RenewalsRadar renewals={renewals} />
+        </div>
       </section>
 
       <section id="directory" className="relative mx-auto max-w-7xl scroll-mt-24 px-6 pb-24 pt-20 lg:px-8 lg:pt-24">

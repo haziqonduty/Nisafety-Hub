@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { compressPdf } from "@/lib/compress-pdf";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
 import { CATEGORY_GROUPS, todayInMalaysia } from "@/lib/format";
+import { addDays, defaultExpiryFor, validityRuleFor } from "@/lib/validity";
 import type { RecordDetail } from "@/lib/supabase/queries";
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
@@ -30,6 +31,7 @@ const KNOWN_ERROR_CODES = [
   "FILE_TYPE_CANNOT_COMPRESS",
   "TOO_MANY_CONTACTS",
   "INVALID_SERVICE_DATE",
+  "INVALID_EXPIRY_DATE",
 ] as const;
 
 export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDone: () => void }) {
@@ -39,6 +41,7 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
   const tGroups = useTranslations("categories.groups");
   const tCategories = useTranslations("categories.items");
   const tServices = useTranslations("services");
+  const tExpiry = useTranslations("expiry");
   const router = useRouter();
 
   const [clientNames, setClientNames] = useState<string[]>([record.clientName, ...record.additionalClientNames]);
@@ -48,6 +51,11 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
   const [submitterName, setSubmitterName] = useState(record.submitterName);
   const [category, setCategory] = useState(record.category ?? "");
   const [serviceDate, setServiceDate] = useState(record.serviceDate ?? todayInMalaysia());
+  const [expiryDate, setExpiryDate] = useState(record.hasDocument ? (record.expiryDate ?? "") : "");
+  // A brand-new attachment starts on the category default; an existing report keeps what it has.
+  const [expiryTouched, setExpiryTouched] = useState(record.hasDocument);
+  const effectiveExpiry = expiryTouched ? expiryDate : (defaultExpiryFor(category, serviceDate) ?? "");
+  const rule = category ? validityRuleFor(category) : null;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionNotice, setCompressionNotice] = useState("");
@@ -105,7 +113,10 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
     emails.filter(Boolean).forEach((value) => formData.append("email", value));
     formData.append("submitterName", submitterName);
     if (category) formData.append("category", category);
-    if (record.hasDocument || selectedFile) formData.append("serviceDate", serviceDate);
+    if (record.hasDocument || selectedFile) {
+      formData.append("serviceDate", serviceDate);
+      formData.append("expiryDate", effectiveExpiry);
+    }
     if (selectedFile) {
       formData.append("file", selectedFile);
       if (selectedFile.type === "application/pdf") {
@@ -217,6 +228,52 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
           {tServices("serviceDate")}
           <input required type="date" min="2000-01-01" max={todayInMalaysia()} value={serviceDate} onChange={(event) => setServiceDate(event.target.value)} className={`${fieldClass} max-w-[13rem] tabular-nums`} />
         </label>
+      )}
+
+      {(record.hasDocument || selectedFile) && (
+        <div className="mt-5">
+          <label className="block text-sm font-semibold" htmlFor="edit-expiry">
+            {tExpiry("validUntil")}
+          </label>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <input
+              id="edit-expiry"
+              type="date"
+              min={serviceDate ? addDays(serviceDate, 1) : undefined}
+              value={effectiveExpiry}
+              onChange={(event) => {
+                setExpiryTouched(true);
+                setExpiryDate(event.target.value);
+              }}
+              className={`${fieldClass} mt-0 max-w-[13rem] tabular-nums`}
+            />
+            {rule?.months && (
+              <button
+                type="button"
+                onClick={() => {
+                  setExpiryTouched(true);
+                  setExpiryDate(defaultExpiryFor(category, serviceDate) ?? "");
+                }}
+                className="text-xs font-semibold text-accent transition-colors hover:text-accent-hover"
+              >
+                {tExpiry("resetToDefault", { months: rule.months })}
+              </button>
+            )}
+            {effectiveExpiry && (
+              <button
+                type="button"
+                onClick={() => {
+                  setExpiryTouched(true);
+                  setExpiryDate("");
+                }}
+                className="text-xs font-semibold text-ink-muted transition-colors hover:text-accent"
+              >
+                {tExpiry("noExpiryAction")}
+              </button>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs text-ink-muted">{effectiveExpiry ? (rule?.basis ?? "") : tExpiry("noExpiryHint")}</p>
+        </div>
       )}
 
       {error && (

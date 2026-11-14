@@ -110,6 +110,22 @@ export function Grid(props: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>;
 }
 
+export function Hourglass(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M6.5 3.5h11M6.5 20.5h11M7.5 3.5v2.8a4.5 4.5 0 0 0 1.8 3.6L12 12l-2.7 2.1a4.5 4.5 0 0 0-1.8 3.6v2.8M16.5 3.5v2.8a4.5 4.5 0 0 1-1.8 3.6L12 12l2.7 2.1a4.5 4.5 0 0 1 1.8 3.6v2.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+export function AlertTriangle(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M10.3 4.2 2.9 17.1A2 2 0 0 0 4.6 20h14.8a2 2 0 0 0 1.7-2.9L13.7 4.2a2 2 0 0 0-3.4 0Z" strokeLinejoin="round" /><path d="M12 9.5v4.2M12 16.8v.1" strokeLinecap="round" /></svg>;
+}
+
+export function Bell(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2H4.5l1.5-2Z" strokeLinejoin="round" /><path d="M10 21h4" strokeLinecap="round" /></svg>;
+}
+
+export function RefreshCw(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M20 11a8 8 0 0 0-14.6-4.5M4 13a8 8 0 0 0 14.6 4.5" strokeLinecap="round" /><path d="M5 3v4h4M19 21v-4h-4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
 export function Close(props: IconProps) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" /></svg>;
 }

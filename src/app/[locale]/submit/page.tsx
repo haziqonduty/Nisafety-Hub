@@ -174,7 +174,7 @@ export default function SubmitPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isCompressing) return;
-    if (attachDocument && !validateServiceRows(serviceRows, setServiceRows)) {
+    if (attachDocument && !validateServiceRows(serviceRows, setServiceRows, serviceDate)) {
       setError("");
       return;
     }

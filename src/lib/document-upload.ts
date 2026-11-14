@@ -1,7 +1,8 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DOCUMENT_CATEGORIES, isValidServiceDate } from "@/lib/format";
+import { DOCUMENT_CATEGORIES, isValidServiceDate, resolveExpiryInput } from "@/lib/format";
+import { defaultExpiryFor } from "@/lib/validity";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 // Vercel's hard per-request body limit is 4.5MB regardless of plan/config
@@ -62,27 +63,36 @@ export async function removeStorageObjects(paths: (string | null | undefined)[])
   await createSupabaseServiceClient().storage.from("safety-documents").remove(validPaths);
 }
 
-export type ReportValidationError = FileValidationError | "INVALID_CATEGORY" | "INVALID_SERVICE_DATE";
+export type ReportValidationError = FileValidationError | "INVALID_CATEGORY" | "INVALID_SERVICE_DATE" | "INVALID_EXPIRY_DATE";
 
 /**
  * Everything a single service report needs before anything is written:
- * a known category, a real service date (not in the future), and a valid
- * file. Run before creating a client so a bad report never leaves a
- * half-finished submission behind.
+ * a known category, a real service date (not in the future), a valid expiry
+ * (auto-filled from the category when not sent), and a valid file. Run
+ * before creating a client so a bad report never leaves a half-finished
+ * submission behind.
  */
-export function validateReport(category: string, serviceDate: string, file: unknown): { extension: string; file: File } | { error: ReportValidationError } {
+export function validateReport(
+  category: string,
+  serviceDate: string,
+  expiryInput: string | null,
+  file: unknown,
+): { extension: string; file: File; expiryDate: string | null } | { error: ReportValidationError } {
   if (!category || !(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) return { error: "INVALID_CATEGORY" };
   if (!isValidServiceDate(serviceDate)) return { error: "INVALID_SERVICE_DATE" };
+  const expiry = resolveExpiryInput(expiryInput, serviceDate, defaultExpiryFor(category, serviceDate));
+  if ("error" in expiry) return expiry;
   if (!(file instanceof File)) return { error: "INVALID_FILE_TYPE" };
   const validation = validateDocumentFile(file);
   if ("error" in validation) return validation;
-  return { extension: validation.extension, file };
+  return { extension: validation.extension, file, expiryDate: expiry.expiryDate };
 }
 
 type StoreReportInput = {
   clientId: string;
   category: string;
   serviceDate: string;
+  expiryDate: string | null;
   file: File;
   extension: string;
   thumbnail: FormDataEntryValue | null;
@@ -112,6 +122,7 @@ export async function storeReport(supabase: SupabaseClient, input: StoreReportIn
       client_id: input.clientId,
       category: input.category,
       service_date: input.serviceDate,
+      expiry_date: input.expiryDate,
       file_name: input.file.name.slice(0, 255),
       storage_path: storagePath,
       file_type: input.file.type,

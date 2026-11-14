@@ -671,6 +671,19 @@ Kay clarified (after two of my proposals overshot — an engagement/renewal-trac
 - **Verified in Chrome against `next start`** (14/14 checks): 3 services in one submission → 1 client, 3 reports, same date; directory single card; later visit via "Add a service" with a forced failure on the 2nd upload → "Retry 1 service" → exactly 3 report requests, 5 reports total, no duplicates; timeline 2 visits; API rejects a future date. Desktop light + mobile dark screenshots reviewed (fixed a mobile timeline overflow: grid tracks need `minmax(0,1fr)` when children use `truncate`). All test data/storage deleted.
 - **Gotcha**: shell heredocs in this environment can mangle backslashes in inline Python patch scripts — write patch scripts with the Write tool instead.
 
+## Report expiry tracking + renewals tracker (2026-11-14)
+
+Kay asked for an expiry date on every service, based on DOSH rules, auto-tracked from the date of monitoring, with a homepage banner one month before expiry and a premium section to trace it.
+
+- **Migration `20261114_add_document_expiry_date.sql` — applied by Kay 2026-11-14.** `documents.expiry_date date null`, check `expiry_date > service_date`, partial index, backfill from service_date + default months.
+- **Rules live in `src/lib/validity.ts` (`VALIDITY_RULES`)** — months / basis / confidence ("regulation" vs "practice"). Researched (web): CHRA 60, CEM 6, MS 12, LEV 12, Audiometric 12, Stack 12 = statutory-ish; NRA 60, CIMAH 36, boundary noise/ambient air 3, ECA/genset 12 = "typical — confirm" (couldn't verify NRA 5-yr review or CIMAH 3-yr in primary text); ERA/HIRARC/IAQ/psychosocial/drinking water/waste water/scheduled waste/DOE WN-WD = no fixed expiry. **Kay/Nisafety still to confirm the table.** Backfill CASE in the migration must stay in sync with it.
+- **Expiry input**: each service row shows "Valid until … · AUTO · N MO" (moves with category/date), Change → custom date, or No expiry; always sent as `expiryDate` (empty = none, absent = server default). `resolveExpiryInput` in `format.ts`; `INVALID_EXPIRY_DATE`. Record Edit form has the field too.
+- **Tracking = latest report per (client, category)**; older ones show "Renewed" and drop out (`getRenewals()` in queries.ts). Statuses: expired / expiring (≤30d) / upcoming (≤90d) / valid.
+- **UI**: `renewal-banner.tsx` (homepage, only when expired/≤30d; red vs amber), `renewals-radar.tsx` (bento "What's due next"), `/[locale]/renewals` page + `renewals-tracker.tsx` (tiles, filter tabs with counts, search, Overdue + per-month groups, Renew), `validity-card.tsx` on records (countdown, progress with today marker, basis + STATUTORY/TYPICAL chip), `expiry-badge.tsx` on directory rows and timeline. Renew = `/records/[id]?renew=<category>` → AddServicePanel opens pre-selected. Nav "Renewals" link with count; ⌘K entry; attention counts include renewals.
+- **Verified in Chrome against `next start`** (16/16): seeded expired/expiring/upcoming/valid/superseded reports → banner + radar + tracker counts and filters correct, renewed CEM excluded, Renew prefills CHRA and saves auto expiry today+60mo, old CHRA shows Renewed, custom IAQ expiry saved, API rejects expiry ≤ monitoring date. Desktop + mobile dark reviewed. Test data deleted.
+- **Gotcha (again)**: any CSS grid whose children use `truncate` needs `grid-cols-[minmax(0,1fr)]` explicitly, including the implicit single column on mobile — otherwise cards overflow on phones. And don't combine `hidden lg:inline-flex` with a component that already sets `inline-flex` — wrap it instead.
+- **Not built (possible follow-up)**: email reminders before expiry (needs an email provider + a scheduled job), and admin-editable validity rules (currently a code constant).
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

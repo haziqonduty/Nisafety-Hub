@@ -3,7 +3,8 @@
     "workspace": "Workspace",
     "directory": "Directory",
     "submit": "New report",
-    "adminDashboard": "Admin dashboard"
+    "adminDashboard": "Admin dashboard",
+    "renewals": "Renewals"
   },
   "home": {
     "directoryEyebrow": "DIRECTORY",
@@ -94,7 +95,8 @@
     "goToDirectory": "Go to directory",
     "submitRecord": "Submit a record",
     "adminDashboard": "Admin dashboard",
-    "noMatch": "No documents match \"{query}\"."
+    "noMatch": "No documents match \"{query}\".",
+    "renewals": "Renewals tracker"
   },
   "submit": {
     "backToDirectory": "← Back to directory",
@@ -165,7 +167,8 @@
     "NETWORK_ERROR": "We could not reach the submission service. Please try again.",
     "RATE_LIMITED": "Too many submissions from your network recently. Please wait a few minutes and try again.",
     "INVALID_SERVICE_DATE": "Choose a valid service date — it can't be in the future.",
-    "NOT_FOUND": "This client no longer exists."
+    "NOT_FOUND": "This client no longer exists.",
+    "INVALID_EXPIRY_DATE": "The expiry date must be after the date of monitoring."
   },
   "submissionSuccess": {
     "eyebrow": "SUBMISSION RECEIVED",
@@ -279,6 +282,66 @@
     "showLess": "Show fewer",
     "otherServicesHidden": "{count, plural, =1 {+1 other service} other {+# other services}} not matching the filter",
     "lastVisit": "Last visit {date} · {visits, plural, =1 {1 visit} other {# visits}}",
-    "viewClient": "View client"
+    "viewClient": "View client",
+    "monitoringDate": "Date of monitoring"
+  },
+  "expiry": {
+    "validUntil": "Valid until",
+    "customExpiryLabel": "Custom expiry date",
+    "useDefault": "Use default",
+    "noExpiry": "No fixed expiry",
+    "noFixedInterval": "No fixed renewal interval for this service",
+    "setDate": "Set a date",
+    "autoMonths": "AUTO · {months} MO",
+    "change": "Change",
+    "noExpiryAction": "No expiry",
+    "expiredAgo": "{count, plural, =0 {Expired today} =1 {Expired yesterday} other {Expired # days ago}}",
+    "expiresIn": "{count, plural, =0 {Expires today} =1 {Expires tomorrow} other {Expires in # days}}",
+    "validFor": "{months, plural, =1 {Valid · 1 month left} other {Valid · # months left}}",
+    "renewed": "Renewed",
+    "complianceValidity": "COMPLIANCE VALIDITY",
+    "renewedBy": "Superseded by a newer report on {date}.",
+    "noExpiryHint": "This report has no expiry date, so it isn't tracked for renewal.",
+    "viewLatest": "View latest report",
+    "renewNow": "Renew",
+    "monitoredOn": "MONITORED",
+    "expiresOn": "EXPIRES",
+    "today": "TODAY",
+    "percentElapsed": "{percent}% of validity used",
+    "statutory": "STATUTORY",
+    "typical": "TYPICAL — CONFIRM",
+    "resetToDefault": "Reset to default ({months} months)",
+    "bannerExpired": "{count, plural, =1 {1 report has expired} other {# reports have expired}}",
+    "bannerExpiring": "{count, plural, =1 {1 expires within 30 days} other {# expire within 30 days}}",
+    "bannerHint": "Renew them before your clients fall out of compliance.",
+    "andMore": "+{count} more",
+    "openTracker": "Open renewals tracker",
+    "tileExpired": "Expired",
+    "tileExpiring": "Within 30 days",
+    "tileUpcoming": "Within 90 days",
+    "tileValid": "Valid",
+    "radarEyebrow": "RENEWALS",
+    "radarTitle": "What's due next",
+    "radarClear": "Nothing due in the next 90 days.",
+    "radarClearHint": "Every tracked report is comfortably within its validity period.",
+    "groupOverdue": "Overdue",
+    "groupCount": "{count, plural, =1 {1 renewal} other {# renewals}}",
+    "filterAll": "All",
+    "filterLabel": "Filter by status",
+    "searchPlaceholder": "Search company, contact or service",
+    "trackerEmpty": "No reports are being tracked yet.",
+    "trackerEmptyHint": "Reports with an expiry date appear here automatically, soonest first.",
+    "trackerNoMatch": "Nothing matches this filter.",
+    "trackerNoMatchHint": "Try another status or clear the search.",
+    "monitoredShort": "Monitored",
+    "expiresShort": "Expires",
+    "viewReport": "View report",
+    "trackerEyebrow": "COMPLIANCE TRACKER",
+    "trackerTitle": "Every renewal, before it's due.",
+    "trackerSubtitle": "Each client's latest report per service, sorted by expiry. Uploading a renewal clears its alert automatically.",
+    "rulesEyebrow": "HOW EXPIRY IS CALCULATED",
+    "rulesTitle": "Validity periods by service",
+    "rulesIntro": "Expiry is auto-filled from the date of monitoring plus the period below, and can be changed on any report (for example, to the next monitoring date the assessor recommends). Statutory periods come from the cited DOSH/DOE regulation; typical periods depend on the client's licence, approval conditions or CHRA findings and should be confirmed per client.",
+    "monthsShort": "{months} mo"
   }
 }

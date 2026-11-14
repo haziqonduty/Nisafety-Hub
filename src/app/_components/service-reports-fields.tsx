@@ -2,10 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
-import { Calendar, Check, Close, File, Plus, Upload } from "@/app/_components/icons";
+import { Calendar, Check, Close, File, Hourglass, Plus, Upload } from "@/app/_components/icons";
 import { compressPdf } from "@/lib/compress-pdf";
-import { CATEGORY_GROUPS, todayInMalaysia } from "@/lib/format";
+import { CATEGORY_GROUPS, formatServiceDate, todayInMalaysia } from "@/lib/format";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
+import { addDays, addMonths, defaultExpiryFor, validityRuleFor } from "@/lib/validity";
 
 // Matches the server's MAX_FILE_SIZE (src/lib/document-upload.ts) — driven
 // by Vercel's hard 4.5MB request-body limit.
@@ -14,9 +15,18 @@ export const MAX_SERVICES_PER_VISIT = 8;
 
 export type ServiceRowStatus = "idle" | "uploading" | "done" | "error";
 
+/**
+ * "auto": expiry follows the category's validity period from the service
+ * date (and moves when either changes); "custom": staff typed a date (e.g.
+ * the assessor's recommended next monitoring); "none": no fixed expiry.
+ */
+export type ExpiryMode = "auto" | "custom" | "none";
+
 export type ServiceRow = {
   key: string;
   category: string;
+  expiryMode: ExpiryMode;
+  customExpiry: string;
   file: File | null;
   compressing: boolean;
   notice: string;
@@ -26,12 +36,13 @@ export type ServiceRow = {
 };
 
 export function newServiceRow(): ServiceRow {
-  return { key: crypto.randomUUID(), category: "", file: null, compressing: false, notice: "", status: "idle", errorCode: "" };
+  return { key: crypto.randomUUID(), category: "", expiryMode: "auto", customExpiry: "", file: null, compressing: false, notice: "", status: "idle", errorCode: "" };
 }
 
 const KNOWN_ERROR_CODES = new Set([
   "INVALID_CATEGORY",
   "INVALID_SERVICE_DATE",
+  "INVALID_EXPIRY_DATE",
   "INVALID_FILE_TYPE",
   "FILE_SIZE",
   "UPLOAD_ERROR",
@@ -47,10 +58,19 @@ export function knownErrorCode(code: string | undefined) {
   return code && KNOWN_ERROR_CODES.has(code) ? code : "GENERIC";
 }
 
-/** Appends one service's category, date, file and (for PDFs) a thumbnail. */
+/** The expiry this row will be saved with ("" = no fixed expiry). */
+export function effectiveExpiry(row: ServiceRow, serviceDate: string) {
+  if (row.expiryMode === "none") return "";
+  if (row.expiryMode === "custom") return row.customExpiry;
+  return defaultExpiryFor(row.category, serviceDate) ?? "";
+}
+
+/** Appends one service's category, dates, file and (for PDFs) a thumbnail. */
 export async function appendServiceReport(formData: FormData, row: ServiceRow, serviceDate: string) {
   formData.append("category", row.category);
   formData.append("serviceDate", serviceDate);
+  // Always sent, so the server stores exactly what the row showed.
+  formData.append("expiryDate", effectiveExpiry(row, serviceDate));
   if (!row.file) return;
   formData.append("file", row.file);
   if (row.file.type === "application/pdf") {
@@ -95,11 +115,12 @@ export async function uploadServiceRows(clientId: string, rows: ServiceRow[], se
 }
 
 /** Client-side check before anything is sent; marks offending rows. */
-export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>) {
+export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>, serviceDate: string) {
   const problems = new Map<string, string>();
   for (const row of rows) {
     if (row.status === "done") continue;
     if (!row.category) problems.set(row.key, "INVALID_CATEGORY");
+    else if (row.expiryMode === "custom" && (!row.customExpiry || row.customExpiry <= serviceDate)) problems.set(row.key, "INVALID_EXPIRY_DATE");
     else if (!row.file) problems.set(row.key, "noFile");
   }
   if (problems.size > 0) {
@@ -126,6 +147,7 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
   const tErrors = useTranslations("submissionErrors");
   const tGroups = useTranslations("categories.groups");
   const tCategories = useTranslations("categories.items");
+  const tExpiry = useTranslations("expiry");
   const today = todayInMalaysia();
   const chosenCategories = rows.map((row) => row.category).filter(Boolean);
 
@@ -167,7 +189,7 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
     <div>
       <div className="rounded-2xl border border-line bg-surface-soft p-4 sm:p-5">
         <label htmlFor="service-date" className="flex items-center gap-2 text-sm font-semibold">
-          <Calendar className="h-4 w-4 text-accent" /> {t("serviceDate")}
+          <Calendar className="h-4 w-4 text-accent" /> {t("monitoringDate")}
         </label>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <input
@@ -262,6 +284,8 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
                 </label>
               </div>
 
+              {row.category && <ExpiryStrip row={row} serviceDate={serviceDate} locked={rowLocked} onChange={(patch) => patchRow(setRows, row.key, patch)} t={tExpiry} />}
+
               {row.notice && <p className="mt-2 text-xs text-ink-muted">{row.notice}</p>}
               {duplicate && row.status !== "done" && <p className="mt-2 text-xs text-amber">{t("duplicateService")}</p>}
               {row.status === "error" && (
@@ -286,6 +310,90 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
           {t("addService")}
         </button>
       )}
+    </div>
+  );
+}
+
+type ExpiryTranslator = ReturnType<typeof useTranslations<"expiry">>;
+
+/**
+ * The per-service expiry line: shows the auto-calculated expiry with the
+ * rule it came from, and lets staff switch to a custom date (e.g. the
+ * assessor's recommended next monitoring) or "no fixed expiry".
+ */
+function ExpiryStrip({
+  row,
+  serviceDate,
+  locked,
+  onChange,
+  t,
+}: {
+  row: ServiceRow;
+  serviceDate: string;
+  locked: boolean;
+  onChange: (patch: Partial<ServiceRow>) => void;
+  t: ExpiryTranslator;
+}) {
+  const rule = validityRuleFor(row.category);
+  const autoExpiry = defaultExpiryFor(row.category, serviceDate);
+  const linkClass = "font-semibold text-accent transition-colors hover:text-accent-hover disabled:opacity-50";
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-surface-soft px-3.5 py-2.5 text-xs">
+      <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+        <Hourglass className="h-3.5 w-3.5 text-amber" /> {t("validUntil")}
+      </span>
+
+      {row.expiryMode === "custom" ? (
+        <>
+          <input
+            type="date"
+            required
+            disabled={locked}
+            min={serviceDate ? addDays(serviceDate, 1) : undefined}
+            value={row.customExpiry}
+            onChange={(event) => onChange({ customExpiry: event.target.value, status: "idle", errorCode: "" })}
+            className="rounded-lg border border-line bg-surface px-2.5 py-1.5 font-medium tabular-nums outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
+            aria-label={t("customExpiryLabel")}
+          />
+          {!locked && (
+            <button type="button" className={linkClass} onClick={() => onChange({ expiryMode: "auto" })}>
+              {t("useDefault")}
+            </button>
+          )}
+        </>
+      ) : row.expiryMode === "none" || !autoExpiry ? (
+        <>
+          <span className="text-ink-muted">{row.expiryMode === "none" ? t("noExpiry") : t("noFixedInterval")}</span>
+          {!locked && (
+            <button type="button" className={linkClass} onClick={() => onChange({ expiryMode: "custom", customExpiry: row.customExpiry || (serviceDate ? addMonths(serviceDate, 12) : "") })}>
+              {t("setDate")}
+            </button>
+          )}
+          {!locked && row.expiryMode === "none" && autoExpiry && (
+            <button type="button" className={linkClass} onClick={() => onChange({ expiryMode: "auto" })}>
+              {t("useDefault")}
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <span className="font-semibold tabular-nums text-ink">{formatServiceDate(autoExpiry)}</span>
+          <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[10px] font-bold text-accent">{t("autoMonths", { months: rule!.months! })}</span>
+          {!locked && (
+            <>
+              <button type="button" className={linkClass} onClick={() => onChange({ expiryMode: "custom", customExpiry: autoExpiry })}>
+                {t("change")}
+              </button>
+              <button type="button" className="font-semibold text-ink-muted transition-colors hover:text-accent" onClick={() => onChange({ expiryMode: "none" })}>
+                {t("noExpiryAction")}
+              </button>
+            </>
+          )}
+        </>
+      )}
+
+      {rule && <span className="basis-full text-[11px] leading-4 text-ink-faint">{rule.basis}</span>}
     </div>
   );
 }

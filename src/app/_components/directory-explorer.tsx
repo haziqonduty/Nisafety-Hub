@@ -3,11 +3,13 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState, ViewTransition } from "react";
 import { CategoryFilter } from "@/app/_components/category-filter";
+import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow, Calendar, Download, Paperclip, Search } from "@/app/_components/icons";
 import { SpotlightCard } from "@/app/_components/spotlight-card";
 import { Link } from "@/i18n/routing";
-import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, toneBadgeClass } from "@/lib/format";
+import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass } from "@/lib/format";
 import type { DirectoryDocument } from "@/lib/supabase/queries";
+import { expiryStatus } from "@/lib/validity";
 
 const COLLAPSED_REPORTS = 3;
 
@@ -19,6 +21,8 @@ type ClientGroup = {
   reports: DirectoryDocument[];
   /** Every searchable string for this client and all of its reports. */
   haystack: string;
+  /** Report ids that a newer report of the same service has replaced. */
+  superseded: Set<string>;
   visits: number;
   latestActivity: string;
   hasRecent: boolean;
@@ -29,7 +33,7 @@ function groupByClient(documents: DirectoryDocument[]): ClientGroup[] {
   for (const document of documents) {
     let group = groups.get(document.clientId);
     if (!group) {
-      group = { clientId: document.clientId, company: document.company, clientName: document.clientName, reports: [], haystack: "", visits: 0, latestActivity: document.createdAt, hasRecent: false };
+      group = { clientId: document.clientId, company: document.company, clientName: document.clientName, reports: [], haystack: "", superseded: new Set(), visits: 0, latestActivity: document.createdAt, hasRecent: false };
       groups.set(document.clientId, group);
     }
     if (document.hasDocument) group.reports.push(document);
@@ -51,6 +55,11 @@ function groupByClient(documents: DirectoryDocument[]): ClientGroup[] {
   for (const group of groups.values()) {
     group.reports.sort((a, b) => (a.serviceDate === b.serviceDate ? (a.createdAt < b.createdAt ? 1 : -1) : (a.serviceDate ?? "") < (b.serviceDate ?? "") ? 1 : -1));
     group.visits = new Set(group.reports.map((report) => report.serviceDate)).size;
+    const seenCategories = new Set<string>();
+    for (const report of group.reports) {
+      if (seenCategories.has(report.category ?? "")) group.superseded.add(report.id);
+      else seenCategories.add(report.category ?? "");
+    }
     group.haystack = group.haystack.toLowerCase();
   }
 
@@ -60,6 +69,8 @@ function groupByClient(documents: DirectoryDocument[]): ClientGroup[] {
 export function DirectoryExplorer({ documents }: { documents: DirectoryDocument[] }) {
   const t = useTranslations("directory");
   const tServices = useTranslations("services");
+  const tExpiry = useTranslations("expiry");
+  const today = todayInMalaysia();
   const tCategories = useTranslations("categories.items");
   const locale = useLocale();
   const intlLocale = locale === "ms" ? "ms-MY" : "en-GB";
@@ -216,6 +227,12 @@ export function DirectoryExplorer({ documents }: { documents: DirectoryDocument[
                                   {formatServiceDate(report.serviceDate, intlLocale)}
                                 </span>
                               )}
+                              {(report.expiryDate || client.superseded.has(report.id)) &&
+                                (() => {
+                                  const { status, daysLeft } = expiryStatus(report.expiryDate, today, client.superseded.has(report.id));
+                                  const label = expiryLabel(status, daysLeft);
+                                  return <ExpiryBadge status={status} label={tExpiry(label.key as Parameters<typeof tExpiry>[0], label.values)} />;
+                                })()}
                             </span>
                           </span>
                         </Link>

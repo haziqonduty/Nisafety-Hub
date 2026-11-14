@@ -114,6 +114,21 @@ export function isValidServiceDate(value: string) {
   return value >= EARLIEST_SERVICE_DATE && value <= todayInMalaysia();
 }
 
+/**
+ * Resolves a submitted expiry date. `raw === null` (field not sent) means
+ * "use the category's default"; an empty string means "no fixed expiry";
+ * anything else must be a real date after the service date (and before 2100).
+ */
+export function resolveExpiryInput(raw: string | null, serviceDate: string, fallback: string | null): { expiryDate: string | null } | { error: "INVALID_EXPIRY_DATE" } {
+  if (raw === null) return { expiryDate: fallback };
+  if (raw === "") return { expiryDate: null };
+  if (!SERVICE_DATE_PATTERN.test(raw)) return { error: "INVALID_EXPIRY_DATE" };
+  const parsed = new Date(`${raw}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== raw) return { error: "INVALID_EXPIRY_DATE" };
+  if (raw <= serviceDate || raw >= "2100-01-01") return { error: "INVALID_EXPIRY_DATE" };
+  return { expiryDate: raw };
+}
+
 /** "12 Nov 2026" — formatted in UTC so a date-only value never shifts a day. */
 export function formatServiceDate(value: string, locale = "en-GB") {
   return new Date(`${value}T00:00:00Z`).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
