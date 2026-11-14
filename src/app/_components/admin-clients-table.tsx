@@ -142,7 +142,7 @@ function ClientCard({ client }: { client: AdminClient }) {
                 </div>
               )}
               {client.internalNotes && (
-                <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-soft px-3 py-2 text-xs text-amber">
+                <p className="mt-3 flex w-fit max-w-full items-start gap-1.5 rounded-lg bg-amber-soft px-3 py-2 text-xs text-amber">
                   <Notes className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{client.internalNotes}</span>
                 </p>
