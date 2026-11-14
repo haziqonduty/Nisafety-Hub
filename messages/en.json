@@ -181,7 +181,7 @@
   },
   "record": {
     "backToDirectory": "← Back to directory",
-    "submitted": "Submitted {date}",
+    "submitted": "Uploaded {date}",
     "downloadDocument": "Download document",
     "openInNewTab": "Open in new tab ↗",
     "previewUnavailable": "Preview isn't available for .{fileType} files — download to view instead.",
@@ -263,7 +263,7 @@
     "saving": "Saving…",
     "cancel": "Cancel",
     "partialSaved": "The client and the services marked Saved are stored. The others failed — fix or retry them below.",
-    "servicedOn": "Serviced {date}",
+    "servicedOn": "Monitored {date}",
     "historyEyebrow": "SERVICE HISTORY",
     "historyTitle": "Every visit, every service.",
     "addServiceToClient": "Add a service",

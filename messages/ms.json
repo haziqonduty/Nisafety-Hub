@@ -181,7 +181,7 @@
   },
   "record": {
     "backToDirectory": "← Kembali ke direktori",
-    "submitted": "Dihantar {date}",
+    "submitted": "Dimuat naik {date}",
     "downloadDocument": "Muat turun dokumen",
     "openInNewTab": "Buka dalam tab baharu ↗",
     "previewUnavailable": "Pratonton tidak tersedia untuk fail .{fileType} — muat turun untuk melihatnya.",
@@ -263,7 +263,7 @@
     "saving": "Menyimpan…",
     "cancel": "Batal",
     "partialSaved": "Klien dan perkhidmatan bertanda Disimpan telah disimpan. Yang lain gagal — betulkan atau cuba semula di bawah.",
-    "servicedOn": "Diservis {date}",
+    "servicedOn": "Dipantau {date}",
     "historyEyebrow": "SEJARAH PERKHIDMATAN",
     "historyTitle": "Setiap lawatan, setiap perkhidmatan.",
     "addServiceToClient": "Tambah perkhidmatan",
