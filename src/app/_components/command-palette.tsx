@@ -15,7 +15,7 @@ type DocumentResult = {
   thumbnailUrl: string | null;
 };
 
-export function CommandPalette() {
+export function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
   const t = useTranslations("commandPalette");
   const tDirectory = useTranslations("directory");
   const [open, setOpen] = useState(false);
@@ -27,7 +27,8 @@ export function CommandPalette() {
     { label: t("goToDirectory"), href: "/" as const, icon: ShieldCheck, external: false },
     { label: t("submitRecord"), href: "/submit" as const, icon: Upload, external: false },
     { label: t("renewals"), href: "/renewals" as const, icon: Hourglass, external: false },
-    { label: t("adminDashboard"), href: "/admin", icon: ArrowUpRight, external: true },
+    // Staff can't open /admin (the proxy redirects them home), so don't offer it.
+    ...(isAdmin ? [{ label: t("adminDashboard"), href: "/admin", icon: ArrowUpRight, external: true }] : []),
   ];
 
   useEffect(() => {
