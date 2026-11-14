@@ -142,10 +142,15 @@ function ClientCard({ client }: { client: AdminClient }) {
                 </div>
               )}
               {client.internalNotes && (
-                <p className="mt-3 flex w-fit max-w-full items-start gap-1.5 rounded-lg bg-amber-soft px-3 py-2 text-xs text-amber">
-                  <Notes className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>{client.internalNotes}</span>
-                </p>
+                <div className="relative mt-3 w-fit max-w-full overflow-hidden rounded-xl border border-line bg-surface-soft py-2 pl-4 pr-3.5 shadow-[0_1px_2px_rgba(16,42,51,.04)]">
+                  {/* Amber edge marks it as a staff-only note without shouting. */}
+                  <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-amber to-amber/30" />
+                  <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber">
+                    <Notes className="h-3 w-3" />
+                    Internal note
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-line break-words text-xs font-medium text-ink">{client.internalNotes}</p>
+                </div>
               )}
             </div>
           </div>
