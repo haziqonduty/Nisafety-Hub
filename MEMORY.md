@@ -732,6 +732,11 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - `.github/workflows/ci.yml`: lint → unit → build → typecheck (after build, needs generated route types) → start → security tests. Needs repo secrets NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY (public values); service-role key deliberately not in CI.
 - When adding a protected route/page → add it to `tests/security/access-control.test.ts`.
 
+## Error tracking skipped; README written (2026-11-16)
+
+- Kay chose to **skip error tracking** (Sentry / built-in logging) for now — don't re-propose unprompted.
+- README.md rewritten (was create-next-app boilerplate): features, env vars, scripts, manual migrations workflow, layout, security rules of thumb. Keep it current when env vars/scripts/migration rules change.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).
