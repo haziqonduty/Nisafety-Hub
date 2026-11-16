@@ -701,6 +701,13 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - **Rule:** never authorize from a request header. Anything gating access must come from the Supabase session (`getVerifiedProfile`).
 - **Other audit findings (not yet fixed):** `/api/documents/search` has no explicit auth check (RLS returns empty, but should 401) and rebuilds the whole directory + signed URLs per keystroke; `DIRECTORY_LIMIT = 200` silently truncates directory/search past 200 rows; approved staff can read/update `clients.internal_notes` via direct REST (table-level grant to authenticated); file validation trusts extension + browser MIME (no magic-byte check); no automated tests/CI/error monitoring; README is create-next-app boilerplate; `npm audit`: 2 moderate (uuid via exceljs); next 16.4.6 patch available.
 
+## Directory: server-side search + paging, no 200-record cap (2026-11-16)
+
+- **Migration `20261116_add_directory_search.sql` — applied by Kay 2026-11-16.** `public.directory_search(search, category_filter, page_limit, page_offset)` → client ids ordered by latest activity + `total_count`. SECURITY INVOKER (RLS applies), execute granted to authenticated only; matches with `position()` so `%`/`_` are literal; haystack = client fields + additional contacts + every report's file name and category.
+- `getDirectoryPage()` in queries.ts replaced `getDirectoryDocuments()` (and the `DIRECTORY_LIMIT = 200` truncation). 24 clients/page; signs URLs only for that page. New `GET /api/directory?q=&category=&offset=` (requires approved staff). `DirectoryExplorer` takes `initialPage`, debounces search/category to the API, "Load N more clients" + "Showing X of Y" progress.
+- `/api/documents/search` (⌘K) now requires login and uses the same function (filters to matching reports, falls back to the matched clients' reports).
+- Verified with 230 seeded clients (17/17): oldest client past the old cut-off found, paging/no repeats, category filter, phone + file-name search, wildcard-literal, 401s, mobile. Test data deleted.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

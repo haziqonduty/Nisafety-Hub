@@ -13,7 +13,7 @@ import { WorkspaceBento } from "@/app/_components/workspace-bento";
 import { WorkspaceHero } from "@/app/_components/workspace-hero";
 import { Link } from "@/i18n/routing";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { getDirectoryDocuments, getRenewals, getWorkspaceData } from "@/lib/supabase/queries";
+import { getDirectoryPage, getRenewals, getWorkspaceData } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +21,8 @@ export default async function Home() {
   // Middleware already guarantees a signed-in, approved profile here; the
   // fallback only exists so the page can't crash if that invariant ever slips.
   const profile = (await getCurrentProfile()) ?? { id: "", email: "", fullName: "there", role: "staff" as const, status: "approved" as const };
-  const [documents, workspace, renewals, t, tNav] = await Promise.all([
-    getDirectoryDocuments(),
+  const [directoryPage, workspace, renewals, t, tNav] = await Promise.all([
+    getDirectoryPage(),
     getWorkspaceData(profile),
     getRenewals(),
     getTranslations("home"),
@@ -89,7 +89,7 @@ export default async function Home() {
           </div>
           <p className="max-w-md text-sm leading-6 text-ink-muted">{t("directoryParagraph")}</p>
         </Reveal>
-        <DirectoryExplorer documents={documents} />
+        <DirectoryExplorer initialPage={directoryPage} />
       </section>
 
       <footer className="border-t border-line bg-surface px-6 py-8 lg:px-8">

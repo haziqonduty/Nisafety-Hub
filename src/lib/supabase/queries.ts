@@ -4,8 +4,6 @@ import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/s
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, todayInMalaysia, toneForCategory } from "@/lib/format";
 import { expiryStatus, type ExpiryStatus } from "@/lib/validity";
 
-const DIRECTORY_LIMIT = 200;
-
 // Short-lived signed URL — the "safety-documents" bucket is private now that
 // the whole site requires login (a public bucket would let anyone with a
 // leaked URL bypass the login wall entirely). 1 hour comfortably covers a
@@ -173,39 +171,72 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
   };
 }
 
-export async function getDirectoryDocuments(): Promise<DirectoryDocument[]> {
+export const DIRECTORY_PAGE_SIZE = 24;
+
+export type DirectoryPage = {
+  /** Every report (and client-only entry) for this page's clients, newest client activity first. */
+  documents: DirectoryDocument[];
+  /** Clients matching the search/filter across the WHOLE directory, not just this page. */
+  total: number;
+  /** How many clients this page contained — the offset for the next page. */
+  clientCount: number;
+};
+
+type DirectoryClientRow = ClientSummary & {
+  id: string;
+  created_at: string;
+  documents: Omit<DocumentRow, "clients">[] | null;
+};
+
+/**
+ * One page of the staff directory, searched and filtered in the database
+ * (public.directory_search) so every record is reachable no matter how many
+ * there are. Signed URLs are only created for this page's files.
+ */
+export async function getDirectoryPage({
+  search = "",
+  category = null,
+  offset = 0,
+  limit = DIRECTORY_PAGE_SIZE,
+}: { search?: string; category?: string | null; offset?: number; limit?: number } = {}): Promise<DirectoryPage> {
   const supabase = await createSupabaseServerClient();
+  const { data: matches, error } = await supabase.rpc("directory_search", {
+    search: search.slice(0, 100),
+    category_filter: category,
+    page_limit: limit,
+    page_offset: offset,
+  });
+  if (error || !matches || matches.length === 0) return { documents: [], total: 0, clientCount: 0 };
 
-  const [documentsResult, clientsResult] = await Promise.all([
-    supabase
-      .from("documents")
-      .select(
-        "id, client_id, category, service_date, expiry_date, file_name, file_size, storage_path, thumbnail_path, created_at, clients(client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(DIRECTORY_LIMIT),
-    supabase
-      .from("clients")
-      .select("id, client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails, created_at, documents(id)")
-      .order("created_at", { ascending: false })
-      .limit(DIRECTORY_LIMIT),
-  ]);
+  const ordered = matches as { client_id: string; last_activity: string; total_count: number }[];
+  const ids = ordered.map((row) => row.client_id);
+  const { data: clientData } = await supabase
+    .from("clients")
+    .select(
+      "id, client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails, created_at, documents(id, client_id, category, service_date, expiry_date, file_name, file_size, storage_path, thumbnail_path, created_at)",
+    )
+    .in("id", ids);
 
-  const documentRows = (documentsResult.data ?? []) as unknown as DocumentRow[];
-  const clientOnlyRows = ((clientsResult.data ?? []) as unknown as ClientOnlyRow[]).filter((row) => (row.documents?.length ?? 0) === 0);
+  const byId = new Map(((clientData ?? []) as unknown as DirectoryClientRow[]).map((row) => [row.id, row]));
+  const clientRows = ids.map((id) => byId.get(id)).filter((row): row is DirectoryClientRow => Boolean(row));
 
-  const allPaths = documentRows.flatMap((row) => [row.storage_path, row.thumbnail_path].filter((path): path is string => Boolean(path)));
+  const allPaths = clientRows.flatMap((row) => (row.documents ?? []).flatMap((doc) => [doc.storage_path, doc.thumbnail_path].filter((path): path is string => Boolean(path))));
   const urls = await signedUrlsFor(supabase, allPaths);
 
-  const combined = [
-    ...documentRows.map((row) => ({ sortKey: row.created_at, document: toDirectoryDocument(row, urls) })),
-    ...clientOnlyRows.map((row) => ({ sortKey: row.created_at, document: toClientOnlyDirectoryDocument(row) })),
-  ];
+  const documents: DirectoryDocument[] = [];
+  for (const row of clientRows) {
+    const docs = row.documents ?? [];
+    if (docs.length === 0) {
+      documents.push(toClientOnlyDirectoryDocument({ ...row, documents: [] }));
+      continue;
+    }
+    const client: ClientSummary = row;
+    for (const doc of docs.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))) {
+      documents.push(toDirectoryDocument({ ...doc, clients: client }, urls));
+    }
+  }
 
-  return combined
-    .sort((a, b) => (a.sortKey < b.sortKey ? 1 : -1))
-    .slice(0, DIRECTORY_LIMIT)
-    .map((entry) => entry.document);
+  return { documents, total: Number(ordered[0].total_count), clientCount: clientRows.length };
 }
 
 export type RecordDetail = {

@@ -80,7 +80,11 @@
     "recordRemoved": "A record was just removed.",
     "clientOnlyBadge": "Client details only",
     "newBadge": "New",
-    "matchingClients": "{count, plural, =1 {client} other {clients}}"
+    "matchingClients": "{count, plural, =1 {client} other {clients}}",
+    "loadMore": "{count, plural, =1 {Load 1 more client} other {Load # more clients}}",
+    "loadingMore": "Loading…",
+    "showingOf": "Showing {shown} of {total} clients",
+    "loadError": "Couldn't load the directory. Check your connection and try again."
   },
   "categoryFilter": {
     "filterPlaceholder": "Filter categories…",
