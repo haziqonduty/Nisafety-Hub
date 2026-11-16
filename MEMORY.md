@@ -708,6 +708,12 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - `/api/documents/search` (⌘K) now requires login and uses the same function (filters to matching reports, falls back to the matched clients' reports).
 - Verified with 230 seeded clients (17/17): oldest client past the old cut-off found, paging/no repeats, category filter, phone + file-name search, wildcard-literal, 401s, mobile. Test data deleted.
 
+## Internal notes are admin-only at the database level (2026-11-16)
+
+- **Migration `20261116_hide_internal_notes_from_staff.sql` — applied by Kay 2026-11-16.** Replaced `authenticated`'s table-level select/insert/update on `public.clients` with column-level grants that omit `internal_notes` (and staff can no longer UPDATE `created_by`). Admin pages read/write notes via the service role, so unaffected. No app code change.
+- **Gotcha:** a NEW column on `clients` is invisible to staff until granted in a migration; `select("*")` on clients as staff now errors (permission denied) — always list columns explicitly.
+- Verified 10/10 (direct REST as staff denied read/update of notes, app submit/edit/directory/record pages fine, admin still sees/edits notes) + staff pages `/`, `/renewals`, `/submit`, `/ms`, ⌘K all 200.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).
