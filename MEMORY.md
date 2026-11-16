@@ -773,6 +773,11 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Compression only for PDFs > 50 MB. Copy says "up to 50 MB" (EN/BM). `purgeAbandonedUploads()` (unreferenced objects > 24 h old) runs when an admin opens the Recycle bin.
 - Verified 16/16 at 5 MB and at 19 MB (byte-identical, no compression, ~9 s; fake content rejected+deleted, path reuse/traversal rejected, no tickets for exe/51 MB/mismatch); unit 32/32; security 47/47 incl. `/api/uploads`.
 
+## Bug fix: clipped "y" in the workspace greeting name (2026-11-16)
+- The gradient name (bg-clip-text) in `workspace-hero.tsx` cut off descenders: the gradient is painted only inside the box, and leading-[1.02] makes that box shorter than letters like y/g/p.
+- Fix: `inline-block pb-[0.18em] -mb-[0.18em] pr-[0.06em] -mr-[0.06em]` grows the painted area without moving the layout.
+- Lesson: any future gradient text with tight leading or tracking needs this padding trick.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

@@ -68,7 +68,7 @@ export async function WorkspaceHero({ profile, data, renewalAlerts }: { profile:
 
             <h1 className="mt-6 text-4xl font-semibold leading-[1.02] tracking-[-0.06em] sm:text-5xl lg:text-6xl">
               {t(greetingKey(hour))},{" "}
-              <span className="bg-gradient-to-r from-teal-200 via-teal-300 to-cyan-200 bg-clip-text text-transparent">{firstName}</span>.
+              <span className="-mb-[0.18em] -mr-[0.06em] inline-block bg-gradient-to-r from-teal-200 pb-[0.18em] pr-[0.06em] via-teal-300 to-cyan-200 bg-clip-text text-transparent">{firstName}</span>.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
               {t("summary", { thisWeek: data.thisWeekDocuments, totalDocuments: data.totalDocuments, totalClients: data.totalClients })}
