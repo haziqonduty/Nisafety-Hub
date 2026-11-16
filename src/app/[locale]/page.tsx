@@ -51,6 +51,7 @@ export default async function Home() {
               <span className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold text-white ${renewals.expired > 0 ? "bg-danger" : "bg-amber"}`}>{renewalAlerts}</span>
             )}
           </Link>
+          <Link href="/map" className="rounded-full px-3.5 py-1.5 transition-colors hover:text-accent">{tNav("map")}</Link>
           <Link href="/submit" className="rounded-full px-3.5 py-1.5 transition-colors hover:text-accent">{tNav("submit")}</Link>
         </nav>
         <div className="flex items-center gap-3">

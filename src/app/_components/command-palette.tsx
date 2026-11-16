@@ -3,7 +3,7 @@
 import { Command } from "cmdk";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Hourglass, Search, ShieldCheck, Upload } from "@/app/_components/icons";
+import { ArrowUpRight, Hourglass, MapPin, Search, ShieldCheck, Upload } from "@/app/_components/icons";
 import { useRouter } from "@/i18n/routing";
 
 type DocumentResult = {
@@ -27,6 +27,7 @@ export function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
     { label: t("goToDirectory"), href: "/" as const, icon: ShieldCheck, external: false },
     { label: t("submitRecord"), href: "/submit" as const, icon: Upload, external: false },
     { label: t("renewals"), href: "/renewals" as const, icon: Hourglass, external: false },
+    { label: t("map"), href: "/map" as const, icon: MapPin, external: false },
     // Staff can't open /admin (the proxy redirects them home), so don't offer it.
     ...(isAdmin ? [{ label: t("adminDashboard"), href: "/admin", icon: ArrowUpRight, external: true }] : []),
   ];
@@ -70,7 +71,7 @@ export function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
     };
   }, [open, query]);
 
-  function goLocalized(href: "/" | "/submit" | "/renewals") {
+  function goLocalized(href: "/" | "/submit" | "/renewals" | "/map") {
     setOpen(false);
     setQuery("");
     router.push(href);
@@ -127,7 +128,7 @@ export function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
             <Command.Item
               key={item.href}
               value={item.label}
-              onSelect={() => (item.external ? goExternal(item.href) : goLocalized(item.href as "/" | "/submit" | "/renewals"))}
+              onSelect={() => (item.external ? goExternal(item.href) : goLocalized(item.href as "/" | "/submit" | "/renewals" | "/map"))}
               className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm normal-case tracking-normal font-medium text-ink data-[selected=true]:bg-accent-soft data-[selected=true]:text-accent"
             >
               <item.icon className="h-4 w-4" />

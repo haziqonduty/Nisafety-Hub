@@ -23,13 +23,18 @@ const isDev = process.env.NODE_ENV === "development";
 // stacks in the browser. Confirmed directly — omitting it broke local dev
 // with "eval() is not supported in this environment". React never uses
 // eval() in production, so it's correctly left out there.
+// Live client map: free OpenFreeMap vector tiles, fonts and icons (no API
+// key). MapLibre's worker is served from our own origin (/vendor, copied by
+// scripts/copy-map-worker.mjs), so no blob: worker allowance is needed.
+const MAP_TILES_ORIGIN = "https://tiles.openfreemap.org";
+
 const CSP_DIRECTIVES = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${SUPABASE_ORIGIN}`,
+  `img-src 'self' data: blob: ${SUPABASE_ORIGIN} ${MAP_TILES_ORIGIN}`,
   "font-src 'self'",
-  `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_REALTIME_ORIGIN}`,
+  `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_REALTIME_ORIGIN} ${MAP_TILES_ORIGIN}`,
   `frame-src ${SUPABASE_ORIGIN}`,
   "object-src 'none'",
   "base-uri 'self'",

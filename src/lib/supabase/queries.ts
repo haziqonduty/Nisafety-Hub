@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ADMIN_LOGIN_EMAIL } from "@/lib/auth/admin-account";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, todayInMalaysia, toneForCategory } from "@/lib/format";
+import { compareUrgency, moreUrgent, toMapStatus, type MapClient, type MapService, type MapStatus } from "@/lib/client-map";
 import { expiryStatus, type ExpiryStatus } from "@/lib/validity";
 
 // Short-lived signed URL — the "safety-documents" bucket is private now that
@@ -876,3 +877,67 @@ export async function getRecycleBin(retentionDays: number): Promise<RecycleBinIt
   ];
   return items.sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : -1));
 }
+
+type MapClientRow = {
+  id: string;
+  company_name: string;
+  client_name: string;
+  telephone: string;
+  latitude: number | null;
+  longitude: number | null;
+  location_label: string | null;
+  documents: { id: string; category: string; service_date: string; expiry_date: string | null; created_at: string; deleted_at: string | null }[] | null;
+};
+
+/**
+ * Every client (not in the recycle bin) for the live client map, with its
+ * location and an overall status: the most urgent of its tracked services,
+ * where only the LATEST report per service category counts (same rule as the
+ * renewals tracker, so a renewal clears the alert on the map too).
+ */
+export async function getClientMap(): Promise<MapClient[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("clients")
+    .select("id, company_name, client_name, telephone, latitude, longitude, location_label, documents(id, category, service_date, expiry_date, created_at, deleted_at)")
+    .is("deleted_at", null)
+    .order("company_name", { ascending: true });
+
+  const today = todayInMalaysia();
+  return ((data ?? []) as unknown as MapClientRow[]).map((row) => {
+    const documents = (row.documents ?? [])
+      .filter((doc) => !doc.deleted_at)
+      .sort((a, b) => (a.service_date !== b.service_date ? (a.service_date < b.service_date ? 1 : -1) : a.created_at < b.created_at ? 1 : -1));
+
+    const services: MapService[] = [];
+    const seen = new Set<string>();
+    for (const doc of documents) {
+      if (seen.has(doc.category)) continue;
+      seen.add(doc.category);
+      const { status, daysLeft } = expiryStatus(doc.expiry_date, today);
+      services.push({ documentId: doc.id, category: doc.category, serviceDate: doc.service_date, expiryDate: doc.expiry_date, status: toMapStatus(status), daysLeft });
+    }
+    services.sort((a, b) => compareUrgency(a.status, b.status) || (a.expiryDate ?? "9999").localeCompare(b.expiryDate ?? "9999"));
+
+    let status: MapStatus = "none";
+    for (const service of services) status = moreUrgent(status, service.status);
+    const next = services.find((service) => service.expiryDate) ?? null;
+
+    return {
+      id: row.id,
+      company: row.company_name,
+      clientName: row.client_name,
+      telephone: row.telephone,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      locationLabel: row.location_label,
+      status,
+      nextExpiry: next?.expiryDate ?? null,
+      nextExpiryDays: next?.daysLeft ?? null,
+      reportCount: documents.length,
+      services,
+      latestDocumentId: documents[0]?.id ?? null,
+    };
+  });
+}
+

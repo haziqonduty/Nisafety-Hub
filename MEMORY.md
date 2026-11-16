@@ -788,6 +788,23 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - `admin-staff-table.tsx`: Revoke access and the trash button both open it (this replaced the old inline delete strip). Approve and Reject on pending accounts stay one-click.
 - Not checked visually: the only admin's password is Kay's, and the single-admin trigger stops creating a test admin.
 
+## Live client map /map (2026-11-16) — Kay picked it from the "wow" list
+- **Stack:** MapLibre GL 6.16.0 (pinned) with free OpenFreeMap vector tiles (styles `dark`/`positron`, picked by site theme, no key). Place search is Photon (komoot), proxied through `GET /api/places` (approved staff only; only the typed text leaves the system).
+- **Worker:** `scripts/copy-map-worker.mjs` (predev/prebuild) copies the MapLibre worker to `public/vendor/` (gitignored), set via `setWorkerUrl`, so no blob: CSP is needed. CSP adds `https://tiles.openfreemap.org` to img-src and connect-src.
+- **Data:** migration `20261116_add_client_location.sql` (applied by Kay) adds clients latitude/longitude/location_label/location_updated_at/_by, a Malaysia-region box check, and column grants. `PUT`/`DELETE /api/clients/[id]/location`. `getClientMap()` sets a client's status from the latest report per category (same rule as renewals).
+- **UI:** `client-map.tsx`:
+  - Globe intro flight, glowing status pins, clusters coloured by their worst status, pulsing expired/due-soon pins.
+  - Glass side panel: filters, search, a "Not on the map yet" list with Place.
+  - Placing: search or click, drag to fine-tune, Save.
+  - Selected-client card: services, Open report, Call, Google Maps directions, Move/Remove pin.
+  - Zoom, fit-all, globe and fullscreen controls; English and Malay; works on phones.
+  - Links from the workspace nav and the command palette.
+- **Mistakes & lessons:**
+  - (1) MapLibre CSS forces `position:relative` on its container, which collapsed an `absolute inset-0` container to 0 height. Size it from a wrapper.
+  - (2) Calling setPaintProperty every frame (the pulse) before "load" keeps the style dirty, so `load` never fires. Start animations after load.
+  - (3) The stock OpenFreeMap dark roads look harsh, so they're recoloured in `tuneBasemap`.
+- Verified in Chrome via Playwright: throwaway user and clients, pin placed via "Muar" search and saved, a London pin rejected with 400, dark/light/mobile screenshots. Cleaned up afterwards. Kay's 3 real clients are still unpinned.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).
