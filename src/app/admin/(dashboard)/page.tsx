@@ -1,4 +1,5 @@
 import { AdminClientsTable } from "@/app/_components/admin-clients-table";
+import { BackupButton } from "@/app/_components/backup-button";
 import { Download } from "@/app/_components/icons";
 import { getAdminClients } from "@/lib/supabase/queries";
 
@@ -15,6 +16,8 @@ export default async function AdminDashboardPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">Manage submitted clients.</h1>
           <p className="mt-2 max-w-xl text-sm text-ink-muted">Edit client name, telephone, and email. Changes apply immediately to the public record.</p>
         </div>
+        <div className="flex flex-wrap items-start gap-3">
+          <BackupButton />
         {/* File download, not a page navigation — next/link's prefetching would trigger the export on every dashboard load. */}
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
@@ -23,6 +26,7 @@ export default async function AdminDashboardPage() {
         >
           <Download className="h-4 w-4" /> Export to Excel
         </a>
+        </div>
       </div>
       <AdminClientsTable clients={clients} />
     </section>

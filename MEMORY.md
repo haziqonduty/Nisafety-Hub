@@ -758,6 +758,13 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Admin nav now scrolls sideways on phones and scrolls the active tab into view (4 tabs overflowed 390px).
 - Verified 23/23 end-to-end (hidden everywhere incl. direct REST, staff can't bin/unbin/use bin API, restore, partial restore, delete-forever removes files, 30-day purge removes files, mobile) + security tests 43/43.
 
+## "Download full backup" button (2026-11-16)
+
+- Admin dashboard (`/admin`) → `BackupButton` (`src/app/_components/backup-button.tsx`). ZIP is built **in the browser** with fflate 0.8.3 (pinned, no deps) because Vercel free caps responses ~4.5 MB / ~10 s. `GET /api/admin/backup` (admin only) returns all non-binned `clients`/`documents` rows (`select *`, incl. internal notes) + 2-hour signed URLs; browser fetches files from Supabase directly (CSP connect-src already allows it), 4 in parallel.
+- ZIP `Nisafety-backup-YYYY-MM-DD/`: `README.txt` (counts, contents, missing-file warnings), `clients-and-reports.xlsx` (from the existing export route), `data/clients.json` + `data/documents.json` (raw rows — what a restore would use), `reports/<company>/<service date> <short code> - <file name>` (names sanitised for Windows; PDFs stored level 0). Recycle-bin items excluded. Uses `zipSync` (no web workers — CSP has no `worker-src blob:`).
+- Reminder under the button from localStorage (per computer): "No full backup… yet" / "Last full backup: N days ago — time for a new one" (amber after 30 days).
+- Verified 11/11 (staff 401, files byte-identical, safe folder names, bin excluded, notes included, real xlsx) + security tests now include `/api/admin/backup`. Test ZIP deleted (it contained Kay's real client).
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).
