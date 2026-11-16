@@ -805,6 +805,18 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
   - (3) The stock OpenFreeMap dark roads look harsh, so they're recoloured in `tuneBasemap`.
 - Verified in Chrome via Playwright: throwaway user and clients, pin placed via "Muar" search and saved, a London pin rejected with 400, dark/light/mobile screenshots. Cleaned up afterwards. Kay's 3 real clients are still unpinned.
 
+## Client map redesign + Google Maps accuracy (2026-11-16) — Kay: "not proper", wanted premium/catchy + Google-accurate locations
+- **Map is now always dark** ("command centre"), whatever the site theme. Kay's light-theme screenshot looked generic: plain positron map, neighbouring-country labels, strike-through filters, a floating empty card.
+- **Malaysia spotlight:** `public/geo/malaysia.geojson` (Natural Earth 1:10m, public domain, 45 KB). A mask dims everything outside Malaysia, with a glowing teal outline, our own state/FT labels (basemap state/country labels hidden), and a globe with atmosphere.
+- **New panel:** "Client network" count, a status health bar, a 2-column status filter (dimmed rather than struck through), "On map" / "To place" tabs, and a getting-started steps card. Plus a live HUD badge ("Live · Malaysia · N sites pinned · N need attention").
+- **Accuracy:** a "Google Maps (most accurate)" tab where staff paste a Google Maps link or coordinates (right-click in Google Maps → copy). `POST /api/places/resolve` parses `!3d!4d` (pin) over `@lat,lng` (camera), `?q=`, and follows maps.app.goo.gl redirects. It only fetches allow-listed Google hosts, max 5 hops, and unwraps consent.google.com. Pure parsing lives in `src/lib/coordinates.ts` (tested). It also has a "Find <company> on Google Maps" link.
+- **Decided NOT to:**
+  - scrape Google Maps pages (unreliable — "Muar" returned the centre of Johor — and against Google's terms);
+  - use the Google Places API (needs a billing account; Kay wants zero cost).
+- **Mistakes & lessons:**
+  - (1) `cameraForBounds` gave a world-level zoom on the globe projection when starting from street zoom. Replaced with the hand-written Mercator `frameBox()`.
+  - (2) `public/vendor` (the generated worker) produced 1,103 lint warnings, so it was added to the eslint ignores.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

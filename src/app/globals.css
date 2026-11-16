@@ -301,12 +301,12 @@ body {
 .nisafety-draft-pin__pulse {
   position: absolute;
   left: 50%;
-  bottom: -6px;
-  width: 26px;
-  height: 10px;
-  margin-left: -13px;
-  border-radius: 9999px;
-  background: rgba(45, 212, 191, 0.45);
+  bottom: -4px;
+  width: 18px;
+  height: 6px;
+  margin-left: -9px;
+  border-radius: 50%;
+  background: rgba(45, 212, 191, 0.5);
   animation: nisafety-pin-pulse 1.8s ease-out infinite;
 }
 @keyframes nisafety-pin-drop {
@@ -325,7 +325,7 @@ body {
     opacity: 0.9;
   }
   to {
-    transform: scale(2.4);
+    transform: scale(2);
     opacity: 0;
   }
 }

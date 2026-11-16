@@ -37,6 +37,7 @@ const PROTECTED_API: [method: string, path: string][] = [
   ["GET", "/api/directory"],
   ["GET", "/api/documents/search?q=a"],
   ["GET", "/api/places?q=Muar"],
+  ["POST", "/api/places/resolve"],
   ["PUT", `/api/clients/${NOBODY}/location`],
   ["DELETE", `/api/clients/${NOBODY}/location`],
 ];
