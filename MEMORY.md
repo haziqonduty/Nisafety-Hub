@@ -748,6 +748,16 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - **Bug fixed:** `deleteDocumentRecord()` (admin-mutations.ts) removed the report file but not `thumbnail_path` → every admin delete orphaned a `.thumb.jpg`. Now removes both. Verified.
 - **With Kay's OK, deleted 13 orphaned storage files (38.8 MB)** — pre-launch test uploads (Sept, incl. four 8.65 MB PDFs from before the 4 MB cap) + 6 orphan thumbnails. Re-verified unreferenced right before deleting. Storage now 4 files / 2.93 MB, all in use.
 
+## Recycle bin (2026-11-16) — Kay wants ZERO-cost backup measures
+
+- Kay ruled out any paid service (no Supabase Pro). Free backup plan agreed: (1) recycle bin ✅, (2) admin "Download everything" ZIP (not built yet), (3) optional nightly GitHub→Backblaze B2 free backup (not built yet).
+- **Migration `20261116_add_recycle_bin.sql` — applied by Kay 2026-11-16.** `deleted_at` + `deleted_by` on clients and documents; staff RLS select/update/insert policies require `deleted_at is null` (so every staff page, search, renewals, record pages, directory_search hide binned rows automatically, and staff can't bin/unbin via REST); `grant select (deleted_at)` on clients for the policy.
+- `admin-mutations.ts`: `binClient` (client + its live reports, one shared timestamp), `binDocument`, `restoreClient` (restores only reports with the SAME timestamp — ones binned separately earlier stay binned), `restoreDocument`, `purgeClient/purgeDocument` (only if in the bin), `purgeBin` (>30 days, or all for "Empty bin"). Admin DELETE routes now bin. `POST /api/admin/recycle-bin` {restore|purge, kind, id} / {empty}.
+- `/admin/recycle-bin` page (+ nav tab): lists binned clients (with report count) and lone binned reports, days-left countdown (red ≤3), Restore / Delete forever / Empty bin. **No cron (free):** expired items are purged when an admin opens the bin page; the page does its own `requireAdminProfile()` because layouts and pages render in parallel.
+- `getAdminClients()` (service role) filters `deleted_at` + `documents.deleted_at` by hand — **any new service-role read of clients/documents must exclude the bin too.**
+- Admin nav now scrolls sideways on phones and scrolls the active tab into view (4 tabs overflowed 390px).
+- Verified 23/23 end-to-end (hidden everywhere incl. direct REST, staff can't bin/unbin/use bin API, restore, partial restore, delete-forever removes files, 30-day purge removes files, mobile) + security tests 43/43.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

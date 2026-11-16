@@ -157,9 +157,9 @@ function ClientCard({ client }: { client: AdminClient }) {
           <div className="flex shrink-0 items-center gap-2">
             {confirmingDelete ? (
               <span role="alert" className="inline-flex items-center gap-1.5 rounded-full border border-danger-soft bg-danger-soft px-3 py-2 text-xs">
-                <span className="text-danger">Delete this client and all its documents?</span>
+                <span className="text-danger">Move this client and its reports to the recycle bin? You can restore it for 30 days.</span>
                 <button type="button" onClick={confirmDeleteClient} disabled={isDeleting} className="font-semibold text-danger underline disabled:opacity-60">
-                  {isDeleting ? "Deleting…" : "Yes, delete"}
+                  {isDeleting ? "Moving…" : "Move to bin"}
                 </button>
                 <button type="button" onClick={() => setConfirmingDelete(false)} className="text-ink-muted hover:text-ink">
                   Cancel

@@ -1,5 +1,5 @@
 import { requireAdminProfile } from "@/lib/auth/profile";
-import { deleteClientRecord } from "@/lib/supabase/admin-mutations";
+import { binClient } from "@/lib/supabase/admin-mutations";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 function textValue(value: unknown, maxLength: number) {
@@ -39,15 +39,20 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   return Response.json({ ok: true });
 }
 
+/** Moves the client (and its reports) to the recycle bin — restorable for 30 days. */
 export async function DELETE(_request: Request, context: RouteContext<"/api/admin/clients/[id]">) {
-  if (!(await requireAdminProfile())) {
+  const admin = await requireAdminProfile();
+  if (!admin) {
     return Response.json({ error: "Not authenticated." }, { status: 401 });
   }
 
   const { id } = await context.params;
   const supabase = createSupabaseServiceClient();
-  const { error } = await deleteClientRecord(supabase, id);
+  const { error, notFound } = await binClient(supabase, id, admin.id);
 
+  if (notFound) {
+    return Response.json({ error: "This client no longer exists." }, { status: 404 });
+  }
   if (error) {
     return Response.json({ error: "We could not delete this client. Please try again." }, { status: 500 });
   }

@@ -601,6 +601,9 @@ export async function getAdminClients(): Promise<AdminClient[]> {
   const { data, error } = await supabase
     .from("clients")
     .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, created_at, documents(id, category, file_name)")
+    // Service role bypasses RLS, so exclude the recycle bin by hand.
+    .is("deleted_at", null)
+    .is("documents.deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
@@ -794,4 +797,82 @@ export async function getAllProfiles(): Promise<AdminProfile[]> {
       createdAt: row.created_at,
     }))
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+}
+
+export type RecycleBinItem = {
+  kind: "client" | "document";
+  id: string;
+  /** Company name (client) or report file name (document). */
+  title: string;
+  /** Contact person (client) or "Company · category" (document). */
+  subtitle: string;
+  /** Reports that went into the bin with this client. */
+  reportCount: number;
+  deletedAt: string;
+  deletedBy: string | null;
+  /** Whole days left before it's permanently removed. */
+  daysLeft: number;
+};
+
+type BinClientRow = { id: string; company_name: string; client_name: string; deleted_at: string; deleted_by: string | null; documents: { deleted_at: string | null }[] | null };
+type BinDocumentRow = {
+  id: string;
+  category: string;
+  file_name: string;
+  deleted_at: string;
+  deleted_by: string | null;
+  clients: { company_name: string; deleted_at: string | null } | { company_name: string; deleted_at: string | null }[] | null;
+};
+
+/**
+ * Everything in the recycle bin, newest first: binned clients (with the
+ * reports binned alongside them) and individually binned reports whose
+ * client is still active. Service role — only called from the admin area.
+ */
+export async function getRecycleBin(retentionDays: number): Promise<RecycleBinItem[]> {
+  const supabase = createSupabaseServiceClient();
+  const [{ data: clientData }, { data: documentData }] = await Promise.all([
+    supabase.from("clients").select("id, company_name, client_name, deleted_at, deleted_by, documents(deleted_at)").not("deleted_at", "is", null),
+    supabase.from("documents").select("id, category, file_name, deleted_at, deleted_by, clients(company_name, deleted_at)").not("deleted_at", "is", null),
+  ]);
+  const clients = (clientData ?? []) as unknown as BinClientRow[];
+  const documents = ((documentData ?? []) as unknown as BinDocumentRow[]).filter((row) => {
+    const client = Array.isArray(row.clients) ? row.clients[0] : row.clients;
+    return client && client.deleted_at === null;
+  });
+
+  const deleterIds = [...new Set([...clients, ...documents].map((row) => row.deleted_by).filter((id): id is string => Boolean(id)))];
+  const { data: deleters } = deleterIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", deleterIds)
+    : { data: [] as { id: string; full_name: string }[] };
+  const nameById = new Map((deleters ?? []).map((row) => [row.id, row.full_name || "Admin"]));
+
+  const daysLeft = (deletedAt: string) => Math.max(0, retentionDays - Math.floor((Date.now() - Date.parse(deletedAt)) / 86_400_000));
+
+  const items: RecycleBinItem[] = [
+    ...clients.map((row) => ({
+      kind: "client" as const,
+      id: row.id,
+      title: row.company_name,
+      subtitle: row.client_name,
+      reportCount: (row.documents ?? []).filter((document) => document.deleted_at === row.deleted_at).length,
+      deletedAt: row.deleted_at,
+      deletedBy: row.deleted_by ? (nameById.get(row.deleted_by) ?? null) : null,
+      daysLeft: daysLeft(row.deleted_at),
+    })),
+    ...documents.map((row) => {
+      const client = Array.isArray(row.clients) ? row.clients[0] : row.clients;
+      return {
+        kind: "document" as const,
+        id: row.id,
+        title: row.file_name,
+        subtitle: `${client?.company_name ?? "Unknown organisation"} · ${row.category}`,
+        reportCount: 0,
+        deletedAt: row.deleted_at,
+        deletedBy: row.deleted_by ? (nameById.get(row.deleted_by) ?? null) : null,
+        daysLeft: daysLeft(row.deleted_at),
+      };
+    }),
+  ];
+  return items.sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : -1));
 }
