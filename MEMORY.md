@@ -737,6 +737,11 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Kay chose to **skip error tracking** (Sentry / built-in logging) for now — don't re-propose unprompted.
 - README.md rewritten (was create-next-app boilerplate): features, env vars, scripts, manual migrations workflow, layout, security rules of thumb. Keep it current when env vars/scripts/migration rules change.
 
+## Developer credit section (2026-11-16)
+
+- Kay asked for a proper credit section with their contact details. `src/app/_components/developer-credit.tsx` (server component, labels passed in): "C" monogram + "CRAFTED BY / Caryn Smart Tech" + tappable chips `017-7769 334` (`tel:+60177769334`) and `carynstepforward@gmail.com` (`mailto:`). Contact details live only in that component — change them there.
+- Used at the bottom of the staff homepage footer (labels from `home.credit` / `creditCall` / `creditEmail`, EN "Crafted by" / BM "Dibangunkan oleh") and the admin footer (English defaults). Verified light/dark/BM/mobile/admin, no overflow.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

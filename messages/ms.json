@@ -11,8 +11,10 @@
     "directoryTitle": "Setiap rekod, hanya satu carian.",
     "directoryParagraph": "Cari mengikut klien, syarikat, telefon, e-mel, atau dokumen, dan tapis mengikut kategori perkhidmatan.",
     "footerTagline": "Rekod keselamatan, direka untuk kejelasan.",
-    "credit": "Dibangunkan oleh Caryn Smart Tech",
-    "backToTop": "Kembali ke atas ↑"
+    "credit": "Dibangunkan oleh",
+    "backToTop": "Kembali ke atas ↑",
+    "creditCall": "Hubungi",
+    "creditEmail": "E-mel"
   },
   "workspace": {
     "live": "LANGSUNG",

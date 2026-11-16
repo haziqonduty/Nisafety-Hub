@@ -11,8 +11,10 @@
     "directoryTitle": "Every record, one search away.",
     "directoryParagraph": "Search by client, company, phone, email, or document, and narrow it down by service category.",
     "footerTagline": "Safety records, designed for clarity.",
-    "credit": "Developed by Caryn Smart Tech",
-    "backToTop": "Back to top ↑"
+    "credit": "Crafted by",
+    "backToTop": "Back to top ↑",
+    "creditCall": "Call",
+    "creditEmail": "Email"
   },
   "workspace": {
     "live": "LIVE",
