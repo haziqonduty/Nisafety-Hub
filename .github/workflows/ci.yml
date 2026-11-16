@@ -1,0 +1,77 @@
+# Runs on every push to master and every pull request.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Both are the PUBLIC values already shipped to every browser. The
+# service-role key is deliberately NOT given to CI: these checks only make
+# anonymous requests and never touch real data.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check secrets are set
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY as repository secrets."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # After the build: Next generates the route types tsc checks against.
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Start the app
+        run: |
+          npm start -- -p 3000 > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -s -o /dev/null http://localhost:3000/login && exit 0
+            sleep 1
+          done
+          echo "::error::App did not start"; cat server.log; exit 1
+
+      - name: Security tests (access control)
+        run: npm run test:security
+        env:
+          TEST_BASE_URL: http://localhost:3000
+
+      - name: Server log
+        if: failure()
+        run: cat server.log || true

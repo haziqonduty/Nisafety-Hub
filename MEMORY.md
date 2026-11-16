@@ -720,6 +720,18 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Verified 11/11: genuine PDF/DOC/DOCX accepted, renamed EXE/HTML/text rejected (400 INVALID_FILE_TYPE), fake thumbnail dropped, real UI upload still works.
 - Kay chose to **skip admin-login hardening (MFA) for now** (2026-11-16) — don't re-propose unprompted.
 
+## Dependency review (2026-11-16) — decided to wait
+
+- Next 16.4.6 (2026-11-09) = backported bug fixes only (route-handler compression, Turbopack dev GC, pins create-next-app's Tailwind to 4.3.3); no security advisory. Other candidates (supabase-js 2.119.0, next-intl 4.15.1, pdfjs-dist 6.5.438, tailwind 4.3.5) all < 2 weeks old. **Decision: don't update yet; revisit ~2026-11-23** with a full build + smoke test. Be wary of Tailwind 4.3.4/4.3.5 (Next pinned 4.3.3).
+- `npm audit` moderate (uuid via exceljs) is NOT exploitable here: exceljs only calls `uuid.v4()` without a buffer; audit's "fix" is a breaking exceljs downgrade — ignore.
+
+## Automated tests + CI (2026-11-16)
+
+- **Vitest 4.1.12 + vite 8.3.5, both pinned exact** (vitest 5 needs @types/node ≥22; vite 8.3.8 was <2 weeks old). `npm test` = 29 unit tests (`src/lib/*.test.ts`: validity maths + rules↔SQL backfill sync, date validation, file signatures, labels). `npm run test:security` = 40 black-box checks against a running app (`TEST_BASE_URL`, default :3000): every protected API route 401 anonymous AND with forged `x-nisafety-profile`; pages → /login; auth pages 200; security headers. Proven: reintroducing the header bypass made exactly the 7 admin-route tests fail.
+- **Windows gotcha:** from a `c:\` (lower-case) cwd, Vitest loads twice → "failed to find the current suite" on every file. Always run via `npm test` (`scripts/run-vitest.mjs` upper-cases the drive letter before starting Vitest). Also: a bare `"@"` alias catches `@vitest/*` — use `/^@\//`. Don't run `npx vitest` without `--no-install` (it fetched 5.1.0 from the registry once).
+- `.github/workflows/ci.yml`: lint → unit → build → typecheck (after build, needs generated route types) → start → security tests. Needs repo secrets NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY (public values); service-role key deliberately not in CI.
+- When adding a protected route/page → add it to `tests/security/access-control.test.ts`.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

@@ -1,0 +1,72 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { categoryNameWithoutAbbreviation, formatServiceDate, isValidServiceDate, resolveExpiryInput, shortCategoryLabel, todayInMalaysia } from "@/lib/format";
+
+describe("todayInMalaysia", () => {
+  afterEach(() => vi.useRealTimers());
+  it("uses Kuala Lumpur time (UTC+8), not the server's", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-15T16:30:00Z")); // 00:30 on the 16th in KL
+    expect(todayInMalaysia()).toBe("2026-11-16");
+    vi.setSystemTime(new Date("2026-11-15T15:59:00Z")); // 23:59 on the 15th in KL
+    expect(todayInMalaysia()).toBe("2026-11-15");
+  });
+});
+
+describe("isValidServiceDate", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-16T04:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("accepts real past dates and today", () => {
+    expect(isValidServiceDate("2026-11-16")).toBe(true);
+    expect(isValidServiceDate("2024-02-29")).toBe(true);
+    expect(isValidServiceDate("2000-01-01")).toBe(true);
+  });
+  it("rejects the future, impossible dates, too-old dates and bad formats", () => {
+    expect(isValidServiceDate("2026-11-17")).toBe(false);
+    expect(isValidServiceDate("2026-02-30")).toBe(false);
+    expect(isValidServiceDate("2025-02-29")).toBe(false);
+    expect(isValidServiceDate("1999-12-31")).toBe(false);
+    expect(isValidServiceDate("16/11/2026")).toBe(false);
+    expect(isValidServiceDate("")).toBe(false);
+  });
+});
+
+describe("resolveExpiryInput", () => {
+  it("falls back to the default when the field wasn't sent", () => {
+    expect(resolveExpiryInput(null, "2026-11-01", "2027-11-01")).toEqual({ expiryDate: "2027-11-01" });
+  });
+  it("treats an empty value as no fixed expiry", () => {
+    expect(resolveExpiryInput("", "2026-11-01", "2027-11-01")).toEqual({ expiryDate: null });
+  });
+  it("accepts a real date after the monitoring date", () => {
+    expect(resolveExpiryInput("2026-11-02", "2026-11-01", null)).toEqual({ expiryDate: "2026-11-02" });
+  });
+  it("rejects dates on/before monitoring, impossible, or absurdly far", () => {
+    for (const raw of ["2026-11-01", "2026-10-01", "2027-02-30", "2100-01-01", "soon"]) {
+      expect(resolveExpiryInput(raw, "2026-11-01", null)).toEqual({ error: "INVALID_EXPIRY_DATE" });
+    }
+  });
+});
+
+describe("formatServiceDate", () => {
+  it("never shifts the day, whatever the timezone", () => {
+    expect(formatServiceDate("2026-11-01")).toBe("01 Nov 2026");
+    expect(formatServiceDate("2026-12-31")).toBe("31 Dec 2026");
+  });
+});
+
+describe("category labels", () => {
+  it("builds the short code from every abbreviation", () => {
+    expect(shortCategoryLabel("Chemical Health Risk Assessment (CHRA)")).toBe("CHRA");
+    expect(shortCategoryLabel("Indoor Air Quality (IAQ) Testing")).toBe("IAQ");
+    expect(shortCategoryLabel("DOE Written Notification (WN) & Written Declaration (WD)")).toBe("WN/WD");
+    expect(shortCategoryLabel("Audiometric Testing")).toBe("Audiometric Testing");
+  });
+  it("strips abbreviations from the long name", () => {
+    expect(categoryNameWithoutAbbreviation("Indoor Air Quality (IAQ) Testing")).toBe("Indoor Air Quality Testing");
+    expect(categoryNameWithoutAbbreviation("DOE Written Notification (WN) & Written Declaration (WD)")).toBe("DOE Written Notification & Written Declaration");
+  });
+});
