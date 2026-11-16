@@ -8,13 +8,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * orphaned-upload gap on the submission endpoint).
  */
 export async function deleteDocumentRecord(supabase: SupabaseClient, documentId: string) {
-  const { data: document } = await supabase.from("documents").select("storage_path").eq("id", documentId).single();
+  const { data: document } = await supabase.from("documents").select("storage_path, thumbnail_path").eq("id", documentId).single();
 
   const { error } = await supabase.from("documents").delete().eq("id", documentId);
   if (error) return { error };
 
-  if (document?.storage_path) {
-    await supabase.storage.from("safety-documents").remove([document.storage_path]);
+  // The report AND its preview image — the thumbnail used to be left behind.
+  const paths = [document?.storage_path, document?.thumbnail_path].filter((path): path is string => Boolean(path));
+  if (paths.length > 0) {
+    await supabase.storage.from("safety-documents").remove(paths);
   }
 
   return { error: null };

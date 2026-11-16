@@ -742,6 +742,12 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Kay asked for a credit with contact details, then said the card version was "too large and weird" — wants it **minimalist**. Now `src/app/_components/site-bottom-bar.tsx` (`SiteBottomBar`): the standard footer legal bar — hairline top border, small muted text, `© {year} Nisafety Consultancy` left, `Crafted by Caryn Smart Tech · 017-7769 334 (tel:+60177769334) · carynstepforward@gmail.com` right; links only colour on hover. Contact details live only in that file.
 - Used in the staff homepage footer (`home.copyright`, `home.credit` = "Crafted by" / "Dibangunkan oleh") and the admin footer (English defaults). On phones the contacts wrap as one unit (no dangling separator). **Lesson: credits must be quiet — one line of small grey text, no cards/icons/badges.**
 
+## Storage cleanup + thumbnail delete bug (2026-11-16)
+
+- Supabase free plan (as known): 1 GB file storage, 500 MB DB, 5 GB egress/month, projects pause after 7 days idle. Avg report ≈ 1.45 MB → ~650–700 reports fit; Pro (~USD 25/mo, 100 GB) when it fills. Kay asked; told to confirm exact limits in their dashboard.
+- **Bug fixed:** `deleteDocumentRecord()` (admin-mutations.ts) removed the report file but not `thumbnail_path` → every admin delete orphaned a `.thumb.jpg`. Now removes both. Verified.
+- **With Kay's OK, deleted 13 orphaned storage files (38.8 MB)** — pre-launch test uploads (Sept, incl. four 8.65 MB PDFs from before the 4 MB cap) + 6 orphan thumbnails. Re-verified unreferenced right before deleting. Storage now 4 files / 2.93 MB, all in use.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).
