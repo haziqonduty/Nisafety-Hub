@@ -45,7 +45,7 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
     }
   }
 
-  function patch(body: { status?: string; role?: string }) {
+  function patch(body: { status: string }) {
     return send(
       { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
       "We could not update this account.",
@@ -137,24 +137,14 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
               </>
             )}
             {profile.status === "approved" && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => patch({ role: profile.role === "admin" ? "staff" : "admin" })}
-                  disabled={isUpdating}
-                  className="rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink-muted transition hover:border-accent hover:bg-accent-soft hover:text-accent disabled:opacity-60"
-                >
-                  {profile.role === "admin" ? "Make staff" : "Make admin"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => patch({ status: "rejected" })}
-                  disabled={isUpdating}
-                  className="rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink-muted transition hover:border-danger hover:bg-danger-soft hover:text-danger disabled:opacity-60"
-                >
-                  Revoke access
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => patch({ status: "rejected" })}
+                disabled={isUpdating}
+                className="rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink-muted transition hover:border-danger hover:bg-danger-soft hover:text-danger disabled:opacity-60"
+              >
+                Revoke access
+              </button>
             )}
             {profile.status === "rejected" && (
               <button

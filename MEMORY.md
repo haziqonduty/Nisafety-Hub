@@ -778,6 +778,11 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Fix: `inline-block pb-[0.18em] -mb-[0.18em] pr-[0.06em] -mr-[0.06em]` grows the painted area without moving the layout.
 - Lesson: any future gradient text with tight leading or tracking needs this padding trick.
 
+## Only ONE admin, ever (2026-11-16) — Kay: staff must never be promoted
+- Removed the "Make admin / Make staff" button from the staff table; `PATCH /api/admin/staff/[id]` now rejects any `role` field with 403 (status changes only).
+- DB rule: migration `20261116_single_admin_only.sql` adds the `enforce_single_admin` trigger on profiles (admin role allowed only for auth email admin@nisafetyhub.internal), and demotes any other admin. Checked before: the built-in account was the only admin.
+- Rule: never add a way to grant the admin role again.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

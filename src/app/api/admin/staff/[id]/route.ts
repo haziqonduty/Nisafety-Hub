@@ -2,7 +2,9 @@ import { requireAdminProfile } from "@/lib/auth/profile";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 const VALID_STATUS = ["approved", "rejected"] as const;
-const VALID_ROLE = ["admin", "staff"] as const;
+
+// There is only ONE admin (the built-in "admin" username account). Roles are
+// never changed from here — the database also blocks it (enforce_single_admin).
 
 export async function PATCH(request: Request, context: RouteContext<"/api/admin/staff/[id]">) {
   const adminProfile = await requireAdminProfile();
@@ -17,20 +19,18 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
 
   const body = await request.json().catch(() => ({}));
   const status = (VALID_STATUS as readonly string[]).includes(body.status) ? (body.status as (typeof VALID_STATUS)[number]) : undefined;
-  const role = (VALID_ROLE as readonly string[]).includes(body.role) ? (body.role as (typeof VALID_ROLE)[number]) : undefined;
-
-  if (!status && !role) {
+  if ("role" in body) {
+    return Response.json({ error: "Only the built-in admin account can be an admin." }, { status: 403 });
+  }
+  if (!status) {
     return Response.json({ error: "Nothing to update." }, { status: 400 });
   }
 
   const supabase = createSupabaseServiceClient();
   const update: Record<string, unknown> = {};
-  if (role) update.role = role;
-  if (status) {
-    update.status = status;
-    update.approved_at = status === "approved" ? new Date().toISOString() : null;
-    update.approved_by = status === "approved" ? adminProfile.id : null;
-  }
+  update.status = status;
+  update.approved_at = status === "approved" ? new Date().toISOString() : null;
+  update.approved_by = status === "approved" ? adminProfile.id : null;
 
   const { error } = await supabase.from("profiles").update(update).eq("id", id);
 
