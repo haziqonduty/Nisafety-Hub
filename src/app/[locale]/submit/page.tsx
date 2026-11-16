@@ -16,7 +16,6 @@ import {
 } from "@/app/_components/service-reports-fields";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link, useRouter } from "@/i18n/routing";
-import { todayInMalaysia } from "@/lib/format";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -74,7 +73,7 @@ export default function SubmitPage() {
   const [clientNames, setClientNames] = useState<string[]>([""]);
   const [telephones, setTelephones] = useState<string[]>([""]);
   const [emails, setEmails] = useState<string[]>([""]);
-  const [serviceDate, setServiceDate] = useState(todayInMalaysia);
+  const [serviceDate, setServiceDate] = useState("");
   const [serviceRows, setServiceRows] = useState<ServiceRow[]>(() => [newServiceRow()]);
   // Set once the client (and its first report) is saved but a later service
   // failed — from then on, submitting again only retries what failed instead

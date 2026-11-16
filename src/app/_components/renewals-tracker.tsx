@@ -3,15 +3,15 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
-import { Arrow, RefreshCw, Search } from "@/app/_components/icons";
+import { Arrow, Calendar, RefreshCw, Search } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
 import { categoryNameWithoutAbbreviation, formatServiceDate, shortCategoryLabel, todayInMalaysia, toneDotClass, toneForCategory } from "@/lib/format";
 import type { RenewalItem } from "@/lib/supabase/queries";
 import { EXPIRY_STATUS_STYLES, validityProgress } from "@/lib/validity";
 
-export type TrackerFilter = "all" | "expired" | "expiring" | "upcoming" | "valid";
+export type TrackerFilter = "all" | "expired" | "expiring" | "upcoming" | "valid" | "unconfirmed";
 
-const FILTERS: TrackerFilter[] = ["all", "expired", "expiring", "upcoming", "valid"];
+const TRACKER_FILTERS: TrackerFilter[] = ["all", "expired", "expiring", "upcoming", "valid", "unconfirmed"];
 
 const ACCENT_BAR: Record<RenewalItem["status"], string> = {
   expired: "before:bg-danger",
@@ -38,8 +38,11 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
   }
 
   const counts = useMemo(() => {
-    const result: Record<TrackerFilter, number> = { all: items.length, expired: 0, expiring: 0, upcoming: 0, valid: 0 };
-    for (const item of items) result[item.status] += 1;
+    const result: Record<TrackerFilter, number> = { all: items.length, expired: 0, expiring: 0, upcoming: 0, valid: 0, unconfirmed: 0 };
+    for (const item of items) {
+      result[item.status] += 1;
+      if (!item.serviceDateConfirmed) result.unconfirmed += 1;
+    }
     return result;
   }, [items]);
 
@@ -47,7 +50,7 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
     const q = query.trim().toLowerCase();
     return items.filter(
       (item) =>
-        (filter === "all" || item.status === filter) &&
+        (filter === "all" || item.status === filter || (filter === "unconfirmed" && !item.serviceDateConfirmed)) &&
         (!q || `${item.company} ${item.clientName} ${item.category}`.toLowerCase().includes(q)),
     );
   }, [filter, items, query]);
@@ -77,14 +80,17 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
     expiring: t("tileExpiring"),
     upcoming: t("tileUpcoming"),
     valid: t("tileValid"),
+    unconfirmed: t("filterUnconfirmed"),
   };
 
   return (
     <div>
       <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 shadow-[0_16px_40px_rgba(16,42,51,.05)] lg:flex-row lg:items-center">
         <div className="flex gap-1 overflow-x-auto rounded-xl bg-surface-soft p-1 [scrollbar-width:none]" role="tablist" aria-label={t("filterLabel")}>
-          {FILTERS.map((key) => {
+          {TRACKER_FILTERS.map((key) => {
             const active = filter === key;
+            // Only offered while there's something to confirm.
+            if (key === "unconfirmed" && counts.unconfirmed === 0 && !active) return null;
             return (
               <button
                 key={key}
@@ -96,7 +102,7 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
                   active ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:text-ink"
                 }`}
               >
-                {key !== "all" && <span className={`h-1.5 w-1.5 rounded-full ${EXPIRY_STATUS_STYLES[key].dot}`} />}
+                {key === "unconfirmed" ? <Calendar className="h-3.5 w-3.5 text-amber" /> : key !== "all" && <span className={`h-1.5 w-1.5 rounded-full ${EXPIRY_STATUS_STYLES[key].dot}`} />}
                 {filterLabel[key]}
                 <span className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] ${active ? "bg-white/15" : "bg-surface text-ink-faint"}`}>{counts[key]}</span>
               </button>
@@ -158,9 +164,15 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
                           <div className={`h-full rounded-full ${EXPIRY_STATUS_STYLES[item.status].bar}`} style={{ width: `${Math.max(3, progress * 100)}%` }} />
                         </div>
                         <div className="mt-2 flex justify-between gap-3 text-[11px] tabular-nums text-ink-muted">
-                          <span>
-                            {t("monitoredShort")} {formatServiceDate(item.serviceDate, intlLocale)}
-                          </span>
+                          {item.serviceDateConfirmed ? (
+                            <span>
+                              {t("monitoredShort")} {formatServiceDate(item.serviceDate, intlLocale)}
+                            </span>
+                          ) : (
+                            <Link href={`/records/${item.id}`} className="inline-flex items-center gap-1 font-semibold text-amber transition-colors hover:underline">
+                              <Calendar className="h-3 w-3" /> {t("dateUnconfirmedShort")}
+                            </Link>
+                          )}
                           <span className={item.status === "expired" ? "font-semibold text-danger" : "font-semibold text-ink"}>
                             {t("expiresShort")} {formatServiceDate(item.expiryDate, intlLocale)}
                           </span>

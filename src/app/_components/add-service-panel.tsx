@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Close, Plus } from "@/app/_components/icons";
 import { newServiceRow, ServiceReportsFields, uploadServiceRows, validateServiceRows, type ServiceRow } from "@/app/_components/service-reports-fields";
 import { useRouter } from "@/i18n/routing";
-import { todayInMalaysia } from "@/lib/format";
 
 /**
  * "Add a service" on a client's record page — for a later visit (or a
@@ -27,7 +26,7 @@ export function AddServicePanel({
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(Boolean(renewCategory));
-  const [serviceDate, setServiceDate] = useState(todayInMalaysia);
+  const [serviceDate, setServiceDate] = useState("");
   const [rows, setRows] = useState<ServiceRow[]>(() => [{ ...newServiceRow(), category: renewCategory ?? "" }]);
 
   // Arriving via a "Renew" link: bring the pre-filled panel into view.
@@ -44,7 +43,7 @@ export function AddServicePanel({
 
   function reset() {
     setRows([newServiceRow()]);
-    setServiceDate(todayInMalaysia());
+    setServiceDate("");
     setError("");
   }
 

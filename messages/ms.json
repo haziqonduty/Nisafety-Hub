@@ -283,7 +283,14 @@
     "otherServicesHidden": "+{count} perkhidmatan lain tidak sepadan dengan penapis",
     "lastVisit": "Lawatan terakhir {date} · {visits} lawatan",
     "viewClient": "Lihat klien",
-    "monitoringDate": "Tarikh pemantauan"
+    "monitoringDate": "Tarikh pemantauan",
+    "required": "WAJIB",
+    "dateSet": "DITETAPKAN",
+    "todayChip": "Hari ini",
+    "dateRequiredHint": "Masukkan tarikh pemantauan sebenar dijalankan. Setiap tarikh luput bagi lawatan ini dikira dari tarikh ini.",
+    "dateRequiredError": "Masukkan tarikh pemantauan sebelum menyimpan.",
+    "dateUnconfirmed": "Tarikh pemantauan belum disahkan",
+    "editUnconfirmedHint": "Tarikh laporan ini diisi secara automatik. Masukkan tarikh pemantauan sebenar."
   },
   "expiry": {
     "validUntil": "Sah sehingga",
@@ -342,6 +349,21 @@
     "rulesEyebrow": "CARA TARIKH TAMAT DIKIRA",
     "rulesTitle": "Tempoh sah mengikut perkhidmatan",
     "rulesIntro": "Tarikh tamat diisi secara automatik daripada tarikh pemantauan ditambah tempoh di bawah, dan boleh diubah pada mana-mana laporan (contohnya, kepada tarikh pemantauan seterusnya yang disyorkan oleh penilai). Tempoh berkanun diambil daripada peraturan JKKP/JAS yang dinyatakan; tempoh lazim bergantung pada lesen klien, syarat kelulusan atau dapatan CHRA dan perlu disahkan bagi setiap klien.",
-    "monthsShort": "{months} bln"
+    "monthsShort": "{months} bln",
+    "waitingForDate": "Masukkan tarikh pemantauan untuk mengira tarikh luput.",
+    "filterUnconfirmed": "Tarikh belum disahkan",
+    "dateUnconfirmedShort": "Sahkan tarikh pemantauan",
+    "unconfirmedNoticeTitle": "{count, plural, =1 {1 laporan perlu tarikh pemantauan} other {# laporan perlu tarikh pemantauan}}",
+    "unconfirmedNoticeHint": "Tarikh ini diisi secara automatik, jadi tarikh luputnya mungkin salah. Masukkan tarikh sebenar untuk membetulkannya.",
+    "unconfirmedNoticeAction": "Semak"
+  },
+  "confirmDate": {
+    "eyebrow": "TINDAKAN DIPERLUKAN",
+    "title": "Masukkan tarikh pemantauan",
+    "body": "Tarikh laporan ini ({date}) diisi secara automatik semasa dimuat naik, bukan oleh staf. Masukkan tarikh pemantauan sebenar dan tarikh luput akan dikira semula daripadanya.",
+    "label": "Tarikh pemantauan",
+    "confirm": "Sahkan tarikh",
+    "saving": "Menyimpan…",
+    "error": "Tarikh tidak dapat disimpan. Pastikan ia bukan tarikh akan datang dan cuba lagi."
   }
 }

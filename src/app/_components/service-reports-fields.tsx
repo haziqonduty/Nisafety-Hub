@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { ChangeEvent, Dispatch, SetStateAction } from "react";
-import { Calendar, Check, Close, File, Hourglass, Plus, Upload } from "@/app/_components/icons";
+import { useState, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
+import { AlertTriangle, Calendar, Check, Close, File, Hourglass, Plus, Upload } from "@/app/_components/icons";
 import { compressPdf } from "@/lib/compress-pdf";
 import { CATEGORY_GROUPS, formatServiceDate, todayInMalaysia } from "@/lib/format";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
@@ -116,6 +116,12 @@ export async function uploadServiceRows(clientId: string, rows: ServiceRow[], se
 
 /** Client-side check before anything is sent; marks offending rows. */
 export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>, serviceDate: string) {
+  // The browser's own `required` check normally stops the form first (see
+  // the date input's onInvalid); this is the backstop.
+  if (!serviceDate) {
+    document.getElementById(SERVICE_DATE_INPUT_ID)?.focus();
+    return false;
+  }
   const problems = new Map<string, string>();
   for (const row of rows) {
     if (row.status === "done") continue;
@@ -128,6 +134,8 @@ export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetSta
   }
   return problems.size === 0;
 }
+
+export const SERVICE_DATE_INPUT_ID = "service-date";
 
 const fieldClass =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:opacity-60";
@@ -149,6 +157,9 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
   const tCategories = useTranslations("categories.items");
   const tExpiry = useTranslations("expiry");
   const today = todayInMalaysia();
+  const yesterday = addDays(today, -1);
+  // Set when the form was submitted without a date; cleared once one is picked.
+  const [dateMissing, setDateMissing] = useState(false);
   const chosenCategories = rows.map((row) => row.category).filter(Boolean);
 
   async function chooseFile(row: ServiceRow, event: ChangeEvent<HTMLInputElement>) {
@@ -187,25 +198,82 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
 
   return (
     <div>
-      <div className="rounded-2xl border border-line bg-surface-soft p-4 sm:p-5">
-        <label htmlFor="service-date" className="flex items-center gap-2 text-sm font-semibold">
-          <Calendar className="h-4 w-4 text-accent" /> {t("monitoringDate")}
-        </label>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
+      {/* Date of monitoring — always keyed in by staff, never assumed. Every
+          expiry on this visit is counted from it. */}
+      <div
+        className={`relative overflow-hidden rounded-2xl border p-4 transition-colors sm:p-5 ${
+          dateMissing ? "border-danger/50 bg-danger-soft/40" : serviceDate ? "border-accent/35 bg-accent-soft/25" : "border-line bg-surface-soft"
+        }`}
+      >
+        <span aria-hidden className={`absolute inset-y-0 left-0 w-[3px] ${dateMissing ? "bg-danger" : serviceDate ? "bg-accent" : "bg-amber"}`} />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label htmlFor={SERVICE_DATE_INPUT_ID} className="flex items-center gap-2 text-sm font-semibold">
+            <Calendar className="h-4 w-4 text-accent" /> {t("monitoringDate")}
+          </label>
+          {serviceDate ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-accent">
+              <Check className="h-3 w-3" /> {t("dateSet")}
+            </span>
+          ) : (
+            <span className="rounded-full bg-amber-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-amber">{t("required")}</span>
+          )}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
-            id="service-date"
+            id={SERVICE_DATE_INPUT_ID}
             type="date"
             required
             min="2000-01-01"
             max={today}
             value={serviceDate}
             disabled={locked}
-            onChange={(event) => onServiceDateChange(event.target.value)}
-            className={`${fieldClass} max-w-[13rem] font-medium tabular-nums`}
+            onChange={(event) => {
+              onServiceDateChange(event.target.value);
+              if (event.target.value) setDateMissing(false);
+            }}
+            onInvalid={(event) => {
+              // Our own message instead of the browser bubble.
+              event.preventDefault();
+              setDateMissing(true);
+              event.currentTarget.focus();
+            }}
+            aria-invalid={dateMissing}
+            aria-describedby="service-date-hint"
+            className={`${fieldClass} max-w-[13rem] font-medium tabular-nums ${serviceDate ? "" : "text-ink-faint"} ${dateMissing ? "border-danger focus:border-danger focus:ring-danger-soft" : ""}`}
           />
-          {serviceDate === today && <span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-accent">{t("today")}</span>}
+          {!locked &&
+            [
+              { value: today, label: t("todayChip") },
+              { value: yesterday, label: t("yesterday") },
+            ].map((option) => {
+              const active = serviceDate === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    onServiceDateChange(option.value);
+                    setDateMissing(false);
+                  }}
+                  aria-pressed={active}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                    active ? "border-accent bg-accent text-white shadow-[0_6px_14px_rgba(15,118,110,.2)]" : "border-line bg-surface text-ink-muted hover:-translate-y-0.5 hover:border-accent hover:text-accent"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
         </div>
-        <p className="mt-2 text-xs leading-5 text-ink-muted">{t("serviceDateHint")}</p>
+        {dateMissing ? (
+          <p id="service-date-hint" role="alert" className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger">
+            <AlertTriangle className="h-3.5 w-3.5" /> {t("dateRequiredError")}
+          </p>
+        ) : (
+          <p id="service-date-hint" className="mt-2 text-xs leading-5 text-ink-muted">
+            {serviceDate ? t("serviceDateHint") : t("dateRequiredHint")}
+          </p>
+        )}
       </div>
 
       <ol className="mt-5 space-y-3">
@@ -335,8 +403,22 @@ function ExpiryStrip({
   t: ExpiryTranslator;
 }) {
   const rule = validityRuleFor(row.category);
-  const autoExpiry = defaultExpiryFor(row.category, serviceDate);
+  const autoExpiry = serviceDate ? defaultExpiryFor(row.category, serviceDate) : null;
   const linkClass = "font-semibold text-accent transition-colors hover:text-accent-hover disabled:opacity-50";
+
+  // Expiry is counted from the date of monitoring, so there's nothing to
+  // show until staff have keyed it in.
+  if (!serviceDate) {
+    return (
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-dashed border-line bg-surface-soft px-3.5 py-2.5 text-xs">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+          <Hourglass className="h-3.5 w-3.5 text-ink-faint" /> {t("validUntil")}
+        </span>
+        <span className="text-ink-muted">{t("waitingForDate")}</span>
+        {rule && <span className="basis-full text-[11px] leading-4 text-ink-faint">{rule.basis}</span>}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-surface-soft px-3.5 py-2.5 text-xs">

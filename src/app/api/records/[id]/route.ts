@@ -1,4 +1,4 @@
-import { DOCUMENT_CATEGORIES, isValidServiceDate, resolveExpiryInput, todayInMalaysia } from "@/lib/format";
+import { DOCUMENT_CATEGORIES, isValidServiceDate, resolveExpiryInput } from "@/lib/format";
 import { defaultExpiryFor } from "@/lib/validity";
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -114,14 +114,19 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     // No replacement/attachment file — the only other possible document
     // changes are the category and/or service date of an existing report.
     if (existingDocument) {
-      const changes: { category?: string; service_date?: string; expiry_date?: string | null } = {};
+      const changes: { category?: string; service_date?: string; service_date_confirmed?: boolean; expiry_date?: string | null } = {};
       if (category && category !== existingDocument.category) {
         if (!(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) {
           return Response.json({ error: "INVALID_CATEGORY" }, { status: 400 });
         }
         changes.category = category;
       }
-      if (serviceDateInput && serviceDateInput !== existingDocument.service_date) changes.service_date = serviceDateInput;
+      if (serviceDateInput) {
+        // Staff keyed the date in on the edit form, so it's now confirmed
+        // even if it matches what was stored.
+        if (serviceDateInput !== existingDocument.service_date) changes.service_date = serviceDateInput;
+        changes.service_date_confirmed = true;
+      }
       if (expiryInput !== null) {
         const effectiveServiceDate = changes.service_date ?? existingDocument.service_date;
         const expiry = resolveExpiryInput(expiryInput, effectiveServiceDate, null);
@@ -148,7 +153,11 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     return Response.json({ error: validation.error }, { status: 400 });
   }
 
-  const effectiveServiceDate = serviceDateInput || existingDocument?.service_date || todayInMalaysia();
+  // A brand-new report needs a date staff picked; never assume one.
+  const effectiveServiceDate = serviceDateInput || existingDocument?.service_date;
+  if (!effectiveServiceDate) {
+    return Response.json({ error: "INVALID_SERVICE_DATE" }, { status: 400 });
+  }
   const expiry = resolveExpiryInput(expiryInput, effectiveServiceDate, defaultExpiryFor(category, effectiveServiceDate));
   if ("error" in expiry) {
     return Response.json({ error: expiry.error }, { status: 400 });
@@ -173,6 +182,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
       .update({
         category,
         service_date: effectiveServiceDate,
+        ...(serviceDateInput ? { service_date_confirmed: true } : {}),
         expiry_date: expiry.expiryDate,
         file_name: file.name.slice(0, 255),
         storage_path: storagePath,

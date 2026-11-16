@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { CountUp } from "@/app/_components/count-up";
-import { AlertTriangle, Bell, Check, Hourglass } from "@/app/_components/icons";
+import { AlertTriangle, Arrow, Bell, Calendar, Check, Hourglass } from "@/app/_components/icons";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { RenewalsTracker, type TrackerFilter } from "@/app/_components/renewals-tracker";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
@@ -12,12 +12,13 @@ import { VALIDITY_RULES } from "@/lib/validity";
 
 export const dynamic = "force-dynamic";
 
-const FILTERS: TrackerFilter[] = ["all", "expired", "expiring", "upcoming", "valid"];
+// Kept here, not imported from the tracker: a "use client" module only exports client references to a server page.
+const TRACKER_FILTERS: TrackerFilter[] = ["all", "expired", "expiring", "upcoming", "valid", "unconfirmed"];
 
 export default async function RenewalsPage(props: PageProps<"/[locale]/renewals">) {
   const searchParams = await props.searchParams;
   const requested = typeof searchParams.status === "string" ? searchParams.status : "all";
-  const initialFilter = (FILTERS as string[]).includes(requested) ? (requested as TrackerFilter) : "all";
+  const initialFilter = (TRACKER_FILTERS as string[]).includes(requested) ? (requested as TrackerFilter) : "all";
 
   const [renewals, t, tNav, tCategories, tGroups] = await Promise.all([
     getRenewals(),
@@ -86,6 +87,26 @@ export default async function RenewalsPage(props: PageProps<"/[locale]/renewals"
             </Link>
           ))}
         </div>
+
+        {renewals.unconfirmed > 0 && initialFilter !== "unconfirmed" && (
+          <Link
+            href={{ pathname: "/renewals", query: { status: "unconfirmed" } }}
+            scroll={false}
+            className="group relative mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden rounded-2xl border border-amber/40 bg-amber-soft/60 py-3.5 pl-5 pr-4 text-sm transition-all animate-[rise_.6s_ease-out_both] hover:-translate-y-0.5 hover:border-amber"
+          >
+            <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-amber" />
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-surface text-amber shadow-sm">
+              <Calendar className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-ink">{t("unconfirmedNoticeTitle", { count: renewals.unconfirmed })}</span>
+              <span className="block text-xs text-ink-muted">{t("unconfirmedNoticeHint")}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber">
+              {t("unconfirmedNoticeAction")} <Arrow className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+        )}
 
         <div className="mt-10">
           {/* Remount when the filter in the URL changes (tile clicks) so it's applied. */}

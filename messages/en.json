@@ -283,7 +283,14 @@
     "otherServicesHidden": "{count, plural, =1 {+1 other service} other {+# other services}} not matching the filter",
     "lastVisit": "Last visit {date} · {visits, plural, =1 {1 visit} other {# visits}}",
     "viewClient": "View client",
-    "monitoringDate": "Date of monitoring"
+    "monitoringDate": "Date of monitoring",
+    "required": "REQUIRED",
+    "dateSet": "SET",
+    "todayChip": "Today",
+    "dateRequiredHint": "Key in the day the monitoring was actually done. Every expiry on this visit is counted from this date.",
+    "dateRequiredError": "Enter the date of monitoring before saving.",
+    "dateUnconfirmed": "Monitoring date not confirmed",
+    "editUnconfirmedHint": "This report's date was filled in automatically. Key in the actual date of monitoring."
   },
   "expiry": {
     "validUntil": "Valid until",
@@ -342,6 +349,21 @@
     "rulesEyebrow": "HOW EXPIRY IS CALCULATED",
     "rulesTitle": "Validity periods by service",
     "rulesIntro": "Expiry is auto-filled from the date of monitoring plus the period below, and can be changed on any report (for example, to the next monitoring date the assessor recommends). Statutory periods come from the cited DOSH/DOE regulation; typical periods depend on the client's licence, approval conditions or CHRA findings and should be confirmed per client.",
-    "monthsShort": "{months} mo"
+    "monthsShort": "{months} mo",
+    "waitingForDate": "Enter the date of monitoring to calculate the expiry.",
+    "filterUnconfirmed": "Date unconfirmed",
+    "dateUnconfirmedShort": "Confirm monitoring date",
+    "unconfirmedNoticeTitle": "{count, plural, =1 {1 report needs its date of monitoring} other {# reports need their date of monitoring}}",
+    "unconfirmedNoticeHint": "These dates were filled in automatically, so their expiry may be wrong. Key in the real date to fix it.",
+    "unconfirmedNoticeAction": "Review"
+  },
+  "confirmDate": {
+    "eyebrow": "ACTION NEEDED",
+    "title": "Key in the date of monitoring",
+    "body": "This report's date ({date}) was filled in automatically when it was uploaded, not by staff. Enter the day the monitoring was actually done and the expiry will be recalculated from it.",
+    "label": "Date of monitoring",
+    "confirm": "Confirm date",
+    "saving": "Saving…",
+    "error": "Couldn't save the date. Check it isn't in the future and try again."
   }
 }

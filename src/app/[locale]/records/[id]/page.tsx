@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ViewTransition } from "react";
 import { AddServicePanel } from "@/app/_components/add-service-panel";
+import { ConfirmMonitoringDate } from "@/app/_components/confirm-monitoring-date";
 import { Calendar, Download, File } from "@/app/_components/icons";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
@@ -62,12 +63,21 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
               {record.hasDocument ? categoryLabel : t("noDocumentBadge")}
             </span>
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
-              {record.serviceDate && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 font-semibold text-ink">
-                  <Calendar className="h-3.5 w-3.5 text-accent" />
-                  {tServices("servicedOn", { date: formatServiceDate(record.serviceDate, locale === "ms" ? "ms-MY" : "en-GB") })}
-                </span>
-              )}
+              {record.serviceDate &&
+                (record.serviceDateConfirmed ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 font-semibold text-ink">
+                    <Calendar className="h-3.5 w-3.5 text-accent" />
+                    {tServices("servicedOn", { date: formatServiceDate(record.serviceDate, locale === "ms" ? "ms-MY" : "en-GB") })}
+                  </span>
+                ) : (
+                  <a
+                    href="#confirm-date-title"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-amber/40 bg-amber-soft px-2.5 py-1 font-semibold text-amber transition-colors hover:border-amber print:hidden"
+                  >
+                    <Calendar className="h-3.5 w-3.5" />
+                    {tServices("dateUnconfirmed")}
+                  </a>
+                ))}
               <span>{t("submitted", { date: record.date })}</span>
             </span>
           </div>
@@ -76,6 +86,10 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
             <h1 className="mt-6 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">{record.hasDocument ? record.fileName : record.companyName}</h1>
           </ViewTransition>
           {record.hasDocument && <p className="mt-2 text-sm text-ink-muted">{record.fileType} · {record.fileSize}</p>}
+
+          {record.hasDocument && record.category && record.serviceDate && !record.serviceDateConfirmed && (
+            <ConfirmMonitoringDate id={record.id} category={record.category} guessedDate={record.serviceDate} expiryDate={record.expiryDate} />
+          )}
 
           {record.hasDocument && record.category && record.serviceDate && (
             <ValidityCard id={record.id} category={record.category} serviceDate={record.serviceDate} expiryDate={record.expiryDate} history={history} />

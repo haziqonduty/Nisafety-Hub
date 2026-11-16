@@ -50,10 +50,16 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
   const [emails, setEmails] = useState<string[]>([record.email, ...record.additionalEmails]);
   const [submitterName, setSubmitterName] = useState(record.submitterName);
   const [category, setCategory] = useState(record.category ?? "");
-  const [serviceDate, setServiceDate] = useState(record.serviceDate ?? todayInMalaysia());
+  // The date of monitoring is keyed in by staff: a new attachment, or a
+  // report whose date was only ever filled in automatically, starts blank.
+  const [serviceDate, setServiceDate] = useState(record.serviceDateConfirmed ? (record.serviceDate ?? "") : "");
   const [expiryDate, setExpiryDate] = useState(record.hasDocument ? (record.expiryDate ?? "") : "");
+  // An unconfirmed report whose expiry was auto-calculated from the guessed
+  // date should recalculate from the real one as staff type it in.
+  const expiryFollowsDate =
+    !record.serviceDateConfirmed && Boolean(record.category && record.serviceDate && record.expiryDate === defaultExpiryFor(record.category, record.serviceDate));
   // A brand-new attachment starts on the category default; an existing report keeps what it has.
-  const [expiryTouched, setExpiryTouched] = useState(record.hasDocument);
+  const [expiryTouched, setExpiryTouched] = useState(record.hasDocument && !expiryFollowsDate);
   const effectiveExpiry = expiryTouched ? expiryDate : (defaultExpiryFor(category, serviceDate) ?? "");
   const rule = category ? validityRuleFor(category) : null;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -225,8 +231,14 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
 
       {(record.hasDocument || selectedFile) && (
         <label className="mt-5 block text-sm font-semibold">
-          {tServices("serviceDate")}
+          <span className="flex flex-wrap items-center gap-2">
+            {tServices("monitoringDate")}
+            {!serviceDate && <span className="rounded-full bg-amber-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-amber">{tServices("required")}</span>}
+          </span>
           <input required type="date" min="2000-01-01" max={todayInMalaysia()} value={serviceDate} onChange={(event) => setServiceDate(event.target.value)} className={`${fieldClass} max-w-[13rem] tabular-nums`} />
+          {!record.serviceDateConfirmed && record.serviceDate && (
+            <span className="mt-1.5 block text-xs font-normal text-ink-muted">{tServices("editUnconfirmedHint")}</span>
+          )}
         </label>
       )}
 

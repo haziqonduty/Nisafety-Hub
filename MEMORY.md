@@ -684,6 +684,17 @@ Kay asked for an expiry date on every service, based on DOSH rules, auto-tracked
 - **Gotcha (again)**: any CSS grid whose children use `truncate` needs `grid-cols-[minmax(0,1fr)]` explicitly, including the implicit single column on mobile — otherwise cards overflow on phones. And don't combine `hidden lg:inline-flex` with a component that already sets `inline-flex` — wrap it instead.
 - **Not built (possible follow-up)**: email reminders before expiry (needs an email provider + a scheduled job), and admin-editable validity rules (currently a code constant).
 
+## Date of monitoring must be keyed in by staff (2026-11-16)
+
+Kay: the date of monitoring must be entered by staff, never set automatically, and expiry is traced from it.
+
+- **Migration `20261114_add_document_service_date_confirmed.sql` — applied by Kay 2026-11-16.** `documents.service_date_confirmed boolean not null`; existing rows = false (their dates were guessed from upload time / old "today" default), column default then flipped to true (new rows can only be saved with a staff-picked date).
+- **Forms** (`service-reports-fields.tsx`, used by /submit and AddServicePanel): date starts EMPTY, REQUIRED/SET chip, Today/Yesterday quick-pick chips, `onInvalid` shows our own red message instead of the browser bubble, expiry strip says "Enter the date of monitoring…" until a date exists. Record edit form starts blank for unconfirmed reports; saving it sets confirmed=true. PATCH `/api/records/[id]` no longer falls back to today for a new attachment.
+- **Fixing old reports**: record page shows amber "Monitoring date not confirmed" tag + `confirm-monitoring-date.tsx` card → POST `/api/records/[id]/service-date` (auto expiry moves with the date; custom expiry kept unless now ≤ date; none stays none). Renewals page: amber notice "N reports need their date of monitoring" + "Date unconfirmed" filter tab (only shown when >0) + per-row "Confirm monitoring date" link. `RenewalSummary.unconfirmed`.
+- **Verified in Chrome against `next start`**: 20/20 on the confirm/add-service flow + submit page date empty; light + dark + mobile reviewed. Test data deleted.
+- **Mistake & lesson**: imported a plain constant (`TRACKER_FILTERS`) from a `"use client"` module into a server page → at runtime it's a client reference, `.includes is not a function`, renewals page 500. Build/tsc don't catch it. **Never import non-component values from a "use client" file into a server component** — keep shared constants in a plain module.
+- **Mistake & lesson (from 2026-11-14 build)**: the "Date of monitoring" field was pre-filled with today, which Kay saw as "automatic". Dates that drive compliance (monitoring, expiry) must never be defaulted — make staff enter them.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

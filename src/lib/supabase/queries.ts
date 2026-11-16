@@ -229,6 +229,8 @@ export type RecordDetail = {
   date: string;
   /** YYYY-MM-DD day the service was carried out; null for a client with no report yet. */
   serviceDate: string | null;
+  /** False while the date of monitoring is still the automatic guess (reports saved before staff had to key it in). */
+  serviceDateConfirmed: boolean;
   expiryDate: string | null;
   tone: ReturnType<typeof toneForCategory> | null;
 };
@@ -249,6 +251,7 @@ type RecordDetailRow = {
   client_id: string;
   category: string;
   service_date: string;
+  service_date_confirmed: boolean;
   expiry_date: string | null;
   file_name: string;
   file_size: number;
@@ -261,7 +264,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, expiry_date, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails)")
     .eq("id", id)
     .single();
 
@@ -291,6 +294,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
     publicUrl: await signedUrlFor(supabase, row.storage_path),
     date: formatDate(row.created_at),
     serviceDate: row.service_date,
+    serviceDateConfirmed: row.service_date_confirmed,
     expiryDate: row.expiry_date,
     tone: toneForCategory(row.category),
   };
@@ -355,6 +359,7 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
     publicUrl: null,
     date: formatDate(row.created_at),
     serviceDate: null,
+    serviceDateConfirmed: true,
     expiryDate: null,
     tone: null,
   };
@@ -415,6 +420,7 @@ export type RenewalItem = {
   clientName: string;
   category: string;
   serviceDate: string;
+  serviceDateConfirmed: boolean;
   expiryDate: string;
   status: Exclude<ExpiryStatus, "none" | "renewed">;
   daysLeft: number;
@@ -426,6 +432,8 @@ export type RenewalSummary = {
   expiring: number;
   upcoming: number;
   valid: number;
+  /** Tracked reports whose date of monitoring (and so expiry) staff haven't confirmed yet. */
+  unconfirmed: number;
 };
 
 type RenewalRow = {
@@ -433,6 +441,7 @@ type RenewalRow = {
   client_id: string;
   category: string;
   service_date: string;
+  service_date_confirmed: boolean;
   expiry_date: string | null;
   created_at: string;
   clients: { company_name: string; client_name: string } | { company_name: string; client_name: string }[] | null;
@@ -448,7 +457,7 @@ export async function getRenewals(): Promise<RenewalSummary> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, expiry_date, created_at, clients(company_name, client_name)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, created_at, clients(company_name, client_name)")
     .order("service_date", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -469,6 +478,7 @@ export async function getRenewals(): Promise<RenewalSummary> {
       clientName: client?.client_name ?? "",
       category: row.category,
       serviceDate: row.service_date,
+      serviceDateConfirmed: row.service_date_confirmed,
       expiryDate: row.expiry_date,
       status: status as RenewalItem["status"],
       daysLeft: daysLeft ?? 0,
@@ -482,6 +492,7 @@ export async function getRenewals(): Promise<RenewalSummary> {
     expiring: items.filter((item) => item.status === "expiring").length,
     upcoming: items.filter((item) => item.status === "upcoming").length,
     valid: items.filter((item) => item.status === "valid").length,
+    unconfirmed: items.filter((item) => !item.serviceDateConfirmed).length,
   };
 }
 
