@@ -105,7 +105,7 @@ export async function POST(request: Request) {
   let report: { extension: string; file: File; expiryDate: string | null } | null = null;
 
   if (hasDocument) {
-    const validation = validateReport(category, serviceDate, expiryInput, file);
+    const validation = await validateReport(category, serviceDate, expiryInput, file);
     if ("error" in validation) {
       return Response.json({ error: validation.error }, { status: 400 });
     }

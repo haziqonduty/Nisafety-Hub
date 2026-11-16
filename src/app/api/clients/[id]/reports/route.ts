@@ -24,7 +24,7 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
   const serviceDate = textValue(formData.get("serviceDate"), 10);
   const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
 
-  const validation = validateReport(category, serviceDate, expiryInput, formData.get("file"));
+  const validation = await validateReport(category, serviceDate, expiryInput, formData.get("file"));
   if ("error" in validation) {
     return Response.json({ error: validation.error }, { status: 400 });
   }

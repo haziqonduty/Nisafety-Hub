@@ -714,6 +714,12 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - **Gotcha:** a NEW column on `clients` is invisible to staff until granted in a migration; `select("*")` on clients as staff now errors (permission denied) — always list columns explicitly.
 - Verified 10/10 (direct REST as staff denied read/update of notes, app submit/edit/directory/record pages fine, admin still sees/edits notes) + staff pages `/`, `/renewals`, `/submit`, `/ms`, ⌘K all 200.
 
+## Upload content check (2026-11-16)
+
+- `validateDocumentFile()` / `validateReport()` in `src/lib/document-upload.ts` are now **async** and also check the file's real signature (`hasFileSignature`): PDF `%PDF-` anywhere in the first 1024 bytes (spec allows leading bytes), DOC = OLE2 `D0 CF 11 E0 A1 B1 1A E1`, DOCX = ZIP `PK 03 04`; thumbnails must start `FF D8 FF` or they're silently dropped. Callers must `await`.
+- Verified 11/11: genuine PDF/DOC/DOCX accepted, renamed EXE/HTML/text rejected (400 INVALID_FILE_TYPE), fake thumbnail dropped, real UI upload still works.
+- Kay chose to **skip admin-login hardening (MFA) for now** (2026-11-16) — don't re-propose unprompted.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

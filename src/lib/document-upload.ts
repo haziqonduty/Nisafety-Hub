@@ -19,8 +19,35 @@ export const ALLOWED_TYPES = new Map([
 
 export type FileValidationError = "INVALID_FILE_TYPE" | "FILE_SIZE";
 
+// The first bytes every genuine file of each type starts with. The name
+// and the browser-reported type are both chosen by the uploader, so they
+// alone can't stop e.g. an executable renamed to report.pdf.
+const FILE_SIGNATURES: Record<string, number[]> = {
+  pdf: [0x25, 0x50, 0x44, 0x46, 0x2d], // "%PDF-"
+  doc: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1], // OLE2 compound file (Word 97–2003)
+  docx: [0x50, 0x4b, 0x03, 0x04], // ZIP container (Office Open XML)
+  jpg: [0xff, 0xd8, 0xff],
+};
+
+// PDF readers accept the "%PDF-" header anywhere in the first 1024 bytes,
+// and some scanners/generators put a few bytes before it — don't reject those.
+const PDF_HEADER_WINDOW = 1024;
+
+/** Whether the file's content really starts like a `kind` file. */
+export async function hasFileSignature(file: File, kind: keyof typeof FILE_SIGNATURES | string) {
+  const signature = FILE_SIGNATURES[kind];
+  if (!signature) return false;
+  const window = kind === "pdf" ? PDF_HEADER_WINDOW : signature.length;
+  const head = new Uint8Array(await file.slice(0, window).arrayBuffer());
+  const lastStart = kind === "pdf" ? head.length - signature.length : 0;
+  for (let start = 0; start <= lastStart; start++) {
+    if (signature.every((byte, index) => head[start + index] === byte)) return true;
+  }
+  return false;
+}
+
 /** Validates a document File against the same rules everywhere it's accepted. */
-export function validateDocumentFile(file: File): { extension: string } | { error: FileValidationError } {
+export async function validateDocumentFile(file: File): Promise<{ extension: string } | { error: FileValidationError }> {
   const extension = file.name.split(".").pop()?.toLowerCase();
   const expectedMimeType = extension ? ALLOWED_TYPES.get(extension) : undefined;
   if (!extension || !expectedMimeType || file.type !== expectedMimeType) {
@@ -28,6 +55,9 @@ export function validateDocumentFile(file: File): { extension: string } | { erro
   }
   if (file.size === 0 || file.size > MAX_FILE_SIZE) {
     return { error: "FILE_SIZE" };
+  }
+  if (!(await hasFileSignature(file, extension))) {
+    return { error: "INVALID_FILE_TYPE" };
   }
   return { extension };
 }
@@ -42,6 +72,9 @@ const MAX_THUMBNAIL_SIZE = 500 * 1024;
 // for an internal `.thumb.jpg` convention isn't worth it.
 export async function uploadThumbnail(documentId: string, thumbnail: FormDataEntryValue | null): Promise<string | null> {
   if (!(thumbnail instanceof File) || thumbnail.type !== "image/jpeg" || thumbnail.size === 0 || thumbnail.size > MAX_THUMBNAIL_SIZE) {
+    return null;
+  }
+  if (!(await hasFileSignature(thumbnail, "jpg"))) {
     return null;
   }
 
@@ -72,18 +105,18 @@ export type ReportValidationError = FileValidationError | "INVALID_CATEGORY" | "
  * before creating a client so a bad report never leaves a half-finished
  * submission behind.
  */
-export function validateReport(
+export async function validateReport(
   category: string,
   serviceDate: string,
   expiryInput: string | null,
   file: unknown,
-): { extension: string; file: File; expiryDate: string | null } | { error: ReportValidationError } {
+): Promise<{ extension: string; file: File; expiryDate: string | null } | { error: ReportValidationError }> {
   if (!category || !(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) return { error: "INVALID_CATEGORY" };
   if (!isValidServiceDate(serviceDate)) return { error: "INVALID_SERVICE_DATE" };
   const expiry = resolveExpiryInput(expiryInput, serviceDate, defaultExpiryFor(category, serviceDate));
   if ("error" in expiry) return expiry;
   if (!(file instanceof File)) return { error: "INVALID_FILE_TYPE" };
-  const validation = validateDocumentFile(file);
+  const validation = await validateDocumentFile(file);
   if ("error" in validation) return validation;
   return { extension: validation.extension, file, expiryDate: expiry.expiryDate };
 }

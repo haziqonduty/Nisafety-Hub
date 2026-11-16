@@ -148,7 +148,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     return Response.json({ error: "INVALID_CATEGORY" }, { status: 400 });
   }
 
-  const validation = validateDocumentFile(file);
+  const validation = await validateDocumentFile(file);
   if ("error" in validation) {
     return Response.json({ error: validation.error }, { status: 400 });
   }
