@@ -1,7 +1,7 @@
 import NextLink from "next/link";
 import { getTranslations } from "next-intl/server";
 import { BrandLogo } from "@/app/_components/brand-logo";
-import { DeveloperCredit } from "@/app/_components/developer-credit";
+import { SiteBottomBar } from "@/app/_components/site-bottom-bar";
 import { DirectoryExplorer } from "@/app/_components/directory-explorer";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { LogoutButton } from "@/app/_components/logout-button";
@@ -102,7 +102,7 @@ export default async function Home() {
           <a href="#top" className="font-semibold text-accent hover:text-accent-hover">{t("backToTop")}</a>
         </div>
         <div className="mx-auto mt-6 max-w-7xl">
-          <DeveloperCredit label={t("credit")} callLabel={t("creditCall")} emailLabel={t("creditEmail")} />
+          <SiteBottomBar copyright={t("copyright", { year: new Date().getFullYear() })} creditLabel={t("credit")} />
         </div>
       </footer>
     </main>

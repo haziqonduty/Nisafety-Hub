@@ -739,8 +739,8 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 
 ## Developer credit section (2026-11-16)
 
-- Kay asked for a proper credit section with their contact details. `src/app/_components/developer-credit.tsx` (server component, labels passed in): "C" monogram + "CRAFTED BY / Caryn Smart Tech" + tappable chips `017-7769 334` (`tel:+60177769334`) and `carynstepforward@gmail.com` (`mailto:`). Contact details live only in that component — change them there.
-- Used at the bottom of the staff homepage footer (labels from `home.credit` / `creditCall` / `creditEmail`, EN "Crafted by" / BM "Dibangunkan oleh") and the admin footer (English defaults). Verified light/dark/BM/mobile/admin, no overflow.
+- Kay asked for a credit with contact details, then said the card version was "too large and weird" — wants it **minimalist**. Now `src/app/_components/site-bottom-bar.tsx` (`SiteBottomBar`): the standard footer legal bar — hairline top border, small muted text, `© {year} Nisafety Consultancy` left, `Crafted by Caryn Smart Tech · 017-7769 334 (tel:+60177769334) · carynstepforward@gmail.com` right; links only colour on hover. Contact details live only in that file.
+- Used in the staff homepage footer (`home.copyright`, `home.credit` = "Crafted by" / "Dibangunkan oleh") and the admin footer (English defaults). On phones the contacts wrap as one unit (no dangling separator). **Lesson: credits must be quiet — one line of small grey text, no cards/icons/badges.**
 
 ## Planned Screen Flow
 

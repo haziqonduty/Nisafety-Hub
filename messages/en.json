@@ -13,8 +13,7 @@
     "footerTagline": "Safety records, designed for clarity.",
     "credit": "Crafted by",
     "backToTop": "Back to top ↑",
-    "creditCall": "Call",
-    "creditEmail": "Email"
+    "copyright": "© {year} Nisafety Consultancy"
   },
   "workspace": {
     "live": "LIVE",
