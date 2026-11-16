@@ -28,6 +28,7 @@ const PROTECTED_API: [method: string, path: string][] = [
   ["DELETE", `/api/admin/staff/${NOBODY}`],
   ["POST", "/api/admin/recycle-bin"],
   ["GET", "/api/admin/backup"],
+  ["POST", "/api/uploads"],
   ["POST", "/api/submissions"],
   ["POST", `/api/clients/${NOBODY}/reports`],
   ["GET", "/api/clients/search?q=a"],

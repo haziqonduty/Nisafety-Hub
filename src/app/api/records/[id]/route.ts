@@ -2,7 +2,7 @@ import { DOCUMENT_CATEGORIES, isValidServiceDate, resolveExpiryInput } from "@/l
 import { defaultExpiryFor } from "@/lib/validity";
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { removeStorageObjects, uploadThumbnail, validateDocumentFile } from "@/lib/document-upload";
+import { placeReportFile, removeStorageObjects, resolveReportFile, uploadThumbnail } from "@/lib/document-upload";
 
 const MAX_ADDITIONAL_CONTACTS = 4;
 
@@ -67,7 +67,6 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
   const category = textValue(formData.get("category"), 80);
   const serviceDateInput = textValue(formData.get("serviceDate"), 10);
   const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
-  const file = formData.get("file");
   const thumbnail = formData.get("thumbnail");
 
   const clientName = clientNames[0] ?? "";
@@ -108,7 +107,9 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     return Response.json({ error: "CLIENT_SAVE_ERROR" }, { status: 500 });
   }
 
-  const hasNewFile = file instanceof File;
+  // A replacement/first report arrives already uploaded straight to Storage
+  // (storagePath) or, from older clients, as the file itself.
+  const hasNewFile = formData.has("storagePath") || formData.get("file") instanceof File;
 
   if (!hasNewFile) {
     // No replacement/attachment file — the only other possible document
@@ -148,9 +149,12 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     return Response.json({ error: "INVALID_CATEGORY" }, { status: 400 });
   }
 
-  const validation = await validateDocumentFile(file);
-  if ("error" in validation) {
-    return Response.json({ error: validation.error }, { status: 400 });
+  const reportFile = await resolveReportFile(formData);
+  if (!reportFile) {
+    return Response.json({ error: "INVALID_FILE_TYPE" }, { status: 400 });
+  }
+  if ("error" in reportFile) {
+    return Response.json({ error: reportFile.error }, { status: reportFile.error === "UPLOAD_ERROR" ? 500 : 400 });
   }
 
   // A brand-new report needs a date staff picked; never assume one.
@@ -163,18 +167,13 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     return Response.json({ error: expiry.error }, { status: 400 });
   }
 
-  const newDocumentId = crypto.randomUUID();
-  const storagePath = `submissions/${newDocumentId}.${validation.extension}`;
-  const { error: uploadError } = await supabase.storage.from("safety-documents").upload(storagePath, file, {
-    contentType: file.type,
-    upsert: false,
-  });
-
-  if (uploadError) {
+  const placed = await placeReportFile(supabase, reportFile);
+  if (!placed) {
     return Response.json({ error: "UPLOAD_ERROR" }, { status: 500 });
   }
+  const { storagePath } = placed;
 
-  const thumbnailPath = await uploadThumbnail(newDocumentId, thumbnail);
+  const thumbnailPath = await uploadThumbnail(placed.objectId, thumbnail);
 
   if (existingDocument) {
     const { error } = await supabase
@@ -184,10 +183,10 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
         service_date: effectiveServiceDate,
         ...(serviceDateInput ? { service_date_confirmed: true } : {}),
         expiry_date: expiry.expiryDate,
-        file_name: file.name.slice(0, 255),
+        file_name: placed.fileName,
         storage_path: storagePath,
-        file_type: file.type,
-        file_size: file.size,
+        file_type: placed.fileType,
+        file_size: placed.fileSize,
         thumbnail_path: thumbnailPath,
       })
       .eq("id", existingDocument.id);
@@ -206,10 +205,10 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     category,
     service_date: effectiveServiceDate,
     expiry_date: expiry.expiryDate,
-    file_name: file.name.slice(0, 255),
+    file_name: placed.fileName,
     storage_path: storagePath,
-    file_type: file.type,
-    file_size: file.size,
+    file_type: placed.fileType,
+    file_size: placed.fileSize,
     thumbnail_path: thumbnailPath,
   });
 

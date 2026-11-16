@@ -2,7 +2,7 @@ import { clientIpFrom } from "@/lib/request-ip";
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
-import { storeReport, validateReport } from "@/lib/document-upload";
+import { resolveReportFile, storeReport, validateReport, type ReportFile } from "@/lib/document-upload";
 
 const RATE_LIMIT_WINDOW_MINUTES = 15;
 const RATE_LIMIT_MAX_ATTEMPTS = 5;
@@ -75,8 +75,10 @@ export async function POST(request: Request) {
   const serviceDate = textValue(formData.get("serviceDate"), 10);
   const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
   const existingClientId = textValue(formData.get("clientId"), 36);
-  const file = formData.get("file");
   const thumbnail = formData.get("thumbnail");
+  // A report arrives either already uploaded straight to Storage
+  // (storagePath) or, from older clients, as the file itself.
+  const hasDocument = formData.has("storagePath") || formData.get("file") instanceof File;
 
   const clientName = clientNames[0] ?? "";
   const telephone = telephones[0] ?? "";
@@ -99,13 +101,11 @@ export async function POST(request: Request) {
 
   // This route saves the client plus the FIRST service report of a visit.
   // Any further services from the same visit (or a later one) are added one
-  // request each via POST /api/clients/[id]/reports — Vercel caps a request
-  // body at 4.5MB, so several reports can never travel together.
-  const hasDocument = file instanceof File;
-  let report: { extension: string; file: File; expiryDate: string | null } | null = null;
+  // request each via POST /api/clients/[id]/reports.
+  let report: { reportFile: ReportFile; expiryDate: string | null } | null = null;
 
   if (hasDocument) {
-    const validation = await validateReport(category, serviceDate, expiryInput, file);
+    const validation = await validateReport(category, serviceDate, expiryInput, await resolveReportFile(formData));
     if ("error" in validation) {
       return Response.json({ error: validation.error }, { status: 400 });
     }
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
     return Response.json({ clientId }, { status: 201 });
   }
 
-  const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, file: report.file, extension: report.extension, thumbnail });
+  const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, reportFile: report.reportFile, thumbnail });
   if ("error" in stored) {
     await rollbackNewClient(clientId, isNewClient);
     return Response.json({ error: stored.error }, { status: 500 });

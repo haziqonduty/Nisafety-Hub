@@ -187,7 +187,7 @@ export default function SubmitPage() {
     if (!clientId) {
       // The client plus the FIRST service of the visit go together, exactly
       // like a single-report submission always has; every further service is
-      // its own request afterwards (Vercel's 4.5MB body cap).
+      // its own request afterwards. Report files go straight to Storage first.
       const firstRow = attachDocument ? serviceRows[0] : undefined;
       const formData = new FormData();
       formData.append("website", honeypot);
@@ -199,7 +199,12 @@ export default function SubmitPage() {
       if (existingClientId) formData.append("clientId", existingClientId);
       if (firstRow) {
         markRow(firstRow.key, { status: "uploading", errorCode: "" });
-        await appendServiceReport(formData, firstRow, serviceDate);
+        const uploadError = await appendServiceReport(formData, firstRow, serviceDate);
+        if (uploadError) {
+          markRow(firstRow.key, { status: "error", errorCode: knownErrorCode(uploadError) });
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       try {

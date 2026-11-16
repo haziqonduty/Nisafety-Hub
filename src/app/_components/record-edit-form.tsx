@@ -5,12 +5,14 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import { addEntry, removeEntry, RepeatableField, updateEntry } from "@/app/_components/repeatable-field";
 import { useRouter } from "@/i18n/routing";
 import { compressPdf } from "@/lib/compress-pdf";
+import { appendUploadedFile, MAX_UPLOAD_SIZE } from "@/lib/direct-upload";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
 import { CATEGORY_GROUPS, todayInMalaysia } from "@/lib/format";
 import { addDays, defaultExpiryFor, validityRuleFor } from "@/lib/validity";
 import type { RecordDetail } from "@/lib/supabase/queries";
 
-const MAX_FILE_SIZE = 4 * 1024 * 1024;
+// Reports upload straight to Storage; only PDFs over 50 MB get compressed.
+const MAX_FILE_SIZE = MAX_UPLOAD_SIZE;
 
 function formatMegabytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -124,7 +126,12 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
       formData.append("expiryDate", effectiveExpiry);
     }
     if (selectedFile) {
-      formData.append("file", selectedFile);
+      const uploadError = await appendUploadedFile(formData, selectedFile);
+      if (uploadError) {
+        setError(errorMessage(uploadError));
+        setIsSaving(false);
+        return;
+      }
       if (selectedFile.type === "application/pdf") {
         const thumbnail = await generatePdfThumbnail(selectedFile).catch(() => null);
         if (thumbnail) formData.append("thumbnail", thumbnail);

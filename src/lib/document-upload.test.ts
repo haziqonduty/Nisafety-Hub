@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasFileSignature, MAX_FILE_SIZE, validateDocumentFile } from "@/lib/document-upload";
+import { bytesHaveSignature, hasFileSignature, MAX_FILE_SIZE, MAX_REPORT_SIZE, validateDocumentFile, validateUploadRequest } from "@/lib/document-upload";
 
 const PDF = "application/pdf";
 const DOC = "application/msword";
@@ -50,5 +50,29 @@ describe("validateDocumentFile", () => {
   it("rejects empty and oversized files", async () => {
     expect(await validateDocumentFile(new File([], "empty.pdf", { type: PDF }))).toEqual({ error: "FILE_SIZE" });
     expect(await validateDocumentFile(file("big.pdf", PDF, "%PDF-1.7", MAX_FILE_SIZE + 1))).toEqual({ error: "FILE_SIZE" });
+  });
+});
+
+describe("bytesHaveSignature", () => {
+  it("checks the first bytes fetched from Storage", () => {
+    expect(bytesHaveSignature(new Uint8Array([...Buffer.from("%PDF-1.7")]), "pdf")).toBe(true);
+    expect(bytesHaveSignature(new Uint8Array([0x0a, 0x0a, ...Buffer.from("%PDF-1.7")]), "pdf")).toBe(true);
+    expect(bytesHaveSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04]), "docx")).toBe(true);
+    expect(bytesHaveSignature(new Uint8Array([0x4d, 0x5a]), "pdf")).toBe(false);
+    expect(bytesHaveSignature(new Uint8Array([]), "doc")).toBe(false);
+  });
+});
+
+describe("validateUploadRequest (direct uploads)", () => {
+  it("allows real report types up to 50 MB", () => {
+    expect(validateUploadRequest("Report.PDF", PDF, 5_110_000)).toEqual({ extension: "pdf" });
+    expect(validateUploadRequest("big.docx", DOCX, MAX_REPORT_SIZE)).toEqual({ extension: "docx" });
+  });
+  it("rejects other types, mismatches, empty and over-limit sizes", () => {
+    expect(validateUploadRequest("a.exe", "application/octet-stream", 10)).toEqual({ error: "INVALID_FILE_TYPE" });
+    expect(validateUploadRequest("a.pdf", DOC, 10)).toEqual({ error: "INVALID_FILE_TYPE" });
+    expect(validateUploadRequest("a.pdf", PDF, 0)).toEqual({ error: "FILE_SIZE" });
+    expect(validateUploadRequest("a.pdf", PDF, MAX_REPORT_SIZE + 1)).toEqual({ error: "FILE_SIZE" });
+    expect(validateUploadRequest("a.pdf", PDF, Number.NaN)).toEqual({ error: "FILE_SIZE" });
   });
 });

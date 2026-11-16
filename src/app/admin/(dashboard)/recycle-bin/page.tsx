@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { RecycleBinList } from "@/app/_components/recycle-bin-list";
 import { requireAdminProfile } from "@/lib/auth/profile";
+import { purgeAbandonedUploads } from "@/lib/document-upload";
 import { purgeBin, RECYCLE_BIN_DAYS } from "@/lib/supabase/admin-mutations";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { getRecycleBin } from "@/lib/supabase/queries";
@@ -16,6 +17,8 @@ export default async function RecycleBinPage() {
   // permanently removed whenever an admin opens the bin. Until then it's
   // already hidden from staff everywhere, so the timing doesn't matter.
   await purgeBin(createSupabaseServiceClient());
+  // Also tidy files uploaded straight to Storage whose form was abandoned.
+  await purgeAbandonedUploads();
   const items = await getRecycleBin(RECYCLE_BIN_DAYS);
 
   return (

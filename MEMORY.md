@@ -765,6 +765,14 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Reminder under the button from localStorage (per computer): "No full backup… yet" / "Last full backup: N days ago — time for a new one" (amber after 30 days).
 - Verified 11/11 (staff 401, files byte-identical, safe folder names, bin excluded, notes included, real xlsx) + security tests now include `/api/admin/backup`. Test ZIP deleted (it contained Kay's real client).
 
+## Direct-to-Storage uploads, 50 MB limit (2026-11-16)
+
+- **Why:** Kay's 5.11 MB report failed "still too large after compression". Root cause: `compressPdf` rasterises every page to JPEG — shrinks scans, but text-heavy multi-page reports get BIGGER (reproduced: 46-page 4.97 MB text report fails; 9-page scan 5.2→1.4 MB). Real limit was Vercel's ~4.5 MB request body.
+- **Now:** browser → `POST /api/uploads` {fileName,fileType,fileSize} (approved staff; `validateUploadRequest`) → `createSignedUploadUrl` at `submissions/<uuid>.<ext>` → browser `uploadToSignedUrl` straight to Supabase (`src/lib/direct-upload.ts`) → save routes get `storagePath` + `fileName` (thumbnail still posted, ≤500 KB). Server `claimUploadedReport`: path regex, not already referenced by any document, `storage.info` size ≤50 MB + contentType, Range-fetch first 1 KB → `bytesHaveSignature`; rejects delete the object. `resolveReportFile(formData)` also still accepts a legacy `file` (old clients). `placeReportFile` + `storeReport` use `ReportFile`. Record edit route uses the same path.
+- **Migrations applied by Kay 2026-11-16:** `20261116_raise_report_size_limit.sql` (bucket file_size_limit 10 MB → 50 MB) AND `20261116_raise_document_file_size_check.sql` (`documents_file_size_check` was ≤10 MB since 20260921 — found only by testing a 19 MB upload; save failed with DOCUMENT_SAVE_ERROR). **Lesson: when raising a limit, grep migrations for every place the old value is enforced (bucket, CHECK constraints, client constants, copy).**
+- Compression only for PDFs > 50 MB. Copy says "up to 50 MB" (EN/BM). `purgeAbandonedUploads()` (unreferenced objects > 24 h old) runs when an admin opens the Recycle bin.
+- Verified 16/16 at 5 MB and at 19 MB (byte-identical, no compression, ~9 s; fake content rejected+deleted, path reuse/traversal rejected, no tickets for exe/51 MB/mismatch); unit 32/32; security 47/47 incl. `/api/uploads`.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

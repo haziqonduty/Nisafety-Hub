@@ -1,5 +1,5 @@
 import { requireApprovedProfile } from "@/lib/auth/profile";
-import { storeReport, validateReport } from "@/lib/document-upload";
+import { resolveReportFile, storeReport, validateReport } from "@/lib/document-upload";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function textValue(value: FormDataEntryValue | null, maxLength: number) {
@@ -24,7 +24,7 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
   const serviceDate = textValue(formData.get("serviceDate"), 10);
   const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
 
-  const validation = await validateReport(category, serviceDate, expiryInput, formData.get("file"));
+  const validation = await validateReport(category, serviceDate, expiryInput, await resolveReportFile(formData));
   if ("error" in validation) {
     return Response.json({ error: validation.error }, { status: 400 });
   }
@@ -42,8 +42,7 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
     category,
     serviceDate,
     expiryDate: validation.expiryDate,
-    file: validation.file,
-    extension: validation.extension,
+    reportFile: validation.reportFile,
     thumbnail: formData.get("thumbnail"),
   });
   if ("error" in stored) {

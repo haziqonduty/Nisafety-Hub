@@ -4,13 +4,15 @@ import { useTranslations } from "next-intl";
 import { useState, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
 import { AlertTriangle, Calendar, Check, Close, File, Hourglass, Plus, Upload } from "@/app/_components/icons";
 import { compressPdf } from "@/lib/compress-pdf";
+import { appendUploadedFile, MAX_UPLOAD_SIZE } from "@/lib/direct-upload";
 import { CATEGORY_GROUPS, formatServiceDate, todayInMalaysia } from "@/lib/format";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
 import { addDays, addMonths, defaultExpiryFor, validityRuleFor } from "@/lib/validity";
 
-// Matches the server's MAX_FILE_SIZE (src/lib/document-upload.ts) — driven
-// by Vercel's hard 4.5MB request-body limit.
-const MAX_FILE_SIZE = 4 * 1024 * 1024;
+// Reports upload straight to Supabase Storage (src/lib/direct-upload.ts),
+// so the only limit is Storage's 50 MB per file; only PDFs above that are
+// compressed.
+const MAX_FILE_SIZE = MAX_UPLOAD_SIZE;
 export const MAX_SERVICES_PER_VISIT = 8;
 
 export type ServiceRowStatus = "idle" | "uploading" | "done" | "error";
@@ -65,18 +67,24 @@ export function effectiveExpiry(row: ServiceRow, serviceDate: string) {
   return defaultExpiryFor(row.category, serviceDate) ?? "";
 }
 
-/** Appends one service's category, dates, file and (for PDFs) a thumbnail. */
-export async function appendServiceReport(formData: FormData, row: ServiceRow, serviceDate: string) {
+/**
+ * Uploads one service's report straight to Storage and appends its
+ * category, dates, storage path and (for PDFs) a thumbnail. Returns an
+ * error code if the upload itself failed, otherwise null.
+ */
+export async function appendServiceReport(formData: FormData, row: ServiceRow, serviceDate: string): Promise<string | null> {
   formData.append("category", row.category);
   formData.append("serviceDate", serviceDate);
   // Always sent, so the server stores exactly what the row showed.
   formData.append("expiryDate", effectiveExpiry(row, serviceDate));
-  if (!row.file) return;
-  formData.append("file", row.file);
+  if (!row.file) return null;
+  const uploadError = await appendUploadedFile(formData, row.file);
+  if (uploadError) return uploadError;
   if (row.file.type === "application/pdf") {
     const thumbnail = await generatePdfThumbnail(row.file).catch(() => null);
     if (thumbnail) formData.append("thumbnail", thumbnail);
   }
+  return null;
 }
 
 function patchRow(setRows: Dispatch<SetStateAction<ServiceRow[]>>, key: string, patch: Partial<ServiceRow>) {
@@ -97,7 +105,12 @@ export async function uploadServiceRows(clientId: string, rows: ServiceRow[], se
     patchRow(setRows, row.key, { status: "uploading", errorCode: "" });
     try {
       const formData = new FormData();
-      await appendServiceReport(formData, row, serviceDate);
+      const uploadError = await appendServiceReport(formData, row, serviceDate);
+      if (uploadError) {
+        allSaved = false;
+        patchRow(setRows, row.key, { status: "error", errorCode: knownErrorCode(uploadError) });
+        continue;
+      }
       const response = await fetch(`/api/clients/${clientId}/reports`, { method: "POST", body: formData });
       const result = (await response.json().catch(() => ({}))) as { error?: string };
       if (response.ok) {
