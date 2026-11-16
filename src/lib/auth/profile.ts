@@ -22,15 +22,28 @@ type ProfileRow = {
 };
 
 /**
- * The signed-in caller's own profile, or null if there's no session or no
- * matching row. Memoized per request (React `cache`) since this is called
- * from layouts, pages, and API routes alike — replaces `verifyAdminSession()`
- * from the old single-shared-password admin login.
+ * The signed-in caller's profile for DISPLAY in page renders (greeting, role
+ * chip, which links to show). Reuses the profile src/proxy.ts already looked
+ * up, via a request header, to save a round trip.
+ *
+ * SECURITY: never use this to authorize anything. A request that doesn't go
+ * through the proxy (every /api route, and paths the matcher skips) can carry
+ * a forged copy of that header. Use requireAdminProfile() /
+ * requireApprovedProfile() / getVerifiedProfile(), which always check the
+ * real Supabase session.
  */
 export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> => {
   const fromMiddleware = await profileFromMiddlewareHeader();
   if (fromMiddleware !== undefined) return fromMiddleware;
+  return getVerifiedProfile();
+});
 
+/**
+ * The caller's profile, looked up from their real Supabase session (cookie
+ * → auth.getUser() → profiles row). Never reads request headers. Memoized
+ * per request.
+ */
+export const getVerifiedProfile = cache(async (): Promise<CurrentProfile | null> => {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -56,9 +69,9 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
   };
 });
 
-// `undefined` means "no header, fall back to a live Supabase lookup" — only
-// set when src/proxy.ts has already resolved the profile for this request
-// (API routes bypass middleware entirely and never see this header).
+// `undefined` means "no header, fall back to a live Supabase lookup". The
+// proxy strips any incoming copy and sets its own, but routes it doesn't run
+// on (all of /api) receive whatever the client sent — display only.
 async function profileFromMiddlewareHeader(): Promise<CurrentProfile | null | undefined> {
   const headerList = await headers();
   const raw = headerList.get(PROFILE_HEADER_NAME);
@@ -75,14 +88,14 @@ async function profileFromMiddlewareHeader(): Promise<CurrentProfile | null | un
 
 /** Null unless the caller is a signed-in, approved admin. */
 export async function requireAdminProfile(): Promise<CurrentProfile | null> {
-  const profile = await getCurrentProfile();
+  const profile = await getVerifiedProfile();
   if (!profile || profile.role !== "admin" || profile.status !== "approved") return null;
   return profile;
 }
 
 /** Null unless the caller is a signed-in, approved staff member (any role). */
 export async function requireApprovedProfile(): Promise<CurrentProfile | null> {
-  const profile = await getCurrentProfile();
+  const profile = await getVerifiedProfile();
   if (!profile || profile.status !== "approved") return null;
   return profile;
 }

@@ -695,6 +695,12 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - **Mistake & lesson**: imported a plain constant (`TRACKER_FILTERS`) from a `"use client"` module into a server page → at runtime it's a client reference, `.includes is not a function`, renewals page 500. Build/tsc don't catch it. **Never import non-component values from a "use client" file into a server component** — keep shared constants in a plain module.
 - **Mistake & lesson (from 2026-11-14 build)**: the "Date of monitoring" field was pre-filled with today, which Kay saw as "automatic". Dates that drive compliance (monitoring, expiry) must never be defaulted — make staff enter them.
 
+## Full system audit + CRITICAL auth fix (2026-11-16)
+
+- **Critical vuln found & fixed (local, pending push at time of writing):** `getCurrentProfile()` trusted the `x-nisafety-profile` header set by `src/proxy.ts`, but the proxy matcher skips `/api`, so a client could send a forged header and pass `requireAdminProfile()` with NO session → admin routes using the service-role key (promote to admin, delete staff/clients/docs, export). Confirmed locally: forged header → 200. Fix: `getVerifiedProfile()` (always real session) used by `requireAdminProfile`/`requireApprovedProfile` and the admin layout; `getCurrentProfile()` is display-only; proxy deletes any incoming copy of the header. Re-tested: all 9 protected routes 401 with forged header; admin/staff flows 9/9.
+- **Rule:** never authorize from a request header. Anything gating access must come from the Supabase session (`getVerifiedProfile`).
+- **Other audit findings (not yet fixed):** `/api/documents/search` has no explicit auth check (RLS returns empty, but should 401) and rebuilds the whole directory + signed URLs per keystroke; `DIRECTORY_LIMIT = 200` silently truncates directory/search past 200 rows; approved staff can read/update `clients.internal_notes` via direct REST (table-level grant to authenticated); file validation trusts extension + browser MIME (no magic-byte check); no automated tests/CI/error monitoring; README is create-next-app boilerplate; `npm audit`: 2 moderate (uuid via exceljs); next 16.4.6 patch available.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

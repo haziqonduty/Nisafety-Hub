@@ -16,6 +16,9 @@ const AUTH_PATHS = ["/login", "/signup", "/pending-approval", "/forgot-password"
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // Only this proxy may set the profile header. Drop any copy the client
+  // sent before anything else reads or forwards the request headers.
+  request.headers.delete(PROFILE_HEADER_NAME);
   const { response, user, supabase } = await updateSession(request);
 
   if (AUTH_PATHS.includes(pathname)) {

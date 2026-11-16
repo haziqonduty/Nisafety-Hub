@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
-import { getCurrentProfile } from "@/lib/auth/profile";
+import { getVerifiedProfile } from "@/lib/auth/profile";
 import { LogoutButton } from "@/app/_components/logout-button";
 import { AdminNav } from "@/app/_components/admin-nav";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 
 export default async function AdminDashboardLayout({ children }: LayoutProps<"/admin">) {
-  const profile = await getCurrentProfile();
+  // Verified against the real session, not the proxy's header: admin pages
+  // read data with the service-role key, so this is a security boundary.
+  const profile = await getVerifiedProfile();
   if (!profile) redirect("/login");
   if (profile.status !== "approved") redirect("/pending-approval");
   if (profile.role !== "admin") redirect("/");
