@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ConfirmDialog } from "@/app/_components/confirm-dialog";
 import { Calendar, Mail, Trash } from "@/app/_components/icons";
 import type { AdminProfile } from "@/lib/supabase/queries";
 
@@ -21,11 +22,14 @@ const STATUS_LABEL: Record<AdminProfile["status"], string> = {
   rejected: "Not approved",
 };
 
+type Confirming = "revoke" | "delete" | null;
+
 function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean }) {
   const [isUpdating, setIsUpdating] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState("");
   const router = useRouter();
+  const displayName = profile.fullName || profile.email;
 
   async function send(init: RequestInit, fallbackError: string) {
     setError("");
@@ -35,11 +39,13 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
       const result = (await response.json()) as { error?: string };
       if (!response.ok) {
         setError(result.error ?? fallbackError);
-        return;
+        return false;
       }
       router.refresh();
+      return true;
     } catch {
       setError("We could not reach the server. Please try again.");
+      return false;
     } finally {
       setIsUpdating(false);
     }
@@ -52,9 +58,19 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
     );
   }
 
-  async function remove() {
-    await send({ method: "DELETE" }, "We could not delete this account.");
-    setConfirmingDelete(false);
+  function openConfirm(action: Exclude<Confirming, null>) {
+    setError("");
+    setConfirming(action);
+  }
+
+  function closeConfirm() {
+    setConfirming(null);
+    setError("");
+  }
+
+  async function confirmAction() {
+    const ok = confirming === "delete" ? await send({ method: "DELETE" }, "We could not delete this account.") : await patch({ status: "rejected" });
+    if (ok) setConfirming(null);
   }
 
   return (
@@ -84,7 +100,7 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
                 Requested {profile.date}
               </span>
             </div>
-            {error && (
+            {error && !confirming && (
               <p className="mt-2 text-xs text-danger" role="alert">
                 {error}
               </p>
@@ -92,29 +108,7 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
           </div>
         </div>
 
-        {!isSelf && confirmingDelete && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-danger-soft bg-danger-soft px-3 py-2">
-            <span className="text-xs font-semibold text-danger">Delete this account permanently?</span>
-            <button
-              type="button"
-              onClick={remove}
-              disabled={isUpdating}
-              className="rounded-full bg-danger px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-            >
-              {isUpdating ? "Deleting…" : "Yes, delete"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={isUpdating}
-              className="rounded-full border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink-muted transition hover:border-accent hover:text-accent disabled:opacity-60"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-        {!isSelf && !confirmingDelete && (
+        {!isSelf && (
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {profile.status === "pending" && (
               <>
@@ -139,7 +133,7 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
             {profile.status === "approved" && (
               <button
                 type="button"
-                onClick={() => patch({ status: "rejected" })}
+                onClick={() => openConfirm("revoke")}
                 disabled={isUpdating}
                 className="rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink-muted transition hover:border-danger hover:bg-danger-soft hover:text-danger disabled:opacity-60"
               >
@@ -158,10 +152,7 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
             )}
             <button
               type="button"
-              onClick={() => {
-                setError("");
-                setConfirmingDelete(true);
-              }}
+              onClick={() => openConfirm("delete")}
               disabled={isUpdating}
               aria-label={`Delete account for ${profile.fullName || profile.email}`}
               title="Delete account"
@@ -172,6 +163,40 @@ function StaffCard({ profile, isSelf }: { profile: AdminProfile; isSelf: boolean
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirming !== null}
+        title={confirming === "delete" ? "Delete this account?" : "Revoke this staff member's access?"}
+        description={
+          confirming === "delete" ? (
+            <>
+              This permanently removes the account and can&apos;t be undone. Reports they submitted stay in the system.
+            </>
+          ) : (
+            <>
+              They&apos;ll lose access to Nisafety Hub straight away and can&apos;t sign in to view or submit reports. Reports they
+              submitted stay. You can restore access any time with <span className="font-semibold text-ink">Approve</span>.
+            </>
+          )
+        }
+        subject={
+          <div className="flex items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-brand text-sm font-bold text-white">
+              {initialsFor(displayName)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{profile.fullName || "(no name provided)"}</p>
+              <p className="truncate text-xs text-ink-muted">{profile.email}</p>
+            </div>
+          </div>
+        }
+        confirmLabel={confirming === "delete" ? "Yes, delete account" : "Yes, revoke access"}
+        busyLabel={confirming === "delete" ? "Deleting…" : "Revoking…"}
+        busy={isUpdating}
+        error={confirming ? error : ""}
+        onConfirm={confirmAction}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }

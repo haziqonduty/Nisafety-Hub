@@ -783,6 +783,11 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - DB rule: migration `20261116_single_admin_only.sql` adds the `enforce_single_admin` trigger on profiles (admin role allowed only for auth email admin@nisafetyhub.internal), and demotes any other admin. Checked before: the built-in account was the only admin.
 - Rule: never add a way to grant the admin role again.
 
+## Confirm pop-up for Revoke access + Delete account (2026-11-16)
+- New reusable `src/app/_components/confirm-dialog.tsx` (native <dialog>): warning icon, a card showing who is affected, Cancel focused by default, can't be dismissed mid-action, and errors shown inside the dialog.
+- `admin-staff-table.tsx`: Revoke access and the trash button both open it (this replaced the old inline delete strip). Approve and Reject on pending accounts stay one-click.
+- Not checked visually: the only admin's password is Kay's, and the single-admin trigger stops creating a test admin.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).
