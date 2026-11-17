@@ -847,3 +847,8 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Old `directory_search` dropped by Kay 2026-11-17 via `20261118_drop_old_directory_search.sql`, after the deploy went live.
 - `src/lib/directory.ts` (plain module, tested): DIRECTORY_SORTS / DIRECTORY_STATUSES + parsers. `/api/directory` takes `status` + `sort`. `DirectoryPage.statusCounts`.
 - `directory-explorer.tsx`: native styled `<select>` for sort next to the category filter; status chip row with coloured dots + counts (zero-count chips disabled); Clear filters only shown when a filter is active and also clears status. `groupByClient` no longer re-sorts by activity, it keeps the server order. `CategoryFilter` got a `className` prop (default "mt-4").
+
+## "Visit" wording kept (2026-11-17) — change made then reverted at Kay's request
+- In the UI, a "visit" = one distinct date of monitoring (service_date). "N visits" counts distinct dates; "SAME VISIT" groups reports sharing a date. Nothing else is tracked.
+- Kay asked to remove "visit" (thinking it meant in-person attendance); I reworded everything, then explained it is just the date of monitoring, and Kay asked to restore it. Reverted before any commit.
+- **Mistake & lesson:** when Kay asks what a label means, explain exactly what data it is computed from BEFORE proposing or making a change, so the decision is made with the real meaning.
