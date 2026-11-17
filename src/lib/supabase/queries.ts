@@ -4,6 +4,7 @@ import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/s
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, todayInMalaysia, toneForCategory } from "@/lib/format";
 import { compareUrgency, moreUrgent, toMapStatus, type MapClient, type MapService, type MapStatus } from "@/lib/client-map";
 import { expiryStatus, type ExpiryStatus } from "@/lib/validity";
+import type { DirectorySort, DirectoryStatus, DirectoryStatusCounts } from "@/lib/directory";
 
 // Short-lived signed URL — the "safety-documents" bucket is private now that
 // the whole site requires login (a public bucket would let anyone with a
@@ -175,12 +176,14 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
 export const DIRECTORY_PAGE_SIZE = 24;
 
 export type DirectoryPage = {
-  /** Every report (and client-only entry) for this page's clients, newest client activity first. */
+  /** Every report (and client-only entry) for this page's clients, in the chosen sort order. */
   documents: DirectoryDocument[];
   /** Clients matching the search/filter across the WHOLE directory, not just this page. */
   total: number;
   /** How many clients this page contained — the offset for the next page. */
   clientCount: number;
+  /** Clients per status for the current search + category (before the status filter). */
+  statusCounts: DirectoryStatusCounts;
 };
 
 type DirectoryClientRow = ClientSummary & {
@@ -197,20 +200,32 @@ type DirectoryClientRow = ClientSummary & {
 export async function getDirectoryPage({
   search = "",
   category = null,
+  status = null,
+  sort = "recent",
   offset = 0,
   limit = DIRECTORY_PAGE_SIZE,
-}: { search?: string; category?: string | null; offset?: number; limit?: number } = {}): Promise<DirectoryPage> {
+}: {
+  search?: string;
+  category?: string | null;
+  status?: DirectoryStatus | null;
+  sort?: DirectorySort;
+  offset?: number;
+  limit?: number;
+} = {}): Promise<DirectoryPage> {
   const supabase = await createSupabaseServerClient();
-  const { data: matches, error } = await supabase.rpc("directory_search", {
+  const { data, error } = await supabase.rpc("directory_page", {
     search: search.slice(0, 100),
     category_filter: category,
+    status_filter: status,
+    sort_by: sort,
     page_limit: limit,
     page_offset: offset,
   });
-  if (error || !matches || matches.length === 0) return { documents: [], total: 0, clientCount: 0 };
+  const result = (data ?? null) as { ids?: string[]; total?: number; counts?: DirectoryStatusCounts } | null;
+  const statusCounts = result?.counts ?? {};
+  const ids = result?.ids ?? [];
+  if (error || ids.length === 0) return { documents: [], total: Number(result?.total ?? 0), clientCount: 0, statusCounts };
 
-  const ordered = matches as { client_id: string; last_activity: string; total_count: number }[];
-  const ids = ordered.map((row) => row.client_id);
   const { data: clientData } = await supabase
     .from("clients")
     .select(
@@ -237,7 +252,7 @@ export async function getDirectoryPage({
     }
   }
 
-  return { documents, total: Number(ordered[0].total_count), clientCount: clientRows.length };
+  return { documents, total: Number(result?.total ?? 0), clientCount: clientRows.length, statusCounts };
 }
 
 export type RecordDetail = {

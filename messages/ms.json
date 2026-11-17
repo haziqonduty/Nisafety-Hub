@@ -86,7 +86,23 @@
     "loadMore": "{count, plural, =1 {Muat 1 lagi klien} other {Muat # lagi klien}}",
     "loadingMore": "Memuatkan…",
     "showingOf": "Memaparkan {shown} daripada {total} klien",
-    "loadError": "Direktori tidak dapat dimuatkan. Semak sambungan anda dan cuba lagi."
+    "loadError": "Direktori tidak dapat dimuatkan. Semak sambungan anda dan cuba lagi.",
+    "sortLabel": "Susun",
+    "sort": {
+      "recent": "Aktiviti terkini",
+      "name": "Syarikat A–Z",
+      "expiry": "Tamat paling awal",
+      "newest": "Klien terbaru"
+    },
+    "statusLabel": "Tapis mengikut status",
+    "status": {
+      "all": "Semua",
+      "expired": "Tamat tempoh",
+      "expiring": "Tamat ≤ 30 hari",
+      "upcoming": "Tamat ≤ 90 hari",
+      "valid": "Sah",
+      "no_report": "Tiada laporan lagi"
+    }
   },
   "categoryFilter": {
     "filterPlaceholder": "Tapis kategori…",

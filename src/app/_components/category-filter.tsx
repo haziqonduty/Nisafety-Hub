@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search } from "@/app/_components/icons";
 import { CATEGORY_GROUPS, toneDotClass, toneForCategory } from "@/lib/format";
 
-export function CategoryFilter({ category, onChange }: { category: string; onChange: (category: string) => void }) {
+export function CategoryFilter({ category, onChange, className = "mt-4" }: { category: string; onChange: (category: string) => void; className?: string }) {
   const t = useTranslations("categoryFilter");
   const tGroups = useTranslations("categories.groups");
   const tCategories = useTranslations("categories.items");
@@ -48,7 +48,7 @@ export function CategoryFilter({ category, onChange }: { category: string; onCha
   }
 
   return (
-    <div ref={containerRef} className="relative mt-4">
+    <div ref={containerRef} className={`relative ${className}`}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

@@ -4,12 +4,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, ViewTransition } from "react";
 import { CategoryFilter } from "@/app/_components/category-filter";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
-import { Arrow, Calendar, Download, Paperclip, Search } from "@/app/_components/icons";
+import { Arrow, Calendar, ChevronDown, Download, Paperclip, Search } from "@/app/_components/icons";
 import { SpotlightCard } from "@/app/_components/spotlight-card";
 import { Link } from "@/i18n/routing";
 import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass } from "@/lib/format";
+import { DIRECTORY_SORTS, DIRECTORY_STATUSES, type DirectorySort, type DirectoryStatus } from "@/lib/directory";
 import type { DirectoryDocument, DirectoryPage } from "@/lib/supabase/queries";
-import { expiryStatus } from "@/lib/validity";
+import { EXPIRY_STATUS_STYLES, expiryStatus } from "@/lib/validity";
 
 const COLLAPSED_REPORTS = 3;
 
@@ -63,17 +64,26 @@ function groupByClient(documents: DirectoryDocument[]): ClientGroup[] {
     group.haystack = group.haystack.toLowerCase();
   }
 
-  return [...groups.values()].sort((a, b) => (a.latestActivity < b.latestActivity ? 1 : -1));
+  // Clients arrive in the order the server sorted them; a Map keeps that order.
+  return [...groups.values()];
 }
 
 const ALL = "All records";
 const SEARCH_DEBOUNCE_MS = 250;
 
-function directoryUrl(query: string, category: string, offset: number) {
+type DirectoryQuery = { query: string; category: string; status: DirectoryStatus | null; sort: DirectorySort };
+
+function directoryUrl({ query, category, status, sort }: DirectoryQuery, offset: number) {
   const params = new URLSearchParams({ offset: String(offset) });
   if (query.trim()) params.set("q", query.trim());
   if (category !== ALL) params.set("category", category);
+  if (status) params.set("status", status);
+  if (sort !== "recent") params.set("sort", sort);
   return `/api/directory?${params}`;
+}
+
+function statusDotClass(status: DirectoryStatus) {
+  return status === "no_report" ? "bg-ink-faint" : EXPIRY_STATUS_STYLES[status].dot;
 }
 
 /** Appends a page, skipping any report already shown (a client can move between pages if it gets new activity). */
@@ -92,6 +102,9 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
   const intlLocale = locale === "ms" ? "ms-MY" : "en-GB";
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(ALL);
+  const [status, setStatus] = useState<DirectoryStatus | null>(null);
+  const [sort, setSort] = useState<DirectorySort>("recent");
+  const [statusCounts, setStatusCounts] = useState(initialPage.statusCounts);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   // Search and filtering run in the database across every record; this
   // holds the pages loaded so far for the current search.
@@ -113,12 +126,13 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
     setSearching(true);
     const timeout = setTimeout(async () => {
       try {
-        const response = await fetch(directoryUrl(query, category, 0), { signal: controller.signal });
+        const response = await fetch(directoryUrl({ query, category, status, sort }, 0), { signal: controller.signal });
         if (!response.ok) throw new Error(String(response.status));
         const page = (await response.json()) as DirectoryPage;
         setDocuments(page.documents);
         setTotal(page.total);
         setLoadedClients(page.clientCount);
+        setStatusCounts(page.statusCounts ?? {});
         setExpanded(new Set());
         setLoadError(false);
       } catch (error) {
@@ -131,13 +145,13 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [query, category]);
+  }, [query, category, status, sort]);
 
   async function loadMore() {
     setLoadingMore(true);
     setLoadError(false);
     try {
-      const response = await fetch(directoryUrl(query, category, loadedClients));
+      const response = await fetch(directoryUrl({ query, category, status, sort }, loadedClients));
       if (!response.ok) throw new Error(String(response.status));
       const page = (await response.json()) as DirectoryPage;
       setDocuments((current) => mergeDocuments(current, page.documents));
@@ -160,6 +174,8 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
   }
 
   const clients = useMemo(() => groupByClient(documents), [documents]);
+  const allCount = Object.values(statusCounts).reduce((sum, count) => sum + (count ?? 0), 0);
+  const hasFilters = Boolean(query.trim()) || category !== ALL || status !== null;
 
   // Already filtered by the server.
   const visibleClients = clients;
@@ -199,22 +215,65 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
             ⌘ K
           </button>
         </label>
-        <CategoryFilter category={category} onChange={setCategory} />
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CategoryFilter category={category} onChange={setCategory} className="" />
+          <label className="relative flex items-center gap-2 text-sm">
+            <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ink-faint">{t("sortLabel")}</span>
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as DirectorySort)}
+              className="w-full appearance-none rounded-xl border border-line bg-surface py-2.5 pl-3.5 pr-9 text-sm font-semibold text-ink transition hover:border-accent-soft focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-soft sm:w-auto"
+            >
+              {DIRECTORY_SORTS.map((option) => (
+                <option key={option} value={option}>
+                  {t(`sort.${option}`)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-ink-faint" />
+          </label>
+        </div>
+
+        <div role="group" aria-label={t("statusLabel")} className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+          {[null, ...DIRECTORY_STATUSES].map((option) => {
+            const count = option === null ? allCount : (statusCounts[option] ?? 0);
+            const active = status === option;
+            return (
+              <button
+                key={option ?? "all"}
+                type="button"
+                aria-pressed={active}
+                disabled={!active && option !== null && count === 0}
+                onClick={() => setStatus(option)}
+                className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                  active ? "border-accent bg-accent-soft text-accent shadow-[0_6px_16px_rgba(16,42,51,.08)]" : "border-line bg-surface text-ink-muted hover:border-accent-soft hover:text-ink"
+                }`}
+              >
+                {option && <span className={`h-2 w-2 rounded-full ${statusDotClass(option)}`} aria-hidden="true" />}
+                {t(`status.${option ?? "all"}`)}
+                <span className={`rounded-md px-1.5 py-px font-mono text-[10px] tabular-nums ${active ? "bg-surface text-accent" : "bg-surface-soft text-ink-faint"}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="mt-8 flex items-center justify-between">
         <p className="text-sm text-ink-muted">
           <span className="font-semibold text-ink tabular-nums">{total}</span> {t("matchingClients", { count: total })}
         </p>
-        <button
-          type="button"
-          onClick={() => {
-            setQuery("");
-            setCategory(ALL);
-          }}
-          className="text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
-        >
-          {t("clearFilters")}
-        </button>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setCategory(ALL);
+              setStatus(null);
+            }}
+            className="text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
+          >
+            {t("clearFilters")}
+          </button>
+        )}
       </div>
 
       <div aria-busy={searching} className={`mt-5 grid gap-4 transition-opacity duration-200 lg:grid-cols-2 ${searching ? "opacity-50" : ""}`}>
@@ -350,7 +409,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
       </div>
       {visibleClients.length === 0 && !searching && (
         <div className="mt-5 rounded-2xl border border-dashed border-line p-10 text-center text-sm text-ink-muted">
-          {!query.trim() && category === ALL ? t("emptyNoRecords") : t("emptyNoMatch")}
+          {!hasFilters ? t("emptyNoRecords") : t("emptyNoMatch")}
         </div>
       )}
 

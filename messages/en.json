@@ -86,7 +86,23 @@
     "loadMore": "{count, plural, =1 {Load 1 more client} other {Load # more clients}}",
     "loadingMore": "Loading…",
     "showingOf": "Showing {shown} of {total} clients",
-    "loadError": "Couldn't load the directory. Check your connection and try again."
+    "loadError": "Couldn't load the directory. Check your connection and try again.",
+    "sortLabel": "Sort",
+    "sort": {
+      "recent": "Recent activity",
+      "name": "Company A–Z",
+      "expiry": "Expiring soonest",
+      "newest": "Newest clients"
+    },
+    "statusLabel": "Filter by status",
+    "status": {
+      "all": "All",
+      "expired": "Expired",
+      "expiring": "Due ≤ 30 days",
+      "upcoming": "Due ≤ 90 days",
+      "valid": "Valid",
+      "no_report": "No report yet"
+    }
   },
   "categoryFilter": {
     "filterPlaceholder": "Filter categories…",
