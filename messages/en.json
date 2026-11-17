@@ -440,7 +440,7 @@
     "step1": "Click Place next to a client below.",
     "step2": "Paste its Google Maps link or coordinates, or search for it.",
     "step3": "Check the pin, drag it if needed, then Save.",
-    "allPlaced": "Every client is on the map. 🎉",
+    "allPlaced": "Every client is on the map.",
     "useLocation": "Use this location",
     "resolving": "Checking…",
     "fromGoogle": "Pinned from Google Maps",
