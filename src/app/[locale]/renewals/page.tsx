@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { CountUp } from "@/app/_components/count-up";
-import { AlertTriangle, Arrow, Bell, Calendar, Check, Hourglass } from "@/app/_components/icons";
+import { AlertTriangle, Arrow, ArrowUpRight, Bell, Calendar, Check, Hourglass } from "@/app/_components/icons";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { RenewalsTracker, type TrackerFilter } from "@/app/_components/renewals-tracker";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
@@ -122,6 +122,22 @@ export default async function RenewalsPage(props: PageProps<"/[locale]/renewals"
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-ink-muted transition-transform group-open:rotate-45">+</span>
           </summary>
           <p className="mt-4 max-w-3xl text-sm leading-6 text-ink-muted">{t("rulesIntro")}</p>
+          <dl className="mt-5 grid gap-3 text-xs sm:grid-cols-3">
+            {(
+              [
+                ["statutory", "legendStatutory", "bg-accent-soft text-accent"],
+                ["typical", "legendTypical", "bg-badge-neutral-bg text-badge-neutral-text"],
+                ["noFixedExpiry", "legendNoExpiry", "border border-dashed border-line text-ink-muted"],
+              ] as const
+            ).map(([chip, text, style]) => (
+              <div key={chip} className="rounded-xl border border-line bg-surface-soft p-3.5">
+                <dt>
+                  <span className={`inline-block rounded-full px-1.5 py-0.5 font-mono text-[9px] font-bold ${style}`}>{t(chip)}</span>
+                </dt>
+                <dd className="mt-2 leading-5 text-ink-muted">{t(text)}</dd>
+              </div>
+            ))}
+          </dl>
           <div className="mt-6 grid gap-8 lg:grid-cols-2">
             {CATEGORY_GROUPS.map((group) => (
               <div key={group.group}>
@@ -130,17 +146,32 @@ export default async function RenewalsPage(props: PageProps<"/[locale]/renewals"
                   {group.categories.map((category) => {
                     const rule = VALIDITY_RULES[category];
                     return (
-                      <li key={category} className="flex items-start justify-between gap-4 py-3">
+                      <li key={category} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         <span className="min-w-0">
                           <span className="block text-sm font-semibold">{label(category)}</span>
                           <span className="mt-0.5 block text-xs text-ink-muted">{rule?.basis}</span>
-                        </span>
-                        <span className="flex shrink-0 flex-col items-end gap-1">
-                          <span className="font-mono text-xs font-bold tabular-nums">{rule?.months ? t("monthsShort", { months: rule.months }) : "—"}</span>
                           {rule && (
-                            <span className={`rounded-full px-1.5 py-0.5 font-mono text-[9px] font-bold ${rule.confidence === "regulation" ? "bg-accent-soft text-accent" : "bg-badge-neutral-bg text-badge-neutral-text"}`}>
-                              {rule.confidence === "regulation" ? t("statutory") : t("typical")}
-                            </span>
+                            <a
+                              href={rule.source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-1 block text-[11px] font-semibold text-accent transition-colors hover:text-accent-hover"
+                            >
+                              {t("sourceLabel")}: {rule.source.label}
+                              <ArrowUpRight className="ml-0.5 inline-block h-3 w-3 align-[-2px]" />
+                            </a>
+                          )}
+                        </span>
+                        <span className="flex shrink-0 flex-row-reverse items-center justify-end gap-2 sm:flex-col sm:items-end sm:gap-1">
+                          {rule?.months ? (
+                            <>
+                              <span className="font-mono text-xs font-bold tabular-nums">{t("monthsShort", { months: rule.months })}</span>
+                              <span className={`rounded-full px-1.5 py-0.5 font-mono text-[9px] font-bold ${rule.confidence === "regulation" ? "bg-accent-soft text-accent" : "bg-badge-neutral-bg text-badge-neutral-text"}`}>
+                                {rule.confidence === "regulation" ? t("statutory") : t("typical")}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="rounded-full border border-dashed border-line px-1.5 py-0.5 font-mono text-[9px] font-bold text-ink-muted">{t("noFixedExpiry")}</span>
                           )}
                         </span>
                       </li>

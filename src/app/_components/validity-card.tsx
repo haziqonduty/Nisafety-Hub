@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { expiryLabel } from "@/app/_components/expiry-badge";
-import { AlertTriangle, Arrow, Check, Hourglass, RefreshCw } from "@/app/_components/icons";
+import { AlertTriangle, Arrow, ArrowUpRight, Check, Hourglass, RefreshCw } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
 import { formatServiceDate, todayInMalaysia } from "@/lib/format";
 import type { ServiceHistoryEntry } from "@/lib/supabase/queries";
@@ -129,6 +129,10 @@ export async function ValidityCard({
             {rule.confidence === "regulation" ? t("statutory") : t("typical")}
           </span>
           {rule.basis}
+          <a href={rule.source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-semibold text-accent transition-colors hover:text-accent-hover">
+            {t("sourceLink")}
+            <ArrowUpRight className="h-3 w-3" />
+          </a>
         </p>
       )}
     </section>

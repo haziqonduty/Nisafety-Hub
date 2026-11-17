@@ -852,3 +852,10 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - In the UI, a "visit" = one distinct date of monitoring (service_date). "N visits" counts distinct dates; "SAME VISIT" groups reports sharing a date. Nothing else is tracked.
 - Kay asked to remove "visit" (thinking it meant in-person attendance); I reworded everything, then explained it is just the date of monitoring, and Kay asked to restore it. Reverted before any commit.
 - **Mistake & lesson:** when Kay asks what a label means, explain exactly what data it is computed from BEFORE proposing or making a change, so the decision is made with the real meaning.
+
+## Validity rules: exact clauses + source links (2026-11-17)
+- Kay asked where the validity periods came from; I admitted they were compiled from web summaries on 2026-11-14, then verified what I could. Read the actual regulation texts (pdftotext on the PDFs): USECHH 2000 reg 10(b) CHRA 5 yrs, 17(1)(b) LEV ≤12 mo, 26(2) CEM ≤6 mo (Schedule II chemicals only), 27(3) MS ≤12 mo (Schedule II); Noise 2019 reg 4(8)(a) NRA review ≤5 yrs, 9(1) audiometric annually.
+- Changes: `ValidityRule.source {label,url}` on every rule (all links opened and checked 2026-11-17); NRA → "regulation"; Stack emission → "practice" (Clean Air 2014 interval could NOT be verified; full text not fetchable); CIMAH 3 yrs still unverified ("practice"). Months unchanged, so the SQL backfill sync test still holds and no existing report changes.
+- UI: renewals rules panel shows a 3-card legend (Statutory / Typical-confirm / No fixed expiry), a "Source: … ↗" link per service, and "NO FIXED EXPIRY" instead of "—". Record validity card has "Read the source ↗". Tests: every rule has an https source; statutory rules must quote "reg. N(".
+- Gotcha: the old dosh.gov.my/index.php/... pages now return 502 (site moved to WordPress); use dosh.gov.my/wp-content/... or intranet.dosh.gov.my links.
+- Mistake & lesson: I first presented unverified periods labelled "STATUTORY" (stack emission). Only label a rule statutory after reading the clause in the regulation text itself.

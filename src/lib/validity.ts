@@ -20,33 +20,56 @@
  */
 export type ValidityRule = {
   months: number | null;
+  /** The rule in one line, with the exact clause where the law states it. */
   basis: string;
   confidence: "regulation" | "practice";
+  /** Where staff can read it for themselves. */
+  source: { label: string; url: string };
 };
+
+// Every link below was opened and checked on 2026-11-17. The statutory
+// clauses were read in the regulation text itself (USECHH 2000, Noise 2019).
+const USECHH = {
+  label: "USECHH Regulations 2000 (P.U.(A) 131/2000)",
+  url: "https://medicine.um.edu.my/pdf/OSHE/resources/5.%20Regulations/OSHA%20USE%20AND%20STANDARDS%20OF%20EXPOSURE%20OF%20CHEMICALS%20HAZARDOUS%20TO%20HEALTH%20(USECHH)%20Regulation%202000.pdf",
+};
+const NOISE = {
+  label: "Noise Exposure Regulations 2019 (P.U.(A) 60/2019), DOSH",
+  url: "https://dosh.gov.my/wp-content/uploads/2025/10/PUA_20190301_PUA60_Noise-Exposure-Regs.-2019.pdf",
+};
+const CLEAN_AIR = {
+  label: "Clean Air Regulations 2014 (P.U.(A) 151/2014)",
+  url: "https://leap.unep.org/en/countries/my/national-legislation/environmental-quality-clean-air-regulations-2014",
+};
+const EFFLUENT = {
+  label: "Industrial Effluent Regulations 2009",
+  url: "https://leap.unep.org/en/countries/my/national-legislation/environmental-quality-industrial-effluent-regulations-2009",
+};
+const DOE = { label: "Department of Environment (DOE)", url: "https://www.doe.gov.my/" };
 
 export const VALIDITY_RULES: Record<string, ValidityRule> = {
   // Industrial Hygiene (DOSH)
-  "Chemical Health Risk Assessment (CHRA)": { months: 60, basis: "USECHH Regulations 2000 · CHRA review within 5 years", confidence: "regulation" },
-  "Chemical Exposure Monitoring (CEM)": { months: 6, basis: "USECHH Regulations 2000 · repeat at intervals ≤ 6 months", confidence: "regulation" },
-  "Medical Surveillance (MS)": { months: 12, basis: "USECHH Regulations 2000 · annual medical surveillance", confidence: "regulation" },
-  "Local Exhaust Ventilation (LEV)": { months: 12, basis: "USECHH Regulations 2000 · examine & test every 12 months", confidence: "regulation" },
-  "Noise Risk Assessment (NRA)": { months: 60, basis: "Noise Exposure Regulations 2019 · review within 5 years", confidence: "practice" },
-  "Audiometric Testing": { months: 12, basis: "Noise Exposure Regulations 2019 · annual audiometric test", confidence: "regulation" },
-  "Ergonomic Risk Assessment (ERA)": { months: null, basis: "DOSH ERA Guidelines 2017 · review when work changes", confidence: "practice" },
-  "Hazard Identification, Risk Assessment and Risk Control (HIRARC)": { months: null, basis: "DOSH HIRARC Guidelines 2008 · review when work changes", confidence: "practice" },
-  "Indoor Air Quality (IAQ) Testing": { months: null, basis: "ICOP IAQ 2010 · interval set by the employer's IAQ programme", confidence: "practice" },
-  "Control of Industrial Major Accident Hazards (CIMAH)": { months: 36, basis: "CIMAH Regulations 1996 · update safety report every 3 years", confidence: "practice" },
-  "Psychosocial Assessment": { months: null, basis: "No fixed statutory interval", confidence: "practice" },
+  "Chemical Health Risk Assessment (CHRA)": { months: 60, basis: "USECHH Regulations 2000, reg. 10(b) · review when 5 years have passed since the last assessment", confidence: "regulation", source: USECHH },
+  "Chemical Exposure Monitoring (CEM)": { months: 6, basis: "USECHH Regulations 2000, reg. 26(2) · every 6 months or less for Schedule II chemicals, or as the assessor sets", confidence: "regulation", source: USECHH },
+  "Medical Surveillance (MS)": { months: 12, basis: "USECHH Regulations 2000, reg. 27(3) · every 12 months or less for Schedule II chemicals", confidence: "regulation", source: USECHH },
+  "Local Exhaust Ventilation (LEV)": { months: 12, basis: "USECHH Regulations 2000, reg. 17(1)(b) · examined and tested every 12 months or less", confidence: "regulation", source: USECHH },
+  "Noise Risk Assessment (NRA)": { months: 60, basis: "Noise Exposure Regulations 2019, reg. 4(8)(a) · review within 5 years of the previous assessment", confidence: "regulation", source: NOISE },
+  "Audiometric Testing": { months: 12, basis: "Noise Exposure Regulations 2019, reg. 9(1) · annually for employees exposed above the limit", confidence: "regulation", source: NOISE },
+  "Ergonomic Risk Assessment (ERA)": { months: null, basis: "DOSH ERA Guidelines 2017 · review when the work changes", confidence: "practice", source: { label: "DOSH ergonomics guidelines", url: "https://dosh.gov.my/en/ergonomik/" } },
+  "Hazard Identification, Risk Assessment and Risk Control (HIRARC)": { months: null, basis: "DOSH HIRARC Guidelines 2008 · review when the work changes", confidence: "practice", source: { label: "DOSH HIRARC Guidelines 2008", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/guidelines/hirarc-2/1846-01-guidelines-for-hazard-identification-risk-assessment-and-risk-control-hirarc-2008" } },
+  "Indoor Air Quality (IAQ) Testing": { months: null, basis: "ICOP on Indoor Air Quality 2010 · interval set by the employer's IAQ programme", confidence: "practice", source: { label: "DOSH ICOP on Indoor Air Quality 2010", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/codes-of-practice/chemical-management/594-02-industry-code-of-practice-on-indoor-air-quality-2010" } },
+  "Control of Industrial Major Accident Hazards (CIMAH)": { months: 36, basis: "CIMAH Regulations 1996 · safety report commonly updated every 3 years (not yet checked in the regulation text)", confidence: "practice", source: { label: "CIMAH Regulations 1996 (P.U.(A) 39/1996), DOSH", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/regulations/regulations-under-occupational-safety-and-health-act-1994-act-514/527-07-occupational-safety-and-health-control-of-industrial-major-accident-hazards-regulations-1996" } },
+  "Psychosocial Assessment": { months: null, basis: "DOSH Psychosocial Guidelines 2024 · no fixed interval; review when the work changes", confidence: "practice", source: { label: "DOSH Psychosocial Risk Guidelines 2024", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/guidelines/occupational-health-1/4850-guidelines-on-psychosocial-risk-assessment-and-management-at-the-workplace-2024" } },
   // Environmental Monitoring (DOE)
-  "Boundary Noise Monitoring": { months: 3, basis: "DOE approval conditions · commonly quarterly", confidence: "practice" },
-  "Ambient Air Quality Monitoring": { months: 3, basis: "DOE approval conditions · commonly quarterly", confidence: "practice" },
-  "Environmental Compliance Audit": { months: 12, basis: "DOE approval conditions · commonly annual", confidence: "practice" },
-  "Drinking Water Analysis": { months: null, basis: "Set by the premises' water-safety programme", confidence: "practice" },
-  "DOE Written Notification (WN) & Written Declaration (WD)": { months: null, basis: "One-off submission · no renewal", confidence: "practice" },
-  "Stack Emission Monitoring": { months: 12, basis: "Clean Air Regulations 2014 · periodic monitoring at least yearly", confidence: "regulation" },
-  "Genset Monitoring": { months: 12, basis: "Clean Air Regulations 2014 · periodic monitoring at least yearly", confidence: "practice" },
-  "Waste Water Analysis": { months: null, basis: "Industrial Effluent Regulations 2009 · per licence conditions", confidence: "practice" },
-  "Scheduled Waste Testing": { months: null, basis: "Scheduled Wastes Regulations 2005 · as required per waste stream", confidence: "practice" },
+  "Boundary Noise Monitoring": { months: 3, basis: "Set by the client's DOE approval conditions · commonly quarterly", confidence: "practice", source: DOE },
+  "Ambient Air Quality Monitoring": { months: 3, basis: "Set by the client's DOE approval conditions · commonly quarterly", confidence: "practice", source: DOE },
+  "Environmental Compliance Audit": { months: 12, basis: "Set by the client's DOE approval conditions · commonly annual", confidence: "practice", source: DOE },
+  "Drinking Water Analysis": { months: null, basis: "MOH drinking water standard · frequency set by the premises' water-safety programme", confidence: "practice", source: { label: "MOH National Standard for Drinking Water Quality", url: "https://faolex.fao.org/docs/pdf/mal189903.pdf" } },
+  "DOE Written Notification (WN) & Written Declaration (WD)": { months: null, basis: "Industrial Effluent Regulations 2009 · one-off submission to DOE, no renewal", confidence: "practice", source: EFFLUENT },
+  "Stack Emission Monitoring": { months: 12, basis: "Clean Air Regulations 2014 · frequency set in the DOE licence, commonly yearly", confidence: "practice", source: CLEAN_AIR },
+  "Genset Monitoring": { months: 12, basis: "Clean Air Regulations 2014 · frequency set in the DOE licence, commonly yearly", confidence: "practice", source: CLEAN_AIR },
+  "Waste Water Analysis": { months: null, basis: "Industrial Effluent Regulations 2009 · frequency set by the licence conditions", confidence: "practice", source: EFFLUENT },
+  "Scheduled Waste Testing": { months: null, basis: "Scheduled Wastes Regulations 2005 · as required for each waste stream", confidence: "practice", source: { label: "Scheduled Wastes Regulations 2005", url: "https://leap.unep.org/en/countries/my/national-legislation/environmental-quality-scheduled-wastes-regulations-2005-pua" } },
 };
 
 export function validityRuleFor(category: string): ValidityRule | null {

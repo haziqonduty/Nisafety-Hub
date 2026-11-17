@@ -378,7 +378,13 @@
     "dateUnconfirmedShort": "Confirm monitoring date",
     "unconfirmedNoticeTitle": "{count, plural, =1 {1 report needs its date of monitoring} other {# reports need their date of monitoring}}",
     "unconfirmedNoticeHint": "These dates were filled in automatically, so their expiry may be wrong. Key in the real date to fix it.",
-    "unconfirmedNoticeAction": "Review"
+    "unconfirmedNoticeAction": "Review",
+    "noFixedExpiry": "NO FIXED EXPIRY",
+    "sourceLabel": "Source",
+    "sourceLink": "Read the source",
+    "legendStatutory": "The period is written in the regulation. The exact clause is shown, and the source link opens the regulation.",
+    "legendTypical": "The usual period in practice. The real one is in the client's DOE licence, approval conditions or assessor's report, so check it for each client.",
+    "legendNoExpiry": "There is no legal renewal period, so no expiry is filled in. Review it when the work changes, or add an expiry by hand if the client's own programme sets one."
   },
   "confirmDate": {
     "eyebrow": "ACTION NEEDED",

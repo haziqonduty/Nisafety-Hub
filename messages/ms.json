@@ -378,7 +378,13 @@
     "dateUnconfirmedShort": "Sahkan tarikh pemantauan",
     "unconfirmedNoticeTitle": "{count, plural, =1 {1 laporan perlu tarikh pemantauan} other {# laporan perlu tarikh pemantauan}}",
     "unconfirmedNoticeHint": "Tarikh ini diisi secara automatik, jadi tarikh luputnya mungkin salah. Masukkan tarikh sebenar untuk membetulkannya.",
-    "unconfirmedNoticeAction": "Semak"
+    "unconfirmedNoticeAction": "Semak",
+    "noFixedExpiry": "TIADA TARIKH TAMAT TETAP",
+    "sourceLabel": "Sumber",
+    "sourceLink": "Baca sumber",
+    "legendStatutory": "Tempoh ini ditulis dalam peraturan. Fasal tepat ditunjukkan, dan pautan sumber membuka peraturan tersebut.",
+    "legendTypical": "Tempoh lazim dalam amalan. Tempoh sebenar ada dalam lesen JAS, syarat kelulusan atau laporan penilai klien, jadi semak bagi setiap klien.",
+    "legendNoExpiry": "Tiada tempoh pembaharuan di sisi undang-undang, jadi tarikh tamat tidak diisi. Semak semula apabila kerja berubah, atau masukkan tarikh tamat sendiri jika program klien menetapkannya."
   },
   "confirmDate": {
     "eyebrow": "TINDAKAN DIPERLUKAN",

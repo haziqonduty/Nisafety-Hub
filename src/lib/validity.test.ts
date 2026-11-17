@@ -77,3 +77,18 @@ describe("validity rules", () => {
     expect(fromSql).toEqual(fromCode);
   });
 });
+
+describe("validity rule sources", () => {
+  it("every service links to an https source with a readable label", () => {
+    for (const [category, rule] of Object.entries(VALIDITY_RULES)) {
+      expect(rule.source.url, category).toMatch(/^https:\/\//);
+      expect(rule.source.label.length, category).toBeGreaterThan(5);
+    }
+  });
+
+  it("statutory rules quote the exact regulation clause", () => {
+    for (const [category, rule] of Object.entries(VALIDITY_RULES)) {
+      if (rule.confidence === "regulation") expect(rule.basis, category).toMatch(/reg\. \d+\(/);
+    }
+  });
+});
