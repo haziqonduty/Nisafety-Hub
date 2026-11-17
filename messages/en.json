@@ -411,11 +411,9 @@
     "close": "Close",
     "placingTitle": "Placing {company}",
     "movingTitle": "Moving {company}",
-    "placeSearch": "Search a place, estate, town or postcode…",
     "placeHint": "Search, or click the map to drop the pin. Drag the pin to fine-tune.",
     "searching": "Searching…",
-    "noPlaces": "No places found. Try a town or postcode, or click the map.",
-    "searchFailed": "Place search is unavailable right now. You can still click the map.",
+    "searchFailed": "The map search isn't responding right now",
     "pinDropped": "Pin dropped",
     "customPin": "Custom location",
     "save": "Save location",
@@ -443,14 +441,8 @@
     "step2": "Paste its Google Maps link or coordinates, or search for it.",
     "step3": "Check the pin, drag it if needed, then Save.",
     "allPlaced": "Every client is on the map. 🎉",
-    "methodGoogle": "Google Maps (most accurate)",
-    "methodSearch": "Search",
-    "googleInputLabel": "Paste a Google Maps link or coordinates",
-    "googlePlaceholder": "Google Maps link, or e.g. 2.0425, 102.5659",
-    "useLocation": "Use",
+    "useLocation": "Use this location",
     "resolving": "Checking…",
-    "googleHelp": "Find the company on Google Maps, right-click the exact building and click the numbers at the top to copy them. On a phone, tap Share → Copy link. Then paste here.",
-    "openGoogleMaps": "Find {company} on Google Maps",
     "fromGoogle": "Pinned from Google Maps",
     "resolveErrors": {
       "UNRECOGNISED": "That isn't a Google Maps link or a pair of coordinates.",
@@ -458,6 +450,17 @@
       "OUTSIDE_MALAYSIA": "That location is outside Malaysia.",
       "LINK_UNREACHABLE": "We couldn't open that link. Copy the coordinates instead.",
       "generic": "We couldn't read that. Try copying the coordinates instead."
-    }
+    },
+    "entryLabel": "Company name, Google Maps link or coordinates",
+    "entryPlaceholder": "Company name, or paste a Google Maps link / coordinates",
+    "entryHint": "Not the right place? Paste its Google Maps link or coordinates above, or click the map.",
+    "resultsGoogle": "Results from Google Maps",
+    "resultsOsm": "Matches in free map data",
+    "notFoundTitle": "Not found in the free map search",
+    "notFoundBody": "Small companies often aren't in free map data, and we won't guess a look-alike. Get the exact spot from Google Maps instead. It takes a few seconds:",
+    "guide1": "Open Google Maps (button below) and find the company.",
+    "guide2": "On a computer, right-click the exact building and click the numbers at the top to copy them. On a phone, tap Share → Copy link.",
+    "guide3": "Paste it in the box above and press Use this location. You can also just click the map.",
+    "openInGoogleMaps": "Open in Google Maps"
   }
 }

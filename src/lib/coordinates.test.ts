@@ -26,6 +26,19 @@ describe("coordinatesFromGoogleUrl", () => {
     expect(coordinatesFromGoogleUrl(new URL("https://www.google.com/maps/search/2.04,+102.56"))).toEqual({ latitude: 2.04, longitude: 102.56, label: null });
     expect(coordinatesFromGoogleUrl(new URL("https://www.google.com/maps/@5.41,100.33,14z"))).toEqual({ latitude: 5.41, longitude: 100.33, label: null });
   });
+  it("reads the destination pin from a directions link (lng/lat order)", () => {
+    const url = new URL(
+      "https://www.google.de/maps/dir//Beckhoff+Automation+Sdn+Bhd,+Lot+7,+Lorong+Teknologi+A,+47810+Petaling+Jaya,+Selangor,+Malaysia/@3.1501053,101.5693578,17z/data=!4m8!4m7!1m0!1m5!1m1!1s0x31cc4f2c38e23483:0x7d66ac7e25650e62!2m2!1d101.5715465!2d3.1501053",
+    );
+    expect(coordinatesFromGoogleUrl(url)).toEqual({ latitude: 3.1501053, longitude: 101.5715465, label: "Beckhoff Automation Sdn Bhd" });
+  });
+  it("reads a real maps.app.goo.gl destination", () => {
+    const url = new URL(
+      "https://www.google.com/maps/place/51,+Jalan+Indah+15%2F2,+Taman+Bukit+Indah,+81200+Johor+Bahru,+Johor/@1.4827344,103.6599999,17z/data=!3m1!4b1!4m6!3m5!1s0x31da7336065191e5:0x2f04656d8aa73cd6!8m2!3d1.4827344!4d103.6599999!16s%2Fg%2F11f3zghbgg?entry=tts",
+    );
+    expect(coordinatesFromGoogleUrl(url)?.latitude).toBe(1.4827344);
+    expect(coordinatesFromGoogleUrl(url)?.longitude).toBe(103.6599999);
+  });
   it("returns null when the link has no location", () => {
     expect(coordinatesFromGoogleUrl(new URL("https://www.google.com/maps/place/Muar"))).toBeNull();
   });
@@ -38,6 +51,11 @@ describe("link checks", () => {
     expect(isGoogleMapsUrl(new URL("http://maps.app.goo.gl/abc"))).toBe(false);
     expect(isGoogleMapsUrl(new URL("https://evil.example/maps"))).toBe(false);
     expect(isGoogleMapsUrl(new URL("https://maps.app.goo.gl.evil.example/x"))).toBe(false);
+    expect(isGoogleMapsUrl(new URL("https://www.google.de/maps/dir/x"))).toBe(true);
+    expect(isGoogleMapsUrl(new URL("https://www.google.com.sg/maps/place/x"))).toBe(true);
+    expect(isGoogleMapsUrl(new URL("https://www.google.co.uk/maps/place/x"))).toBe(true);
+    expect(isGoogleMapsUrl(new URL("https://google.evil.com/maps"))).toBe(false);
+    expect(isGoogleMapsUrl(new URL("https://notgoogle.com/maps"))).toBe(false);
   });
   it("spots short links and unwraps the consent page", () => {
     expect(isShortMapsLink(new URL("https://maps.app.goo.gl/abc"))).toBe(true);

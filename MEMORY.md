@@ -817,6 +817,18 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
   - (1) `cameraForBounds` gave a world-level zoom on the globe projection when starting from street zoom. Replaced with the hand-written Mercator `frameBox()`.
   - (2) `public/vendor` (the generated worker) produced 1,103 lint warnings, so it was added to the eslint ignores.
 
+## Bug: "search doesn't find my company / can't pin" — real root cause (2026-11-17)
+- **Reproduced on production** (nisafety-hub.vercel.app; nisafetyhub.com didn't resolve from the dev machine) with a throwaway staff user and client.
+  - **Root cause 1:** Photon/OpenStreetMap has almost no small Malaysian companies, AND it fuzzy-matches. "LRG Rubber" → nothing; "Spring Art Industries" → Abiba Plastic Industries; "SD Guthrie Ladang Lanadron" → a different SD Guthrie estate in Selangor.
+  - **Root cause 2:** the old two-tab panel's "Google Maps" box looked like a search box but only took links/coordinates, so typing a name there was a dead end.
+  - Map-click and Save worked fine on production.
+- **Real damage found:** LRG RUBBER SDN BHD had been pinned via search to "Lee Seng Rubber Industries Sdn Bhd, Skudai". LRG's real sites are Kuala Krai (Kelantan), Bentong (Pahang), and a KL office. Told Kay; not changed without OK.
+- **Fix:**
+  - One smart box: a typed name is searched (debounced, prefilled with the company name minus "Sdn Bhd"); a pasted link or coordinates shows "Use this location".
+  - `src/lib/place-match.ts` (tested): OSM results must contain every distinctive word typed (generic words like sdn/bhd/industries are ignored), so there are no look-alike pins. When nothing matches, the panel shows a 3-step Google Maps guide plus an "Open in Google Maps" button.
+  - Parser: any google.<tld> host is accepted (google.de / google.com.sg / co.uk were rejected before), and directions links' `!2m2!1d<lng>!2d<lat>` are read. Real maps.app.goo.gl links (incl. ?g_st=ic/aw/iw, iPhone UA) were verified to 302 to URLs with `!3d!4d`.
+  - Optional `GOOGLE_PLACES_API_KEY` env: `/api/places` then uses Google Places Text Search (New) (field mask displayName, formattedAddress, location — Pro SKU, ~5,000 free/month per third-party sources; needs a billing account; cap the quota). Not set yet — Kay's choice.
+
 ## Planned Screen Flow
 
 - `/login` — Supabase-Auth sign-in for every account, staff and admin alike (implemented).

@@ -9,12 +9,13 @@ import { ArrowUpRight, Close, Crosshair, Globe, MapPin, Maximize, Minimize, Minu
 import { Link } from "@/i18n/routing";
 import { MALAYSIA_VIEW, MAP_STATUS_COLORS, MAP_STATUSES, compareUrgency, type MapClient, type MapStatus, type PlaceResult } from "@/lib/client-map";
 import { formatServiceDate, shortCategoryLabel } from "@/lib/format";
+import { looksLikeLocationInput, searchableCompanyName } from "@/lib/place-match";
 
 type MapLib = typeof import("maplibre-gl");
 type Draft = { latitude: number; longitude: number; label: string | null };
 type Placing = { clientId: string; mode: "place" | "move" };
 type PlaceState = "idle" | "searching" | "done" | "error";
-type Method = "google" | "search";
+type Provider = "google" | "osm";
 type Tab = "onMap" | "toPlace";
 
 // The map is always the dark "command centre" look, whatever the site theme:
@@ -332,12 +333,11 @@ export function ClientMap({ initialClients }: { initialClients: MapClient[] }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [placing, setPlacing] = useState<Placing | null>(null);
-  const [method, setMethod] = useState<Method>("google");
+  const [provider, setProvider] = useState<Provider>("osm");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [placeQuery, setPlaceQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
   const [placeState, setPlaceState] = useState<PlaceState>("idle");
-  const [pasteInput, setPasteInput] = useState("");
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -619,16 +619,20 @@ export function ClientMap({ initialClients }: { initialClients: MapClient[] }) {
     }
   }, [placing, draft]);
 
-  // Debounced place search while placing.
+  // One smart box: a company name is searched (debounced); a pasted Google
+  // Maps link or coordinates is resolved on Enter / "Use this location".
+  const entryIsLocation = looksLikeLocationInput(placeQuery);
+
   useEffect(() => {
-    if (!placing || method !== "search") return;
+    if (!placing || entryIsLocation) return;
     const term = placeQuery.trim();
     if (term.length < 2) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
         const response = await fetch(`/api/places?q=${encodeURIComponent(term)}`, { signal: controller.signal });
-        const body = (await response.json()) as { results?: PlaceResult[] };
+        const body = (await response.json()) as { results?: PlaceResult[]; provider?: Provider };
+        if (body.provider) setProvider(body.provider);
         if (!response.ok) throw new Error("search failed");
         setPlaceResults(body.results ?? []);
         setPlaceState("done");
@@ -637,16 +641,17 @@ export function ClientMap({ initialClients }: { initialClients: MapClient[] }) {
         setPlaceResults([]);
         setPlaceState("error");
       }
-    }, 350);
+    }, 450);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [placing, method, placeQuery]);
+  }, [placing, placeQuery, entryIsLocation]);
 
   function changePlaceQuery(value: string) {
     setPlaceQuery(value);
-    if (value.trim().length < 2) {
+    setResolveError("");
+    if (looksLikeLocationInput(value) || value.trim().length < 2) {
       setPlaceResults([]);
       setPlaceState("idle");
     } else {
@@ -654,23 +659,14 @@ export function ClientMap({ initialClients }: { initialClients: MapClient[] }) {
     }
   }
 
-  function chooseMethod(next: Method) {
-    setMethod(next);
-    setResolveError("");
-    if (next === "search" && placingClient && !placeQuery) changePlaceQuery(placingClient.company);
-  }
-
   function startPlacing(client: MapClient) {
     setSelectedId(null);
     setHover(null);
     setSaveError("");
-    setResolveError("");
-    setPasteInput("");
-    setMethod("google");
-    setPlaceResults([]);
-    setPlaceState("idle");
-    setPlaceQuery("");
     setPlacing({ clientId: client.id, mode: hasLocation(client) ? "move" : "place" });
+    // Start straight away with a search for the company (suffixes like
+    // "Sdn Bhd" removed - they only confuse map search).
+    changePlaceQuery(searchableCompanyName(client.company));
     if (hasLocation(client)) {
       setDraft({ latitude: client.latitude, longitude: client.longitude, label: client.locationLabel });
       mapRef.current?.flyTo({ center: [client.longitude, client.latitude], zoom: 15, padding: cameraPadding(), duration: prefersReducedMotion() ? 0 : 1400, essential: true });
@@ -703,22 +699,26 @@ export function ClientMap({ initialClients }: { initialClients: MapClient[] }) {
   }
 
   function pickPlace(result: PlaceResult) {
-    setPlaceResults([]);
     setPlaceState("idle");
     dropAt(result.latitude, result.longitude, [result.name, result.detail].filter(Boolean).join(", "));
   }
 
-  async function resolvePasted(event: FormEvent) {
+  async function submitEntry(event: FormEvent) {
     event.preventDefault();
-    const input = pasteInput.trim();
-    if (!input) return;
+    const value = placeQuery.trim();
+    if (!value) return;
+    if (!looksLikeLocationInput(value)) {
+      // Enter on a name: take the first trustworthy result, if there is one.
+      if (placeState === "done" && placeResults.length > 0) pickPlace(placeResults[0]);
+      return;
+    }
     setResolving(true);
     setResolveError("");
     try {
       const response = await fetch("/api/places/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input: value }),
       });
       const body = (await response.json()) as { latitude?: number; longitude?: number; label?: string | null; error?: string };
       if (!response.ok || typeof body.latitude !== "number" || typeof body.longitude !== "number") {
@@ -934,95 +934,110 @@ export function ClientMap({ initialClients }: { initialClients: MapClient[] }) {
                 </button>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1 text-xs font-semibold" role="tablist">
-                {(["google", "search"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    role="tab"
-                    aria-selected={method === option}
-                    onClick={() => chooseMethod(option)}
-                    className={`rounded-full py-1.5 transition ${method === option ? "bg-teal-400 text-slate-950 shadow-[0_6px_16px_rgba(45,212,191,.3)]" : "text-white/60 hover:text-teal-200"}`}
-                  >
-                    {option === "google" ? t("methodGoogle") : t("methodSearch")}
-                  </button>
-                ))}
-              </div>
-
-              {method === "google" ? (
-                <form onSubmit={resolvePasted} className="mt-3">
-                  <label htmlFor="map-paste" className="sr-only">
-                    {t("googleInputLabel")}
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="relative min-w-0 flex-1">
-                      <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                      <input
-                        id="map-paste"
-                        value={pasteInput}
-                        onChange={(event) => {
-                          setPasteInput(event.target.value);
-                          setResolveError("");
-                        }}
-                        placeholder={t("googlePlaceholder")}
-                        autoFocus
-                        autoComplete="off"
-                        className={input}
-                      />
-                    </div>
+              <form onSubmit={submitEntry} className="mt-3">
+                <label htmlFor="map-entry" className="sr-only">
+                  {t("entryLabel")}
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    {entryIsLocation ? (
+                      <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-teal-300" />
+                    ) : (
+                      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                    )}
+                    <input
+                      id="map-entry"
+                      value={placeQuery}
+                      onChange={(event) => changePlaceQuery(event.target.value)}
+                      placeholder={t("entryPlaceholder")}
+                      autoFocus
+                      autoComplete="off"
+                      className={input}
+                    />
+                  </div>
+                  {entryIsLocation && (
                     <button
                       type="submit"
-                      disabled={!pasteInput.trim() || resolving}
-                      className="shrink-0 rounded-xl bg-white/10 px-4 text-xs font-semibold text-white transition hover:bg-teal-400 hover:text-slate-950 disabled:opacity-40 disabled:hover:bg-white/10 disabled:hover:text-white"
+                      disabled={resolving}
+                      className="shrink-0 rounded-xl bg-teal-400 px-4 text-xs font-semibold text-slate-950 shadow-[0_8px_20px_rgba(45,212,191,.3)] transition hover:bg-teal-300 disabled:opacity-50"
                     >
                       {resolving ? t("resolving") : t("useLocation")}
                     </button>
-                  </div>
-                  {resolveError && (
-                    <p className="mt-2 text-xs text-rose-300" role="alert">
-                      {resolveError}
-                    </p>
-                  )}
-                  <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.03] p-3 text-[11px] leading-5 text-white/55">
-                    <p>{t("googleHelp")}</p>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placingClient.company)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1.5 inline-flex items-center gap-1 font-semibold text-teal-300 transition hover:text-teal-200"
-                    >
-                      {t("openGoogleMaps", { company: placingClient.company })}
-                      <ArrowUpRight className="h-3 w-3" />
-                    </a>
-                  </div>
-                </form>
-              ) : (
-                <div className="relative mt-3">
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                  <input type="search" value={placeQuery} onChange={(event) => changePlaceQuery(event.target.value)} placeholder={t("placeSearch")} autoFocus className={input} />
-                  {placeState !== "idle" && placeQuery.trim().length >= 2 && (
-                    <div className="absolute inset-x-0 top-[calc(100%+6px)] z-10 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-[#071317] shadow-2xl">
-                      {placeState === "searching" && <p className="px-4 py-3 text-xs text-white/55">{t("searching")}</p>}
-                      {placeState === "error" && <p className="px-4 py-3 text-xs text-white/55">{t("searchFailed")}</p>}
-                      {placeState === "done" && placeResults.length === 0 && <p className="px-4 py-3 text-xs text-white/55">{t("noPlaces")}</p>}
-                      {placeState === "done" &&
-                        placeResults.map((result) => (
-                          <button
-                            key={`${result.latitude},${result.longitude},${result.name}`}
-                            type="button"
-                            onClick={() => pickPlace(result)}
-                            className="flex w-full items-start gap-3 border-b border-white/5 px-4 py-2.5 text-left transition last:border-0 hover:bg-teal-400/10"
-                          >
-                            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-300" />
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-medium">{result.name}</span>
-                              {result.detail && <span className="block truncate text-xs text-white/50">{result.detail}</span>}
-                            </span>
-                          </button>
-                        ))}
-                    </div>
                   )}
                 </div>
+                {resolveError && (
+                  <p className="mt-2 text-xs text-rose-300" role="alert">
+                    {resolveError}
+                  </p>
+                )}
+              </form>
+
+              {/* Search results / guidance */}
+              {!entryIsLocation && placeState === "searching" && (
+                <p className="mt-3 flex items-center gap-2 px-1 text-xs text-white/55">
+                  <span aria-hidden="true" className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-teal-300" />
+                  {t("searching")}
+                </p>
+              )}
+              {!entryIsLocation && placeState === "done" && placeResults.length > 0 && (
+                <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+                  <p className="border-b border-white/8 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">
+                    {provider === "google" ? t("resultsGoogle") : t("resultsOsm")}
+                  </p>
+                  <div className="max-h-48 overflow-y-auto">
+                    {placeResults.map((result) => (
+                      <button
+                        key={`${result.latitude},${result.longitude},${result.name}`}
+                        type="button"
+                        onClick={() => pickPlace(result)}
+                        className="flex w-full items-start gap-3 border-b border-white/5 px-3 py-2.5 text-left transition last:border-0 hover:bg-teal-400/10"
+                      >
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-300" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{result.name}</span>
+                          {result.detail && <span className="block truncate text-xs text-white/50">{result.detail}</span>}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!entryIsLocation && (placeState === "error" || (placeState === "done" && placeResults.length === 0)) && (
+                <div className="mt-3 rounded-xl border border-amber-300/25 bg-amber-300/[0.06] p-3.5">
+                  <p className="text-xs font-semibold text-amber-200">{placeState === "error" ? t("searchFailed") : t("notFoundTitle")}</p>
+                  <p className="mt-1 text-[11px] leading-5 text-white/60">{t("notFoundBody")}</p>
+                  <ol className="mt-2.5 space-y-1.5 text-[11px] leading-5 text-white/70">
+                    {(["guide1", "guide2", "guide3"] as const).map((step, index) => (
+                      <li key={step} className="flex gap-2">
+                        <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-teal-400/15 font-mono text-[9px] font-bold text-teal-300">{index + 1}</span>
+                        {t(step)}
+                      </li>
+                    ))}
+                  </ol>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery.trim() || placingClient.company)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold text-slate-900 transition hover:bg-teal-200"
+                  >
+                    {t("openInGoogleMaps")}
+                    <ArrowUpRight className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
+              {(entryIsLocation || placeState === "idle" || (placeState === "done" && placeResults.length > 0)) && (
+                <p className="mt-2.5 px-1 text-[11px] leading-5 text-white/45">
+                  {t("entryHint")}{" "}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchableCompanyName(placingClient.company))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 font-semibold text-teal-300 hover:text-teal-200"
+                  >
+                    {t("openInGoogleMaps")}
+                    <ArrowUpRight className="h-3 w-3" />
+                  </a>
+                </p>
               )}
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">

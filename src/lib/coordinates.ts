@@ -18,21 +18,17 @@ export function parseCoordinates(text: string): { latitude: number; longitude: n
   return { latitude, longitude };
 }
 
-/** Hosts we accept links from — and the only ones the server will ever fetch. */
-const MAPS_HOSTS = new Set([
-  "maps.app.goo.gl",
-  "goo.gl",
-  "google.com",
-  "www.google.com",
-  "maps.google.com",
-  "google.com.my",
-  "www.google.com.my",
-  "maps.google.com.my",
-  "consent.google.com",
-]);
+/**
+ * Hosts we accept links from — and the only ones the server will ever fetch:
+ * Google's short links, and Google on any country domain (google.com,
+ * google.com.my, google.com.sg, google.de, google.co.uk …).
+ */
+const GOOGLE_HOST = /^(?:(?:www|maps|consent)\.)?google\.(?:com|co)(?:\.[a-z]{2})?$|^(?:(?:www|maps|consent)\.)?google\.[a-z]{2}$/;
 
 export function isGoogleMapsUrl(url: URL) {
-  return url.protocol === "https:" && MAPS_HOSTS.has(url.hostname.toLowerCase());
+  if (url.protocol !== "https:") return false;
+  const host = url.hostname.toLowerCase();
+  return host === "maps.app.goo.gl" || host === "goo.gl" || GOOGLE_HOST.test(host);
 }
 
 export function isShortMapsLink(url: URL) {
@@ -45,6 +41,17 @@ function placeName(url: URL) {
   if (!match) return null;
   try {
     const name = decodeURIComponent(match[1].replace(/\+/g, " ")).trim();
+    return name && !parseCoordinates(name) ? name.slice(0, 200) : null;
+  } catch {
+    return null;
+  }
+}
+
+function directionsName(url: URL) {
+  const match = /\/maps\/dir\/[^/]*\/([^/@?]+)/.exec(url.pathname);
+  if (!match) return null;
+  try {
+    const name = decodeURIComponent(match[1].replace(/\+/g, " ")).split(",")[0].trim();
     return name && !parseCoordinates(name) ? name.slice(0, 200) : null;
   } catch {
     return null;
@@ -64,6 +71,13 @@ export function coordinatesFromGoogleUrl(url: URL): ParsedLocation | null {
   if (pins.length > 0) {
     const last = pins[pins.length - 1];
     return { latitude: Number(last[1]), longitude: Number(last[2]), label };
+  }
+
+  // Directions links carry the destination as a lng/lat pair: !2m2!1d<lng>!2d<lat>.
+  const stops = [...full.matchAll(/!2m2!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)];
+  if (stops.length > 0) {
+    const last = stops[stops.length - 1];
+    return { latitude: Number(last[2]), longitude: Number(last[1]), label: label ?? directionsName(url) };
   }
 
   for (const key of ["q", "query", "ll", "destination", "center", "daddr"]) {

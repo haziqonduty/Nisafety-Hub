@@ -411,11 +411,9 @@
     "close": "Tutup",
     "placingTitle": "Meletakkan {company}",
     "movingTitle": "Mengalih {company}",
-    "placeSearch": "Cari tempat, ladang, bandar atau poskod…",
     "placeHint": "Cari, atau klik peta untuk letak pin. Seret pin untuk laraskan.",
     "searching": "Mencari…",
-    "noPlaces": "Tiada tempat dijumpai. Cuba bandar atau poskod, atau klik peta.",
-    "searchFailed": "Carian tempat tidak tersedia sekarang. Anda masih boleh klik peta.",
+    "searchFailed": "Carian peta tidak bertindak balas sekarang",
     "pinDropped": "Pin diletakkan",
     "customPin": "Lokasi tersuai",
     "save": "Simpan lokasi",
@@ -443,14 +441,8 @@
     "step2": "Tampal pautan Google Maps atau koordinatnya, atau cari.",
     "step3": "Semak pin, seret jika perlu, kemudian Simpan.",
     "allPlaced": "Semua klien sudah di peta. 🎉",
-    "methodGoogle": "Google Maps (paling tepat)",
-    "methodSearch": "Cari",
-    "googleInputLabel": "Tampal pautan Google Maps atau koordinat",
-    "googlePlaceholder": "Pautan Google Maps, atau cth. 2.0425, 102.5659",
-    "useLocation": "Guna",
+    "useLocation": "Guna lokasi ini",
     "resolving": "Menyemak…",
-    "googleHelp": "Cari syarikat di Google Maps, klik kanan pada bangunan yang tepat dan klik nombor di atas untuk menyalinnya. Di telefon, ketik Kongsi → Salin pautan. Kemudian tampal di sini.",
-    "openGoogleMaps": "Cari {company} di Google Maps",
     "fromGoogle": "Dipin dari Google Maps",
     "resolveErrors": {
       "UNRECOGNISED": "Itu bukan pautan Google Maps atau koordinat.",
@@ -458,6 +450,17 @@
       "OUTSIDE_MALAYSIA": "Lokasi itu di luar Malaysia.",
       "LINK_UNREACHABLE": "Pautan itu tidak dapat dibuka. Salin koordinatnya.",
       "generic": "Tidak dapat dibaca. Cuba salin koordinatnya."
-    }
+    },
+    "entryLabel": "Nama syarikat, pautan Google Maps atau koordinat",
+    "entryPlaceholder": "Nama syarikat, atau tampal pautan Google Maps / koordinat",
+    "entryHint": "Bukan tempat yang betul? Tampal pautan Google Maps atau koordinatnya di atas, atau klik peta.",
+    "resultsGoogle": "Keputusan dari Google Maps",
+    "resultsOsm": "Padanan dalam data peta percuma",
+    "notFoundTitle": "Tiada dalam carian peta percuma",
+    "notFoundBody": "Syarikat kecil selalunya tiada dalam data peta percuma, dan kami tidak akan meneka syarikat yang serupa. Dapatkan lokasi tepat dari Google Maps. Hanya beberapa saat:",
+    "guide1": "Buka Google Maps (butang di bawah) dan cari syarikat itu.",
+    "guide2": "Di komputer, klik kanan bangunan yang tepat dan klik nombor di atas untuk menyalinnya. Di telefon, ketik Kongsi → Salin pautan.",
+    "guide3": "Tampal di kotak di atas dan tekan Guna lokasi ini. Anda juga boleh klik peta.",
+    "openInGoogleMaps": "Buka di Google Maps"
   }
 }
