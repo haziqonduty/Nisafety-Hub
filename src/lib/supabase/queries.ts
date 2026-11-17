@@ -194,7 +194,7 @@ type DirectoryClientRow = ClientSummary & {
 
 /**
  * One page of the staff directory, searched and filtered in the database
- * (public.directory_search) so every record is reachable no matter how many
+ * (public.directory_page) so every record is reachable no matter how many
  * there are. Signed URLs are only created for this page's files.
  */
 export async function getDirectoryPage({
