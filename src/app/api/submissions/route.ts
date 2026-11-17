@@ -1,11 +1,14 @@
-import { clientIpFrom } from "@/lib/request-ip";
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
 import { resolveReportFile, storeReport, validateReport, type ReportFile } from "@/lib/document-upload";
 
+// Per staff ACCOUNT, not per IP: everyone in the office shares one internet
+// address, so an IP limit of 5 blocked the whole office on a busy hour.
+// 30 new clients in 15 minutes is far beyond normal work but still stops a
+// runaway script or a misused account.
 const RATE_LIMIT_WINDOW_MINUTES = 15;
-const RATE_LIMIT_MAX_ATTEMPTS = 5;
+const RATE_LIMIT_MAX_ATTEMPTS = 30;
 const MAX_ADDITIONAL_CONTACTS = 4;
 
 function textValue(value: FormDataEntryValue | null, maxLength: number) {
@@ -46,18 +49,15 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
 
-  // Honeypot + rate limiting predate the login gate (back when this route
-  // was open to anonymous callers) and are now defense-in-depth against a
-  // compromised/malicious staff account rather than the primary defense —
-  // left in place deliberately, harmless either way.
+  // Honeypot + rate limit: defense-in-depth against a compromised or misused
+  // staff account (the login gate is the primary defense).
   if (textValue(formData.get("website"), 1)) {
     return Response.json({ error: "MISSING_FIELDS" }, { status: 400 });
   }
 
-  const ipAddress = clientIpFrom(request);
   const { limited } = await checkRateLimit(
     "submission_attempts",
-    ipAddress,
+    `user:${profile.id}`,
     RATE_LIMIT_WINDOW_MINUTES,
     RATE_LIMIT_MAX_ATTEMPTS,
   );

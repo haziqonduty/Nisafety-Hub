@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNextPath } from "@/lib/safe-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Entry point for the password-reset email link. Supabase's default
@@ -25,13 +26,15 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = searchParams.get("next") ?? "/reset-password";
+  const next = safeNextPath(searchParams.get("next"));
 
   if (tokenHash && type === "recovery") {
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
     if (!error) {
-      return NextResponse.redirect(new URL(next, origin));
+      const target = new URL(next, origin);
+      // Belt and braces: never leave this site, whatever "next" was.
+      return NextResponse.redirect(target.origin === origin ? target : new URL("/reset-password", origin));
     }
   }
 
