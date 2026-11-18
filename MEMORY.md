@@ -877,3 +877,11 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Kay saved BEYONICS PRECISION (client details only, CHRA requested); filtering the directory by CHRA showed 0. Root cause confirmed on live data: `directory_page` matched the category filter and the search text only against attached documents, never `clients.requested_services` (added the same day).
 - Fix: migration `20261118_directory_search_requested_services.sql` (Kay to apply; no app code change) — `has_category` also true when `category_filter = any(c.requested_services)`, haystack includes `array_to_string(c.requested_services, ' ')`.
 - Lesson: when adding a new field that represents a service/category, check every place that filters or searches by category (directory_page, ⌘K, renewals, map, export).
+
+## Data entry for Kay (2026-11-18)
+- Kay sends client rows as screenshots: company | a size column like "<30" / "11-20" (ignore) | contact person | telephone | a date column (ignore) | submitter name (last column). Insert as client details only.
+- Kay's rules: missing email → dummy `no-email@example.com` (example.com is reserved, passes validation); these rows were for **CHRA** (`requested_services = ['Chemical Health Risk Assessment (CHRA)']`); submitter_name from the last column; created_by left null (inserted with the service role, not via a staff session).
+- Phones tidied to local format ("+60 12-345 6789" → "0123456789"); strip Excel's leading apostrophe. Several names / phones in one cell ("A / B") → first = main contact, the rest → additional_client_names / additional_telephones (max 4 extra).
+- Always check for an existing client (company name, phone) before inserting; flag rows with missing required fields (contact name, phone) instead of guessing.
+- 2026-11-18: 16 clients inserted this way. Left open: one company with no contact/phone not inserted; two names spelled "SDB BHD" kept as written; Champion Precision Plant 2 and Plant 4 kept as separate clients.
+- Privacy: never write client contact names, phone numbers or emails into this file — it is committed to GitHub. Real client data lives only in the database.
