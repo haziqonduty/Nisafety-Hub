@@ -885,3 +885,9 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Always check for an existing client (company name, phone) before inserting; flag rows with missing required fields (contact name, phone) instead of guessing.
 - 2026-11-18: 16 clients inserted this way. Left open: one company with no contact/phone not inserted; two names spelled "SDB BHD" kept as written; Champion Precision Plant 2 and Plant 4 kept as separate clients.
 - Privacy: never write client contact names, phone numbers or emails into this file — it is committed to GitHub. Real client data lives only in the database.
+
+## Directory: compact cards + page-size picker with real pages (2026-11-18)
+- Kay: cards "too big, too crowded" → minimalist with the same details; wants to choose how many to show (10 / 50 …).
+- Card (`directory-explorer.tsx`): plain `<article>` (SpotlightCard dropped there), px-4 py-3.5; company 15px + small NEW pill inline, contact in xs; report rows flat (divide-y, 32px thumb, 13px title, download is an icon button); client-only cards lost the dashed "No service reports yet" box and BOTH "Client details only" labels → one footer line "No reports yet · TO DO <codes>" + "View client". TO DO codes also show on clients that have reports.
+- Paging: `DIRECTORY_PAGE_SIZES = [10, 20, 50, 100]`, default 20 (`src/lib/directory.ts`, tested with `pageNumbers()` → 1 … 4 5 6 … 12). Load more removed; numbered pages + "1–20 of 57 clients" + "Show [20] per page", choice saved in localStorage `nisafety.directory.pageSize`. Any filter/search/sort/size change resets to page 1; page change scrolls to the results header. `/api/directory` takes `limit`.
+- Gotcha hit again: grid of truncating cards needs `grid-cols-[minmax(0,1fr)]` on mobile, and an absolutely-positioned select chevron needs its own `relative` wrapper.

@@ -1,9 +1,9 @@
 import { requireApprovedProfile } from "@/lib/auth/profile";
-import { parseDirectorySort, parseDirectoryStatus } from "@/lib/directory";
+import { parseDirectoryPageSize, parseDirectorySort, parseDirectoryStatus } from "@/lib/directory";
 import { DOCUMENT_CATEGORIES } from "@/lib/format";
 import { getDirectoryPage } from "@/lib/supabase/queries";
 
-/** GET /api/directory?q=&category=&status=&sort=&offset= — one page of the staff directory. */
+/** GET /api/directory?q=&category=&status=&sort=&offset=&limit= — one page of the staff directory. */
 export async function GET(request: Request) {
   if (!(await requireApprovedProfile())) {
     return Response.json({ error: "NOT_AUTHENTICATED" }, { status: 401 });
@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   const offset = Math.max(0, Math.min(Number.parseInt(params.get("offset") ?? "0", 10) || 0, 100_000));
   const status = parseDirectoryStatus(params.get("status"));
   const sort = parseDirectorySort(params.get("sort"));
+  const limit = parseDirectoryPageSize(params.get("limit"));
 
-  return Response.json(await getDirectoryPage({ search, category, status, sort, offset }));
+  return Response.json(await getDirectoryPage({ search, category, status, sort, offset, limit }));
 }

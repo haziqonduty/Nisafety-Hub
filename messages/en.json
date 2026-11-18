@@ -83,9 +83,6 @@
     "clientOnlyBadge": "Client details only",
     "newBadge": "New",
     "matchingClients": "{count, plural, =1 {client} other {clients}}",
-    "loadMore": "{count, plural, =1 {Load 1 more client} other {Load # more clients}}",
-    "loadingMore": "Loading…",
-    "showingOf": "Showing {shown} of {total} clients",
     "loadError": "Couldn't load the directory. Check your connection and try again.",
     "sortLabel": "Sort",
     "sort": {
@@ -102,7 +99,15 @@
       "upcoming": "Due ≤ 90 days",
       "valid": "Valid",
       "no_report": "No report yet"
-    }
+    },
+    "noReportsYet": "No reports yet",
+    "pagination": "Directory pages",
+    "range": "{from}–{to} of {total} clients",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "pageLabel": "Page {page}",
+    "perPageShow": "Show",
+    "perPageSuffix": "per page"
   },
   "categoryFilter": {
     "filterPlaceholder": "Filter categories…",

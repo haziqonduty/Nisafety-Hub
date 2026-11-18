@@ -5,10 +5,9 @@ import { useEffect, useMemo, useRef, useState, ViewTransition } from "react";
 import { CategoryFilter } from "@/app/_components/category-filter";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow, Calendar, ChevronDown, Download, Paperclip, Search } from "@/app/_components/icons";
-import { SpotlightCard } from "@/app/_components/spotlight-card";
 import { Link } from "@/i18n/routing";
 import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass, toneForCategory } from "@/lib/format";
-import { DIRECTORY_SORTS, DIRECTORY_STATUSES, type DirectorySort, type DirectoryStatus } from "@/lib/directory";
+import { DEFAULT_DIRECTORY_PAGE_SIZE, DIRECTORY_PAGE_SIZES, DIRECTORY_SORTS, DIRECTORY_STATUSES, pageNumbers, parseDirectoryPageSize, type DirectorySort, type DirectoryStatus } from "@/lib/directory";
 import type { DirectoryDocument, DirectoryPage } from "@/lib/supabase/queries";
 import { EXPIRY_STATUS_STYLES, expiryStatus } from "@/lib/validity";
 
@@ -77,8 +76,8 @@ const SEARCH_DEBOUNCE_MS = 250;
 
 type DirectoryQuery = { query: string; category: string; status: DirectoryStatus | null; sort: DirectorySort };
 
-function directoryUrl({ query, category, status, sort }: DirectoryQuery, offset: number) {
-  const params = new URLSearchParams({ offset: String(offset) });
+function directoryUrl({ query, category, status, sort }: DirectoryQuery, offset: number, limit: number) {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
   if (query.trim()) params.set("q", query.trim());
   if (category !== ALL) params.set("category", category);
   if (status) params.set("status", status);
@@ -90,11 +89,7 @@ function statusDotClass(status: DirectoryStatus) {
   return status === "no_report" ? "bg-ink-faint" : EXPIRY_STATUS_STYLES[status].dot;
 }
 
-/** Appends a page, skipping any report already shown (a client can move between pages if it gets new activity). */
-function mergeDocuments(current: DirectoryDocument[], next: DirectoryDocument[]) {
-  const seen = new Set(current.map((document) => document.id));
-  return [...current, ...next.filter((document) => !seen.has(document.id))];
-}
+const PAGE_SIZE_KEY = "nisafety.directory.pageSize";
 
 export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage }) {
   const t = useTranslations("directory");
@@ -110,15 +105,27 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
   const [sort, setSort] = useState<DirectorySort>("recent");
   const [statusCounts, setStatusCounts] = useState(initialPage.statusCounts);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  // Search and filtering run in the database across every record; this
-  // holds the pages loaded so far for the current search.
+  // Search, filtering, sorting and paging all run in the database; this
+  // holds the one page currently shown.
   const [documents, setDocuments] = useState(initialPage.documents);
   const [total, setTotal] = useState(initialPage.total);
-  const [loadedClients, setLoadedClients] = useState(initialPage.clientCount);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_DIRECTORY_PAGE_SIZE);
   const [searching, setSearching] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const isFirstRun = useRef(true);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Each computer remembers the page size staff last picked.
+  useEffect(() => {
+    try {
+      const saved = parseDirectoryPageSize(window.localStorage.getItem(PAGE_SIZE_KEY));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of a saved preference after hydration
+      if (saved !== DEFAULT_DIRECTORY_PAGE_SIZE) setPageSize(saved);
+    } catch {
+      // Storage blocked (private window) - keep the default.
+    }
+  }, []);
 
   useEffect(() => {
     // The server already rendered page one of the unfiltered directory.
@@ -130,13 +137,12 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
     setSearching(true);
     const timeout = setTimeout(async () => {
       try {
-        const response = await fetch(directoryUrl({ query, category, status, sort }, 0), { signal: controller.signal });
+        const response = await fetch(directoryUrl({ query, category, status, sort }, (page - 1) * pageSize, pageSize), { signal: controller.signal });
         if (!response.ok) throw new Error(String(response.status));
-        const page = (await response.json()) as DirectoryPage;
-        setDocuments(page.documents);
-        setTotal(page.total);
-        setLoadedClients(page.clientCount);
-        setStatusCounts(page.statusCounts ?? {});
+        const result = (await response.json()) as DirectoryPage;
+        setDocuments(result.documents);
+        setTotal(result.total);
+        setStatusCounts(result.statusCounts ?? {});
         setExpanded(new Set());
         setLoadError(false);
       } catch (error) {
@@ -149,23 +155,37 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [query, category, status, sort]);
+  }, [query, category, status, sort, page, pageSize]);
 
-  async function loadMore() {
-    setLoadingMore(true);
-    setLoadError(false);
+  // Any change to what's being looked for starts again from page 1.
+  function updateQuery(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
+  function updateCategory(value: string) {
+    setCategory(value);
+    setPage(1);
+  }
+  function updateStatus(value: DirectoryStatus | null) {
+    setStatus(value);
+    setPage(1);
+  }
+  function updateSort(value: DirectorySort) {
+    setSort(value);
+    setPage(1);
+  }
+  function updatePageSize(value: number) {
+    setPageSize(value);
+    setPage(1);
     try {
-      const response = await fetch(directoryUrl({ query, category, status, sort }, loadedClients));
-      if (!response.ok) throw new Error(String(response.status));
-      const page = (await response.json()) as DirectoryPage;
-      setDocuments((current) => mergeDocuments(current, page.documents));
-      setLoadedClients((count) => count + page.clientCount);
-      if (page.total) setTotal(page.total);
+      window.localStorage.setItem(PAGE_SIZE_KEY, String(value));
     } catch {
-      setLoadError(true);
-    } finally {
-      setLoadingMore(false);
+      // Not saved - it still applies for this visit.
     }
+  }
+  function goToPage(next: number) {
+    setPage(next);
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function categoryLabel(value: string | null) {
@@ -183,7 +203,9 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
 
   // Already filtered by the server.
   const visibleClients = clients;
-  const hasMore = loadedClients < total;
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+  const firstShown = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastShown = Math.min(page * pageSize, total);
 
   function toggleExpanded(clientId: string) {
     setExpanded((current) => {
@@ -205,7 +227,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
           )}
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => updateQuery(event.target.value)}
             className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
             placeholder={t("searchPlaceholder")}
             aria-label={t("searchAriaLabel")}
@@ -220,12 +242,12 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
           </button>
         </label>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CategoryFilter category={category} onChange={setCategory} className="" />
+          <CategoryFilter category={category} onChange={updateCategory} className="" />
           <label className="relative flex items-center gap-2 text-sm">
             <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ink-faint">{t("sortLabel")}</span>
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value as DirectorySort)}
+              onChange={(event) => updateSort(event.target.value as DirectorySort)}
               className="w-full appearance-none rounded-xl border border-line bg-surface py-2.5 pl-3.5 pr-9 text-sm font-semibold text-ink transition hover:border-accent-soft focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-soft sm:w-auto"
             >
               {DIRECTORY_SORTS.map((option) => (
@@ -248,7 +270,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
                 type="button"
                 aria-pressed={active}
                 disabled={!active && option !== null && count === 0}
-                onClick={() => setStatus(option)}
+                onClick={() => updateStatus(option)}
                 className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
                   active ? "border-accent bg-accent-soft text-accent shadow-[0_6px_16px_rgba(16,42,51,.08)]" : "border-line bg-surface text-ink-muted hover:border-accent-soft hover:text-ink"
                 }`}
@@ -261,7 +283,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
           })}
         </div>
       </div>
-      <div className="mt-8 flex items-center justify-between">
+      <div ref={resultsRef} className="mt-8 flex scroll-mt-6 items-center justify-between">
         <p className="text-sm text-ink-muted">
           <span className="font-semibold text-ink tabular-nums">{total}</span> {t("matchingClients", { count: total })}
         </p>
@@ -272,6 +294,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
               setQuery("");
               setCategory(ALL);
               setStatus(null);
+              setPage(1);
             }}
             className="text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
           >
@@ -280,7 +303,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
         )}
       </div>
 
-      <div aria-busy={searching} className={`mt-5 grid gap-4 transition-opacity duration-200 lg:grid-cols-2 ${searching ? "opacity-50" : ""}`}>
+      <div aria-busy={searching} className={`mt-4 grid grid-cols-[minmax(0,1fr)] gap-3 transition-opacity duration-200 lg:grid-cols-2 ${searching ? "opacity-50" : ""}`}>
         {visibleClients.map((client) => {
           const filtering = category !== ALL;
           const reports = filtering ? client.reports.filter((report) => report.category === category) : client.reports;
@@ -289,71 +312,62 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
           const shown = isExpanded ? reports : reports.slice(0, COLLAPSED_REPORTS);
           const latest = client.reports[0];
           const profileHref = `/records/${latest?.id ?? client.clientId}`;
+          const clientOnly = client.reports.length === 0;
 
           return (
-            <SpotlightCard
-              as="article"
+            <article
               key={client.clientId}
-              className="group/card flex flex-col rounded-2xl border border-line bg-surface p-5 transition-all duration-300 hover:-translate-y-1 hover:border-accent-soft hover:shadow-[0_18px_38px_rgba(16,42,51,.09)] sm:p-6"
+              className="group/card flex flex-col rounded-2xl border border-line bg-surface px-4 py-3.5 transition-colors duration-200 hover:border-accent-soft sm:px-5 sm:py-4"
             >
-              <div className="flex items-start justify-between gap-4">
-                <Link href={profileHref} className="min-w-0">
-                  {client.reports.length === 0 ? (
-                    <ViewTransition name={`client-${client.clientId}`}>
-                      <h3 className="truncate text-lg font-semibold tracking-[-0.03em]">{client.company}</h3>
-                    </ViewTransition>
-                  ) : (
-                    <h3 className="truncate text-lg font-semibold tracking-[-0.03em]">{client.company}</h3>
-                  )}
-                  <p className="mt-1 truncate text-sm text-ink-muted">{client.clientName}</p>
+              <div className="flex items-start justify-between gap-3">
+                <Link href={profileHref} className="min-w-0 flex-1">
+                  <span className="flex min-w-0 items-center gap-2">
+                    {clientOnly ? (
+                      <ViewTransition name={`client-${client.clientId}`}>
+                        <h3 className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.02em] transition-colors group-hover/card:text-accent">{client.company}</h3>
+                      </ViewTransition>
+                    ) : (
+                      <h3 className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.02em] transition-colors group-hover/card:text-accent">{client.company}</h3>
+                    )}
+                    {client.hasRecent && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-soft px-1.5 py-px font-mono text-[9px] font-bold uppercase tracking-wide text-amber">
+                        <span className="h-1 w-1 rounded-full bg-amber" aria-hidden="true" />
+                        {t("newBadge")}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-ink-muted">{client.clientName}</span>
                 </Link>
-                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                  {client.hasRecent && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-amber">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber" />
-                      {t("newBadge")}
-                    </span>
-                  )}
-                  {client.reports.length > 0 ? (
-                    <span className="rounded-lg bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-accent">
-                      {tServices("servicesCount", { count: client.reports.length })}
-                    </span>
-                  ) : (
-                    <span className="rounded-lg bg-badge-neutral-bg px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-badge-neutral-text">{t("clientOnlyBadge")}</span>
-                  )}
-                </div>
+                {!clientOnly && (
+                  <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[10px] font-bold text-accent">
+                    {tServices("servicesCount", { count: client.reports.length })}
+                  </span>
+                )}
               </div>
 
-              {client.reports.length === 0 ? (
-                <Link
-                  href={profileHref}
-                  className="mt-5 flex items-center gap-3 rounded-xl border border-dashed border-line px-4 py-4 text-sm text-ink-muted transition-colors hover:border-accent hover:text-accent"
-                >
-                  <Paperclip className="h-4 w-4" /> {tServices("noServicesCardHint")}
-                </Link>
-              ) : (
-                <ul className="mt-5 space-y-2">
+              {!clientOnly && (
+                <ul className="mt-3 divide-y divide-line/70 border-t border-line/70">
                   {shown.map((report) => {
                     const full = categoryLabel(report.category);
                     return (
-                      <li key={report.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface-soft p-2.5 pr-3 transition-colors hover:border-accent-soft">
-                        <Link href={`/records/${report.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                          <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-line bg-surface">
+                      <li key={report.id} className="flex items-center gap-3 py-2">
+                        <Link href={`/records/${report.id}`} className="group/row flex min-w-0 flex-1 items-center gap-3">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-surface-soft">
                             {report.thumbnailUrl ? (
                               // Already a small, pre-sized JPEG from a known origin — next/image's
                               // optimization pipeline isn't worth the images.remotePatterns config.
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={report.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                             ) : (
-                              <span className="font-mono text-[10px] font-bold text-accent">{report.fileType}</span>
+                              <span className="font-mono text-[9px] font-bold text-accent">{report.fileType}</span>
                             )}
                           </span>
                           <span className="min-w-0 flex-1">
                             <ViewTransition name={`document-${report.id}`}>
-                              <span className="block truncate text-sm font-semibold">{report.title}</span>
+                              <span className="block truncate text-[13px] font-medium transition-colors group-hover/row:text-accent">{report.title}</span>
                             </ViewTransition>
-                            <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
-                              <span className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold ${toneBadgeClass(report.tone!)}`} title={full}>
+                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-muted">
+                              <span className={`rounded px-1 py-px font-mono text-[9px] font-bold ${toneBadgeClass(report.tone!)}`} title={full}>
                                 {shortCategoryLabel(full)}
                               </span>
                               {report.serviceDate && (
@@ -374,10 +388,10 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
                         <a
                           href={report.publicUrl!}
                           download
-                          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-ink transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent"
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-ink-faint transition-colors hover:bg-accent-soft hover:text-accent"
                           aria-label={t("download", { title: report.title })}
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3.5 w-3.5" />
                         </a>
                       </li>
                     );
@@ -385,19 +399,8 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
                 </ul>
               )}
 
-              {client.requested.length > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-ink-faint">{tServices("requestedShort")}</span>
-                  {client.requested.map((category) => (
-                    <span key={category} title={categoryLabel(category)} className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold ${toneBadgeClass(toneForCategory(category))} opacity-80`}>
-                      {shortCategoryLabel(categoryLabel(category))}
-                    </span>
-                  ))}
-                </div>
-              )}
-
               {(reports.length > COLLAPSED_REPORTS || hiddenByFilter > 0) && (
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
                   {reports.length > COLLAPSED_REPORTS && (
                     <button type="button" onClick={() => toggleExpanded(client.clientId)} className="font-semibold text-accent transition-colors hover:text-accent-hover">
                       {isExpanded ? tServices("showLess") : tServices("showMore", { count: reports.length - COLLAPSED_REPORTS })}
@@ -408,17 +411,48 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
               )}
 
               <div className="flex-1" aria-hidden="true" />
-              <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4 text-xs text-ink-muted">
-                <span>
-                  {client.reports.length > 0 && latest?.serviceDate
-                    ? tServices("lastVisit", { date: formatServiceDate(latest.serviceDate, intlLocale), visits: client.visits })
-                    : t("clientOnlyBadge")}
+              <div className={`flex items-center justify-between gap-3 text-[11px] text-ink-muted ${clientOnly ? "mt-2.5" : "mt-2 border-t border-line/70 pt-2.5"}`}>
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  {clientOnly ? (
+                    <>
+                      <span className="inline-flex items-center gap-1 text-ink-faint">
+                        <Paperclip className="h-3 w-3" />
+                        {t("noReportsYet")}
+                      </span>
+                      {client.requested.length > 0 && (
+                        <>
+                          <span className="text-ink-faint" aria-hidden="true">·</span>
+                          <span className="font-mono text-[9px] font-bold tracking-[0.1em] text-ink-faint">{tServices("requestedShort")}</span>
+                          {client.requested.map((category) => (
+                            <span key={category} title={categoryLabel(category)} className={`rounded px-1 py-px font-mono text-[9px] font-bold ${toneBadgeClass(toneForCategory(category))}`}>
+                              {shortCategoryLabel(categoryLabel(category))}
+                            </span>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {latest?.serviceDate && <span>{tServices("lastVisit", { date: formatServiceDate(latest.serviceDate, intlLocale), visits: client.visits })}</span>}
+                      {client.requested.length > 0 && (
+                        <>
+                          <span className="text-ink-faint" aria-hidden="true">·</span>
+                          <span className="font-mono text-[9px] font-bold tracking-[0.1em] text-ink-faint">{tServices("requestedShort")}</span>
+                          {client.requested.map((category) => (
+                            <span key={category} title={categoryLabel(category)} className={`rounded px-1 py-px font-mono text-[9px] font-bold ${toneBadgeClass(toneForCategory(category))}`}>
+                              {shortCategoryLabel(categoryLabel(category))}
+                            </span>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  )}
                 </span>
-                <Link href={profileHref} className="inline-flex items-center gap-1 font-semibold text-accent transition-colors hover:text-accent-hover">
-                  {tServices("viewClient")} <Arrow className="h-3.5 w-3.5 transition-transform group-hover/card:translate-x-0.5" />
+                <Link href={profileHref} className="inline-flex shrink-0 items-center gap-1 font-semibold text-accent transition-colors hover:text-accent-hover">
+                  {tServices("viewClient")} <Arrow className="h-3 w-3 transition-transform group-hover/card:translate-x-0.5" />
                 </Link>
               </div>
-            </SpotlightCard>
+            </article>
           );
         })}
       </div>
@@ -428,29 +462,78 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
         </div>
       )}
 
-      {visibleClients.length > 0 && (
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <p className="text-xs text-ink-muted tabular-nums">{t("showingOf", { shown: Math.min(loadedClients, total), total })}</p>
-          <div className="h-1 w-48 overflow-hidden rounded-full bg-line" aria-hidden="true">
-            <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${total ? Math.min(100, (loadedClients / total) * 100) : 100}%` }} />
-          </div>
-          {hasMore && (
-            <button
-              type="button"
-              onClick={loadMore}
-              disabled={loadingMore || searching}
-              className="mt-1 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink shadow-[0_8px_20px_rgba(16,42,51,.06)] transition-all hover:-translate-y-0.5 hover:border-accent hover:text-accent disabled:translate-y-0 disabled:opacity-60"
-            >
-              {loadingMore && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />}
-              {loadingMore ? t("loadingMore") : t("loadMore", { count: Math.min(24, total - loadedClients) })}
-            </button>
+      {(visibleClients.length > 0 || page > 1) && (
+        <nav aria-label={t("pagination")} className="mt-6 flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface px-4 py-3 sm:flex-row sm:justify-between">
+          <p className="text-xs text-ink-muted tabular-nums">{t("range", { from: firstShown, to: lastShown, total })}</p>
+
+          {lastPage > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => goToPage(page - 1)}
+                disabled={page === 1 || searching}
+                aria-label={t("previousPage")}
+                className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition hover:bg-accent-soft hover:text-accent disabled:pointer-events-none disabled:opacity-30"
+              >
+                <Arrow className="h-3.5 w-3.5 rotate-180" />
+              </button>
+              {pageNumbers(page, lastPage).map((number, index) =>
+                number === null ? (
+                  <span key={`gap-${index}`} className="w-6 text-center text-xs text-ink-faint">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={number}
+                    type="button"
+                    onClick={() => goToPage(number)}
+                    disabled={searching}
+                    aria-current={number === page ? "page" : undefined}
+                    aria-label={t("pageLabel", { page: number })}
+                    className={`h-8 min-w-8 rounded-full px-2 text-xs font-semibold tabular-nums transition ${
+                      number === page ? "bg-accent text-white" : "text-ink-muted hover:bg-accent-soft hover:text-accent"
+                    }`}
+                  >
+                    {number}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={() => goToPage(page + 1)}
+                disabled={page === lastPage || searching}
+                aria-label={t("nextPage")}
+                className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition hover:bg-accent-soft hover:text-accent disabled:pointer-events-none disabled:opacity-30"
+              >
+                <Arrow className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
+
+          <label className="flex items-center gap-2 text-xs text-ink-muted">
+            {t("perPageShow")}
+            <span className="relative flex items-center">
+            <select
+              value={pageSize}
+              onChange={(event) => updatePageSize(Number(event.target.value))}
+              className="appearance-none rounded-full border border-line bg-surface py-1.5 pl-3 pr-7 text-xs font-semibold text-ink transition hover:border-accent-soft focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-soft"
+            >
+              {DIRECTORY_PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 h-3 w-3 text-ink-faint" />
+            </span>
+            <span className="sr-only sm:not-sr-only">{t("perPageSuffix")}</span>
+          </label>
           {loadError && (
-            <p role="alert" className="text-xs font-medium text-danger">
+            <p role="alert" className="basis-full text-center text-xs font-medium text-danger">
               {t("loadError")}
             </p>
           )}
-        </div>
+        </nav>
       )}
     </>
   );

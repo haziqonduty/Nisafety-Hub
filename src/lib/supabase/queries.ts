@@ -4,7 +4,7 @@ import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/s
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, todayInMalaysia, toneForCategory } from "@/lib/format";
 import { compareUrgency, moreUrgent, toMapStatus, type MapClient, type MapService, type MapStatus } from "@/lib/client-map";
 import { expiryStatus, type ExpiryStatus } from "@/lib/validity";
-import type { DirectorySort, DirectoryStatus, DirectoryStatusCounts } from "@/lib/directory";
+import { DEFAULT_DIRECTORY_PAGE_SIZE, type DirectorySort, type DirectoryStatus, type DirectoryStatusCounts } from "@/lib/directory";
 
 // Short-lived signed URL — the "safety-documents" bucket is private now that
 // the whole site requires login (a public bucket would let anyone with a
@@ -179,7 +179,7 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
   };
 }
 
-export const DIRECTORY_PAGE_SIZE = 24;
+export const DIRECTORY_PAGE_SIZE = DEFAULT_DIRECTORY_PAGE_SIZE;
 
 export type DirectoryPage = {
   /** Every report (and client-only entry) for this page's clients, in the chosen sort order. */

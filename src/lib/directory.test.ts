@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDirectorySort, parseDirectoryStatus } from "@/lib/directory";
+import { pageNumbers, parseDirectoryPageSize, parseDirectorySort, parseDirectoryStatus } from "@/lib/directory";
 
 describe("parseDirectorySort", () => {
   it("accepts the known sorts", () => {
@@ -25,5 +25,26 @@ describe("parseDirectoryStatus", () => {
     expect(parseDirectoryStatus("none")).toBeNull();
     expect(parseDirectoryStatus("anything")).toBeNull();
     expect(parseDirectoryStatus(undefined)).toBeNull();
+  });
+});
+
+describe("parseDirectoryPageSize", () => {
+  it("accepts the offered sizes and falls back to 20", () => {
+    expect(parseDirectoryPageSize("50")).toBe(50);
+    expect(parseDirectoryPageSize(100)).toBe(100);
+    expect(parseDirectoryPageSize("7")).toBe(20);
+    expect(parseDirectoryPageSize(null)).toBe(20);
+  });
+});
+
+describe("pageNumbers", () => {
+  it("lists every page when there are few", () => {
+    expect(pageNumbers(2, 5)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("collapses long ranges around the current page", () => {
+    expect(pageNumbers(6, 12)).toEqual([1, null, 5, 6, 7, null, 12]);
+    expect(pageNumbers(1, 12)).toEqual([1, 2, null, 12]);
+    expect(pageNumbers(12, 12)).toEqual([1, null, 11, 12]);
   });
 });
