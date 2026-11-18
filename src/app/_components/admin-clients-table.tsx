@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { PaginationBar } from "@/app/_components/pagination-bar";
+import { DEFAULT_DIRECTORY_PAGE_SIZE, parseDirectoryPageSize } from "@/lib/directory";
 import { Calendar, Mail, Notes, Pencil, Phone, Search, Trash } from "@/app/_components/icons";
 import { toneBadgeClass, toneForCategory } from "@/lib/format";
 import type { AdminClient } from "@/lib/supabase/queries";
@@ -190,8 +192,24 @@ function ClientCard({ client }: { client: AdminClient }) {
   );
 }
 
+const PAGE_SIZE_KEY = "nisafety.admin.clients.pageSize";
+
 export function AdminClientsTable({ clients }: { clients: AdminClient[] }) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_DIRECTORY_PAGE_SIZE);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Each computer remembers the page size the admin last picked.
+  useEffect(() => {
+    try {
+      const saved = parseDirectoryPageSize(window.localStorage.getItem(PAGE_SIZE_KEY));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of a saved preference after hydration
+      if (saved !== DEFAULT_DIRECTORY_PAGE_SIZE) setPageSize(saved);
+    } catch {
+      // Storage blocked - keep the default.
+    }
+  }, []);
 
   const filteredClients = useMemo(() => {
     const normalisedQuery = query.trim().toLowerCase();
@@ -202,13 +220,38 @@ export function AdminClientsTable({ clients }: { clients: AdminClient[] }) {
     });
   }, [clients, query]);
 
+  const total = filteredClients.length;
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, lastPage);
+  const pageClients = filteredClients.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const firstShown = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastShown = Math.min(currentPage * pageSize, total);
+
+  function changePageSize(size: number) {
+    setPageSize(size);
+    setPage(1);
+    try {
+      window.localStorage.setItem(PAGE_SIZE_KEY, String(size));
+    } catch {
+      // Not saved - still applies for this visit.
+    }
+  }
+
+  function goToPage(next: number) {
+    setPage(next);
+    listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <>
       <label className="mt-6 flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-shadow focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
         <Search className="h-4 w-4 text-accent" />
         <input
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(1);
+          }}
           className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
           placeholder="Search by client, company, email, phone, or document"
           aria-label="Search clients"
@@ -220,11 +263,29 @@ export function AdminClientsTable({ clients }: { clients: AdminClient[] }) {
       ) : filteredClients.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-line p-10 text-center text-sm text-ink-muted">No clients match that search.</div>
       ) : (
-        <div className="mt-4 space-y-3">
-          {filteredClients.map((client) => (
-            <ClientCard key={client.id} client={client} />
-          ))}
-        </div>
+        <>
+          <div ref={listRef} className="mt-4 scroll-mt-6 space-y-3">
+            {pageClients.map((client) => (
+              <ClientCard key={client.id} client={client} />
+            ))}
+          </div>
+          <PaginationBar
+            page={currentPage}
+            lastPage={lastPage}
+            pageSize={pageSize}
+            onPage={goToPage}
+            onPageSize={changePageSize}
+            labels={{
+              nav: "Client pages",
+              range: `${firstShown}–${lastShown} of ${total} ${total === 1 ? "client" : "clients"}`,
+              previous: "Previous page",
+              next: "Next page",
+              page: (number) => `Page ${number}`,
+              show: "Show",
+              perPage: "per page",
+            }}
+          />
+        </>
       )}
     </>
   );

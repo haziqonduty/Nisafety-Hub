@@ -3,11 +3,12 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, ViewTransition } from "react";
 import { CategoryFilter } from "@/app/_components/category-filter";
+import { PaginationBar } from "@/app/_components/pagination-bar";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow, Calendar, ChevronDown, Download, Paperclip, Search } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
 import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass, toneForCategory } from "@/lib/format";
-import { DEFAULT_DIRECTORY_PAGE_SIZE, DIRECTORY_PAGE_SIZES, DIRECTORY_SORTS, DIRECTORY_STATUSES, pageNumbers, parseDirectoryPageSize, type DirectorySort, type DirectoryStatus } from "@/lib/directory";
+import { DEFAULT_DIRECTORY_PAGE_SIZE, DIRECTORY_SORTS, DIRECTORY_STATUSES, parseDirectoryPageSize, type DirectorySort, type DirectoryStatus } from "@/lib/directory";
 import type { DirectoryDocument, DirectoryPage } from "@/lib/supabase/queries";
 import { EXPIRY_STATUS_STYLES, expiryStatus } from "@/lib/validity";
 
@@ -463,77 +464,29 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
       )}
 
       {(visibleClients.length > 0 || page > 1) && (
-        <nav aria-label={t("pagination")} className="mt-6 flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface px-4 py-3 sm:flex-row sm:justify-between">
-          <p className="text-xs text-ink-muted tabular-nums">{t("range", { from: firstShown, to: lastShown, total })}</p>
-
-          {lastPage > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => goToPage(page - 1)}
-                disabled={page === 1 || searching}
-                aria-label={t("previousPage")}
-                className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition hover:bg-accent-soft hover:text-accent disabled:pointer-events-none disabled:opacity-30"
-              >
-                <Arrow className="h-3.5 w-3.5 rotate-180" />
-              </button>
-              {pageNumbers(page, lastPage).map((number, index) =>
-                number === null ? (
-                  <span key={`gap-${index}`} className="w-6 text-center text-xs text-ink-faint">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={number}
-                    type="button"
-                    onClick={() => goToPage(number)}
-                    disabled={searching}
-                    aria-current={number === page ? "page" : undefined}
-                    aria-label={t("pageLabel", { page: number })}
-                    className={`h-8 min-w-8 rounded-full px-2 text-xs font-semibold tabular-nums transition ${
-                      number === page ? "bg-accent text-white" : "text-ink-muted hover:bg-accent-soft hover:text-accent"
-                    }`}
-                  >
-                    {number}
-                  </button>
-                ),
-              )}
-              <button
-                type="button"
-                onClick={() => goToPage(page + 1)}
-                disabled={page === lastPage || searching}
-                aria-label={t("nextPage")}
-                className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition hover:bg-accent-soft hover:text-accent disabled:pointer-events-none disabled:opacity-30"
-              >
-                <Arrow className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
-          <label className="flex items-center gap-2 text-xs text-ink-muted">
-            {t("perPageShow")}
-            <span className="relative flex items-center">
-            <select
-              value={pageSize}
-              onChange={(event) => updatePageSize(Number(event.target.value))}
-              className="appearance-none rounded-full border border-line bg-surface py-1.5 pl-3 pr-7 text-xs font-semibold text-ink transition hover:border-accent-soft focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-soft"
-            >
-              {DIRECTORY_PAGE_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 h-3 w-3 text-ink-faint" />
-            </span>
-            <span className="sr-only sm:not-sr-only">{t("perPageSuffix")}</span>
-          </label>
+        <PaginationBar
+          page={page}
+          lastPage={lastPage}
+          pageSize={pageSize}
+          onPage={goToPage}
+          onPageSize={updatePageSize}
+          disabled={searching}
+          labels={{
+            nav: t("pagination"),
+            range: t("range", { from: firstShown, to: lastShown, total }),
+            previous: t("previousPage"),
+            next: t("nextPage"),
+            page: (number) => t("pageLabel", { page: number }),
+            show: t("perPageShow"),
+            perPage: t("perPageSuffix"),
+          }}
+        >
           {loadError && (
             <p role="alert" className="basis-full text-center text-xs font-medium text-danger">
               {t("loadError")}
             </p>
           )}
-        </nav>
+        </PaginationBar>
       )}
     </>
   );
