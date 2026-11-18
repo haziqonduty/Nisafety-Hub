@@ -156,8 +156,8 @@
     "continue": "Teruskan",
     "step2Heading": "Perkhidmatan pada lawatan ini",
     "step2Subheading": "Tambah setiap perkhidmatan yang dijalankan pada lawatan ini, masing-masing dengan laporannya.",
-    "step2SkippedHeading": "Tiada dokumen dilampirkan",
-    "step2SkippedText": "Penghantaran ini hanya akan mengandungi butiran klien yang anda berikan — tanpa dokumen sokongan.",
+    "step2SkippedHeading": "Butiran klien sahaja",
+    "step2SkippedText": "Tiada laporan dilampirkan sekarang. Tandakan perkhidmatan yang diperlukan klien ini, dan lampirkan setiap laporan kemudian dari halaman klien.",
     "step2Badge": "LANGKAH 02",
     "documentCategory": "Kategori dokumen",
     "selectCategory": "Pilih kategori",
@@ -170,7 +170,11 @@
     "beforeSubmitText": "pastikan setiap laporan ialah versi akhir untuk perkhidmatan yang betul — anda masih boleh membetulkan kategori, tarikh atau fail kemudian dari halaman klien.",
     "back": "← Kembali",
     "submitButton": "Simpan klien",
-    "submitting": "Menghantar…"
+    "submitting": "Menghantar…",
+    "requestedServicesLabel": "Perkhidmatan yang diperlukan klien",
+    "requestedServicesHint": "Direkod sebagai senarai tugasan: tiada tarikh dan tiada tarikh tamat sehingga laporan ditambah. Setiap perkhidmatan hilang dari senarai sebaik sahaja laporannya dilampirkan.",
+    "requestedServicesCount": "{count} DIPILIH",
+    "optional": "PILIHAN"
   },
   "submissionErrors": {
     "noFile": "Sila pilih dokumen sebelum menghantar.",
@@ -313,7 +317,20 @@
     "dateRequiredHint": "Masukkan tarikh pemantauan sebenar dijalankan. Setiap tarikh luput bagi lawatan ini dikira dari tarikh ini.",
     "dateRequiredError": "Masukkan tarikh pemantauan sebelum menyimpan.",
     "dateUnconfirmed": "Tarikh pemantauan belum disahkan",
-    "editUnconfirmedHint": "Tarikh laporan ini diisi secara automatik. Masukkan tarikh pemantauan sebenar."
+    "editUnconfirmedHint": "Tarikh laporan ini diisi secara automatik. Masukkan tarikh pemantauan sebenar.",
+    "requestedEyebrow": "PERKHIDMATAN DIMINTA",
+    "requestedTitle": "{count} perkhidmatan masih memerlukan laporan",
+    "requestedEmptyTitle": "Belum ada perkhidmatan dicatat",
+    "requestedHint": "Ketik perkhidmatan untuk melampirkan laporannya. Ia akan hilang dari senarai ini sebaik laporan ditambah.",
+    "requestedEdit": "Ubah senarai",
+    "requestedAdd": "Catat perkhidmatan diperlukan",
+    "requestedSave": "Simpan senarai",
+    "requestedSaving": "Menyimpan…",
+    "requestedCancel": "Batal",
+    "requestedSaveError": "Senarai tidak dapat disimpan. Semak sambungan anda dan cuba lagi.",
+    "requestedAttach": "Lampirkan laporan {service}",
+    "requestedAttachShort": "Lampir laporan",
+    "requestedShort": "TUGASAN"
   },
   "expiry": {
     "validUntil": "Sah sehingga",

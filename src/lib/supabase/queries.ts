@@ -61,6 +61,8 @@ export type DirectoryDocument = {
   /** YYYY-MM-DD the service needs redoing; null when there's no fixed expiry (or no report). */
   expiryDate: string | null;
   tone: ReturnType<typeof toneForCategory> | null;
+  /** Services the client needs that were recorded without a report (see requested-services.ts). */
+  requestedServices: string[];
 };
 
 type ClientSummary = {
@@ -71,6 +73,7 @@ type ClientSummary = {
   additional_client_names: string[] | null;
   additional_telephones: string[] | null;
   additional_emails: string[] | null;
+  requested_services?: string[] | null;
 };
 
 type DocumentRow = {
@@ -119,6 +122,7 @@ function toDirectoryDocument(row: DocumentRow, urls: Map<string, string>): Direc
     additionalClientNames: client.additional_client_names ?? [],
     additionalTelephones: client.additional_telephones ?? [],
     additionalEmails: client.additional_emails ?? [],
+    requestedServices: client.requested_services ?? [],
     category: row.category,
     fileType: extensionFromFileName(row.file_name),
     fileSize: formatFileSize(row.file_size),
@@ -142,6 +146,7 @@ type ClientOnlyRow = {
   additional_client_names: string[] | null;
   additional_telephones: string[] | null;
   additional_emails: string[] | null;
+  requested_services?: string[] | null;
   created_at: string;
   documents: { id: string }[] | null;
 };
@@ -159,6 +164,7 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
     additionalClientNames: row.additional_client_names ?? [],
     additionalTelephones: row.additional_telephones ?? [],
     additionalEmails: row.additional_emails ?? [],
+    requestedServices: row.requested_services ?? [],
     category: null,
     fileType: null,
     fileSize: null,
@@ -229,7 +235,7 @@ export async function getDirectoryPage({
   const { data: clientData } = await supabase
     .from("clients")
     .select(
-      "id, client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails, created_at, documents(id, client_id, category, service_date, expiry_date, file_name, file_size, storage_path, thumbnail_path, created_at)",
+      "id, client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails, requested_services, created_at, documents(id, client_id, category, service_date, expiry_date, file_name, file_size, storage_path, thumbnail_path, created_at)",
     )
     .in("id", ids);
 
@@ -280,6 +286,7 @@ export type RecordDetail = {
   serviceDateConfirmed: boolean;
   expiryDate: string | null;
   tone: ReturnType<typeof toneForCategory> | null;
+  requestedServices: string[];
 };
 
 type RecordDetailClient = {
@@ -291,6 +298,7 @@ type RecordDetailClient = {
   additional_client_names: string[] | null;
   additional_telephones: string[] | null;
   additional_emails: string[] | null;
+  requested_services: string[] | null;
 };
 
 type RecordDetailRow = {
@@ -311,7 +319,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services)")
     .eq("id", id)
     .single();
 
@@ -344,6 +352,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
     serviceDateConfirmed: row.service_date_confirmed,
     expiryDate: row.expiry_date,
     tone: toneForCategory(row.category),
+    requestedServices: client.requested_services ?? [],
   };
 }
 
@@ -357,6 +366,7 @@ type ClientOnlyRecordRow = {
   additional_client_names: string[] | null;
   additional_telephones: string[] | null;
   additional_emails: string[] | null;
+  requested_services: string[] | null;
   created_at: string;
 };
 
@@ -379,7 +389,7 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
 
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, created_at")
+    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services, created_at")
     .eq("id", id)
     .single();
 
@@ -409,6 +419,7 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
     serviceDateConfirmed: true,
     expiryDate: null,
     tone: null,
+    requestedServices: row.requested_services ?? [],
   };
 }
 

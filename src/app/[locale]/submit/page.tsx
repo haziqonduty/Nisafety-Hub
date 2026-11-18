@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent, type SVGProps } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
+import { ServicePicker } from "@/app/_components/service-picker";
 import { addEntry, removeEntry, RepeatableField, updateEntry } from "@/app/_components/repeatable-field";
 import {
   appendServiceReport,
@@ -80,6 +81,7 @@ export default function SubmitPage() {
   // of creating the client a second time.
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [attachDocument, setAttachDocument] = useState(true);
+  const [requestedServices, setRequestedServices] = useState<string[]>([]);
   const [existingClientId, setExistingClientId] = useState<string | null>(null);
   const [clientMatches, setClientMatches] = useState<ClientMatch[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -197,6 +199,7 @@ export default function SubmitPage() {
       emails.filter(Boolean).forEach((email) => formData.append("email", email));
       formData.append("submitterName", values.submitterName);
       if (existingClientId) formData.append("clientId", existingClientId);
+      if (!attachDocument) requestedServices.forEach((service) => formData.append("requestedService", service));
       if (firstRow) {
         markRow(firstRow.key, { status: "uploading", errorCode: "" });
         const uploadError = await appendServiceReport(formData, firstRow, serviceDate);
@@ -389,6 +392,14 @@ export default function SubmitPage() {
             {attachDocument && <div className="mt-7">
               <ServiceReportsFields serviceDate={serviceDate} onServiceDateChange={setServiceDate} rows={serviceRows} setRows={setServiceRows} locked={isSubmitting || Boolean(savedClientId)} />
               <div className="mt-5 rounded-xl border border-amber-soft bg-amber-soft p-4 text-xs leading-5 text-amber"><strong>{t("beforeSubmitStrong")}</strong> {t("beforeSubmitText")}</div>
+            </div>}
+            {!attachDocument && <div className="mt-7 rounded-2xl border border-line bg-surface-soft p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-semibold">{t("requestedServicesLabel")}</p>
+                <span className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-faint">{requestedServices.length ? t("requestedServicesCount", { count: requestedServices.length }) : t("optional")}</span>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-ink-muted">{t("requestedServicesHint")}</p>
+              <div className="mt-5"><ServicePicker value={requestedServices} onChange={setRequestedServices} disabled={isSubmitting} /></div>
             </div>}
             {error && <p className="mt-5 rounded-xl border border-danger-soft bg-danger-soft p-3 text-sm text-danger" role="alert">{error}</p>}
             <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">{savedClientId ? <span /> : <button type="button" onClick={() => setStep(1)} className="rounded-full px-4 py-3 text-sm font-semibold text-ink-muted transition-colors hover:text-accent">{t("back")}</button>}<button type="submit" disabled={isSubmitting || isCompressing} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(15,118,110,.18)] transition-all hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? t("submitting") : savedClientId ? tServices("retryFailed", { count: pendingServiceCount }) : attachDocument ? tServices("submitServices", { count: serviceRows.length }) : t("submitButton")} <Arrow className="h-4 w-4" /></button></div>

@@ -156,8 +156,8 @@
     "continue": "Continue",
     "step2Heading": "Services on this visit",
     "step2Subheading": "Add every service carried out on this visit, each with its own report.",
-    "step2SkippedHeading": "No document attached",
-    "step2SkippedText": "This submission will include only the client details you provided — no supporting document.",
+    "step2SkippedHeading": "Client details only",
+    "step2SkippedText": "No report is attached now. Tick the services this client needs, and attach each report later from the client's page.",
     "step2Badge": "STEP 02",
     "documentCategory": "Document category",
     "selectCategory": "Select a category",
@@ -170,7 +170,11 @@
     "beforeSubmitText": "check each report is the final version for the right service — you can still correct a category, date or file later from the client's page.",
     "back": "← Back",
     "submitButton": "Save client",
-    "submitting": "Submitting…"
+    "submitting": "Submitting…",
+    "requestedServicesLabel": "Services the client needs",
+    "requestedServicesHint": "Recorded as a to-do list: no date and no expiry until a report is added. Each service disappears from the list once its report is attached.",
+    "requestedServicesCount": "{count, plural, =1 {1 SELECTED} other {# SELECTED}}",
+    "optional": "OPTIONAL"
   },
   "submissionErrors": {
     "noFile": "Please choose a document before submitting.",
@@ -313,7 +317,20 @@
     "dateRequiredHint": "Key in the day the monitoring was actually done. Every expiry on this visit is counted from this date.",
     "dateRequiredError": "Enter the date of monitoring before saving.",
     "dateUnconfirmed": "Monitoring date not confirmed",
-    "editUnconfirmedHint": "This report's date was filled in automatically. Key in the actual date of monitoring."
+    "editUnconfirmedHint": "This report's date was filled in automatically. Key in the actual date of monitoring.",
+    "requestedEyebrow": "SERVICES REQUESTED",
+    "requestedTitle": "{count, plural, =1 {1 service still needs a report} other {# services still need a report}}",
+    "requestedEmptyTitle": "No services noted yet",
+    "requestedHint": "Tap a service to attach its report. It leaves this list once the report is added.",
+    "requestedEdit": "Edit list",
+    "requestedAdd": "Note services needed",
+    "requestedSave": "Save list",
+    "requestedSaving": "Saving…",
+    "requestedCancel": "Cancel",
+    "requestedSaveError": "Couldn't save the list. Check your connection and try again.",
+    "requestedAttach": "Attach the {service} report",
+    "requestedAttachShort": "Attach report",
+    "requestedShort": "TO DO"
   },
   "expiry": {
     "validUntil": "Valid until",

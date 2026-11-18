@@ -40,6 +40,7 @@ const PROTECTED_API: [method: string, path: string][] = [
   ["POST", "/api/places/resolve"],
   ["PUT", `/api/clients/${NOBODY}/location`],
   ["DELETE", `/api/clients/${NOBODY}/location`],
+  ["PUT", `/api/clients/${NOBODY}/requested-services`],
 ];
 
 const PROTECTED_PAGES = ["/", "/ms", "/submit", "/renewals", "/map", `/records/${NOBODY}`, "/admin", "/admin/staff", "/admin/analytics", "/admin/recycle-bin"];

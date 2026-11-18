@@ -7,11 +7,13 @@ import { Calendar, Download, File } from "@/app/_components/icons";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { RecordDetailBody } from "@/app/_components/record-detail-body";
+import { RequestedServicesCard } from "@/app/_components/requested-services-card";
 import { ServiceTimeline } from "@/app/_components/service-timeline";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { ValidityCard } from "@/app/_components/validity-card";
 import { Link } from "@/i18n/routing";
 import { DOCUMENT_CATEGORIES, formatServiceDate, toneBadgeClass } from "@/lib/format";
+import { outstandingServices } from "@/lib/requested-services";
 import { getClientServiceHistory, getRecordById } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
 
   const categoryLabel = record.category ? categoryLabelFor(record.category) : record.category;
   const history = await getClientServiceHistory(record.clientId);
+  const outstanding = outstandingServices(record.requestedServices, history.map((entry) => entry.category));
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
@@ -151,6 +154,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
               </div>
               <AddServicePanel key={renewCategory ?? "add"} clientId={record.clientId} companyName={record.companyName} renewCategory={renewCategory} />
             </div>
+            {(outstanding.length > 0 || history.length === 0) && <RequestedServicesCard key={outstanding.join("|")} clientId={record.clientId} recordId={record.id} outstanding={outstanding} />}
             <ServiceTimeline history={history} currentId={record.id} />
           </section>
 

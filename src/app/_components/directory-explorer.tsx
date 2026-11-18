@@ -7,7 +7,7 @@ import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow, Calendar, ChevronDown, Download, Paperclip, Search } from "@/app/_components/icons";
 import { SpotlightCard } from "@/app/_components/spotlight-card";
 import { Link } from "@/i18n/routing";
-import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass } from "@/lib/format";
+import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass, toneForCategory } from "@/lib/format";
 import { DIRECTORY_SORTS, DIRECTORY_STATUSES, type DirectorySort, type DirectoryStatus } from "@/lib/directory";
 import type { DirectoryDocument, DirectoryPage } from "@/lib/supabase/queries";
 import { EXPIRY_STATUS_STYLES, expiryStatus } from "@/lib/validity";
@@ -27,6 +27,8 @@ type ClientGroup = {
   visits: number;
   latestActivity: string;
   hasRecent: boolean;
+  /** Services the client needs that have no report yet. */
+  requested: string[];
 };
 
 function groupByClient(documents: DirectoryDocument[]): ClientGroup[] {
@@ -34,7 +36,7 @@ function groupByClient(documents: DirectoryDocument[]): ClientGroup[] {
   for (const document of documents) {
     let group = groups.get(document.clientId);
     if (!group) {
-      group = { clientId: document.clientId, company: document.company, clientName: document.clientName, reports: [], haystack: "", superseded: new Set(), visits: 0, latestActivity: document.createdAt, hasRecent: false };
+      group = { clientId: document.clientId, company: document.company, clientName: document.clientName, reports: [], haystack: "", superseded: new Set(), visits: 0, latestActivity: document.createdAt, hasRecent: false, requested: document.requestedServices ?? [] };
       groups.set(document.clientId, group);
     }
     if (document.hasDocument) group.reports.push(document);
@@ -62,6 +64,8 @@ function groupByClient(documents: DirectoryDocument[]): ClientGroup[] {
       else seenCategories.add(report.category ?? "");
     }
     group.haystack = group.haystack.toLowerCase();
+    const reported = new Set(group.reports.map((report) => report.category));
+    group.requested = group.requested.filter((category) => !reported.has(category));
   }
 
   // Clients arrive in the order the server sorted them; a Map keeps that order.
@@ -379,6 +383,17 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
                     );
                   })}
                 </ul>
+              )}
+
+              {client.requested.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="font-mono text-[10px] font-bold tracking-[0.1em] text-ink-faint">{tServices("requestedShort")}</span>
+                  {client.requested.map((category) => (
+                    <span key={category} title={categoryLabel(category)} className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold ${toneBadgeClass(toneForCategory(category))} opacity-80`}>
+                      {shortCategoryLabel(categoryLabel(category))}
+                    </span>
+                  ))}
+                </div>
               )}
 
               {(reports.length > COLLAPSED_REPORTS || hiddenByFilter > 0) && (

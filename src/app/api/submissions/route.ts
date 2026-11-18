@@ -2,6 +2,7 @@ import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
 import { resolveReportFile, storeReport, validateReport, type ReportFile } from "@/lib/document-upload";
+import { cleanRequestedServices } from "@/lib/requested-services";
 
 // Per staff ACCOUNT, not per IP: everyone in the office shares one internet
 // address, so an IP limit of 5 blocked the whole office on a busy hour.
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
   // A report arrives either already uploaded straight to Storage
   // (storagePath) or, from older clients, as the file itself.
   const hasDocument = formData.has("storagePath") || formData.get("file") instanceof File;
+  // Client-only submissions can list the services the client needs (no file, no date).
+  const requestedServices = hasDocument ? [] : cleanRequestedServices(formData.getAll("requestedService"));
 
   const clientName = clientNames[0] ?? "";
   const telephone = telephones[0] ?? "";
@@ -172,6 +175,7 @@ export async function POST(request: Request) {
         additional_client_names: additionalClientNames,
         additional_telephones: additionalTelephones,
         additional_emails: additionalEmails,
+        requested_services: requestedServices,
         created_by: profile.id,
       })
       .select("id")
