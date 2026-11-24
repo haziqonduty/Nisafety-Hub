@@ -56,13 +56,15 @@
     "attachReport": "Attach report",
     "allClear": "You're all caught up.",
     "allClearHint": "Nothing is waiting on you right now.",
-    "recentEyebrow": "YOUR RECORDS",
-    "recentTitle": "Recently submitted by you",
+    "recentEyebrow": "YOUR REPORTS",
+    "recentTitle": "Your recent reports",
     "noReport": "No report yet",
     "documentsCount": "{count, plural, =1 {1 report} other {# reports}}",
-    "recentEmpty": "Nothing submitted yet.",
-    "recentEmptyHint": "Your first report will appear here the moment it's published.",
-    "recentFootnote": "Only records you submitted yourself — the admin dashboard lists everything."
+    "recentEmpty": "No reports attached yet.",
+    "recentEmptyHint": "Attach a report to a record in your queue and it will move here.",
+    "recentFootnote": "Only reports you submitted yourself — the admin dashboard lists everything.",
+    "queueShowAll": "Show all {count}",
+    "queueShowLess": "Show less"
   },
   "directory": {
     "searchPlaceholder": "Search client, company, phone, email, or document",

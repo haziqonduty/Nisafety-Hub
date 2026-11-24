@@ -766,8 +766,13 @@ export async function getWorkspaceData(profile: { id: string; role: "admin" | "s
     dailyDocuments,
     thisWeekDocuments,
     lastWeekDocuments,
-    myRecent: myRecords.slice(0, 5),
-    myIncomplete: incomplete.slice(0, 3),
+    // "To do → done": records without a report live only in the queue, so
+    // the recent list shows just the ones that have a report attached.
+    myRecent: myRecords
+      .filter((record) => record.documentCount > 0)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, 5),
+    myIncomplete: incomplete,
     myIncompleteCount: incomplete.length,
     pendingApprovals: pendingProfiles
       ? { count: pendingProfiles.count ?? 0, names: ((pendingProfiles.data ?? []) as { full_name: string }[]).map((row) => row.full_name) }

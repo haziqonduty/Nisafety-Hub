@@ -895,3 +895,8 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 ## Admin client list: per-page choice (2026-11-18)
 - Shared `src/app/_components/pagination-bar.tsx` (`PaginationBar`, labels passed in so it works with next-intl and with the English-only admin). Used by the staff directory (server paging) and `admin-clients-table.tsx` (client-side paging: the admin page already loads every client via the service role; search resets to page 1). Admin page size saved in localStorage `nisafety.admin.clients.pageSize`.
 - Not visually verified: the only admin account is Kay's and the single-admin trigger blocks a test admin. Directory (same component) re-verified 8/8.
+
+## Dashboard: queue = to do, recent = done (2026-11-24)
+- Kay found "Your queue" and "Recently submitted by you" listing the same clients (all of their newest records were client-details-only). Decision: give each box one job. `getWorkspaceData` now returns `myIncomplete` = every record of yours with no report (within the latest 50), and `myRecent` = the 5 latest records **that have a report**, sorted by report date. Records move from the queue to the recent box once a report is attached.
+- Queue shows 3 and then a native `<details>` "Show all N" / "Show less" toggle (no client JS; the component is a server component). Right box renamed to "YOUR REPORTS · Your recent reports" (ms: "LAPORAN ANDA · Laporan terkini anda") with a new empty state that points at the queue.
+- Verified 7/7 with Playwright (throwaway staff + 6 test clients, cleaned up), desktop + mobile dark.

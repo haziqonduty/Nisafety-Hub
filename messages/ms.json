@@ -56,13 +56,15 @@
     "attachReport": "Lampirkan laporan",
     "allClear": "Semuanya selesai.",
     "allClearHint": "Tiada apa-apa yang menunggu anda buat masa ini.",
-    "recentEyebrow": "REKOD ANDA",
-    "recentTitle": "Baru dihantar oleh anda",
+    "recentEyebrow": "LAPORAN ANDA",
+    "recentTitle": "Laporan terkini anda",
     "noReport": "Belum ada laporan",
     "documentsCount": "{count} laporan",
-    "recentEmpty": "Belum ada penghantaran.",
-    "recentEmptyHint": "Laporan pertama anda akan muncul di sini sebaik sahaja ia diterbitkan.",
-    "recentFootnote": "Hanya rekod yang anda hantar sendiri — papan pemuka admin menyenaraikan semuanya."
+    "recentEmpty": "Belum ada laporan dilampirkan.",
+    "recentEmptyHint": "Lampirkan laporan pada rekod dalam barisan anda dan ia akan berpindah ke sini.",
+    "recentFootnote": "Hanya laporan yang anda hantar sendiri — papan pemuka admin menyenaraikan semuanya.",
+    "queueShowAll": "Tunjuk semua {count}",
+    "queueShowLess": "Tunjuk kurang"
   },
   "directory": {
     "searchPlaceholder": "Cari klien, syarikat, telefon, e-mel, atau dokumen",

@@ -1,13 +1,15 @@
 import NextLink from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CountUp } from "@/app/_components/count-up";
-import { Activity, Arrow, Check, File, Inbox, Paperclip, Upload, Users } from "@/app/_components/icons";
+import { Activity, Arrow, Check, ChevronDown, File, Inbox, Paperclip, Upload, Users } from "@/app/_components/icons";
 import { Reveal } from "@/app/_components/reveal";
 import { SpotlightCard } from "@/app/_components/spotlight-card";
 import { Link } from "@/i18n/routing";
 import { toneBadgeClass, toneForCategory } from "@/lib/format";
 import type { WorkspaceData, WorkspaceRecord } from "@/lib/supabase/queries";
 
+/** Queue rows shown before "Show all". */
+const QUEUE_PREVIEW = 3;
 const CARD = "rounded-[1.5rem] border border-line bg-surface shadow-[0_18px_44px_rgba(16,42,51,.06)]";
 
 export async function WorkspaceBento({ data, isAdmin, renewalAlerts }: { data: WorkspaceData; isAdmin: boolean; renewalAlerts: number }) {
@@ -182,23 +184,24 @@ export async function WorkspaceBento({ data, isAdmin, renewalAlerts }: { data: W
                 <li className="rounded-2xl border border-line bg-surface-soft p-4">
                   <p className="text-sm font-semibold">{t("incompleteRecords", { count: data.myIncompleteCount })}</p>
                   <ul className="mt-3 space-y-2">
-                    {data.myIncomplete.map((record) => (
-                      <li key={record.id}>
-                        <Link
-                          href={`/records/${record.id}`}
-                          className="group flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 transition-all hover:-translate-y-0.5 hover:border-accent"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium">{record.company}</span>
-                            <span className="block truncate text-xs text-ink-muted">{record.clientName}</span>
-                          </span>
-                          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent">
-                            <Paperclip className="h-3.5 w-3.5" /> {t("attachReport")}
-                          </span>
-                        </Link>
-                      </li>
+                    {data.myIncomplete.slice(0, QUEUE_PREVIEW).map((record) => (
+                      <QueueRow key={record.id} record={record} attachLabel={t("attachReport")} />
                     ))}
                   </ul>
+                  {data.myIncomplete.length > QUEUE_PREVIEW && (
+                    <details className="group mt-2">
+                      <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft [&::-webkit-details-marker]:hidden">
+                        <span className="group-open:hidden">{t("queueShowAll", { count: data.myIncomplete.length })}</span>
+                        <span className="hidden group-open:inline">{t("queueShowLess")}</span>
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                      </summary>
+                      <ul className="mt-2 space-y-2">
+                        {data.myIncomplete.slice(QUEUE_PREVIEW).map((record) => (
+                          <QueueRow key={record.id} record={record} attachLabel={t("attachReport")} />
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </li>
               )}
             </ul>
@@ -243,6 +246,25 @@ export async function WorkspaceBento({ data, isAdmin, renewalAlerts }: { data: W
         </section>
       </Reveal>
     </div>
+  );
+}
+
+function QueueRow({ record, attachLabel }: { record: WorkspaceRecord; attachLabel: string }) {
+  return (
+    <li>
+      <Link
+        href={`/records/${record.id}`}
+        className="group flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 transition-all hover:-translate-y-0.5 hover:border-accent"
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium">{record.company}</span>
+          <span className="block truncate text-xs text-ink-muted">{record.clientName}</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent">
+          <Paperclip className="h-3.5 w-3.5" /> {attachLabel}
+        </span>
+      </Link>
+    </li>
   );
 }
 
