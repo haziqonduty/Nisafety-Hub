@@ -63,7 +63,15 @@ describe("category labels", () => {
     expect(shortCategoryLabel("Chemical Health Risk Assessment (CHRA)")).toBe("CHRA");
     expect(shortCategoryLabel("Indoor Air Quality (IAQ) Testing")).toBe("IAQ");
     expect(shortCategoryLabel("DOE Written Notification (WN) & Written Declaration (WD)")).toBe("WN/WD");
-    expect(shortCategoryLabel("Audiometric Testing")).toBe("Audiometric Testing");
+    expect(shortCategoryLabel("Initial Ergonomic Risk Assessment (IERA)")).toBe("IERA");
+    expect(shortCategoryLabel("Noise Control Programme Assessment (NCPA)")).toBe("NCPA");
+    expect(shortCategoryLabel("Chemical Registration")).toBe("Chemical Registration");
+  });
+  it("keeps a bracket that is part of the name, not an abbreviation", () => {
+    expect(shortCategoryLabel("Audiometric (Baseline/Annual)")).toBe("Audiometric (Baseline/Annual)");
+    expect(shortCategoryLabel("Audiometric (Medical Examination/Diagnostic-PTA)")).toBe("Audiometric (Medical Examination/Diagnostic-PTA)");
+    expect(shortCategoryLabel("Audiometrik (Asas/Tahunan)")).toBe("Audiometrik (Asas/Tahunan)");
+    expect(categoryNameWithoutAbbreviation("Audiometric (Baseline/Annual)")).toBe("Audiometric (Baseline/Annual)");
   });
   it("strips abbreviations from the long name", () => {
     expect(categoryNameWithoutAbbreviation("Indoor Air Quality (IAQ) Testing")).toBe("Indoor Air Quality Testing");

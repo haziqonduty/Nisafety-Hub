@@ -27,7 +27,7 @@ export type ValidityRule = {
   source: { label: string; url: string };
 };
 
-// Every link below was opened and checked on 2026-11-17. The statutory
+// Every link below was opened and checked on 2026-11-17 (chemical links added 2026-11-24). The statutory
 // clauses were read in the regulation text itself (USECHH 2000, Noise 2019).
 const USECHH = {
   label: "USECHH Regulations 2000 (P.U.(A) 131/2000)",
@@ -45,6 +45,7 @@ const EFFLUENT = {
   label: "Industrial Effluent Regulations 2009",
   url: "https://leap.unep.org/en/countries/my/national-legislation/environmental-quality-industrial-effluent-regulations-2009",
 };
+const ERGONOMICS = { label: "DOSH ergonomics guidelines", url: "https://dosh.gov.my/en/ergonomik/" };
 const DOE = { label: "Department of Environment (DOE)", url: "https://www.doe.gov.my/" };
 
 export const VALIDITY_RULES: Record<string, ValidityRule> = {
@@ -54,11 +55,16 @@ export const VALIDITY_RULES: Record<string, ValidityRule> = {
   "Medical Surveillance (MS)": { months: 12, basis: "USECHH Regulations 2000, reg. 27(3) · every 12 months or less for Schedule II chemicals", confidence: "regulation", source: USECHH },
   "Local Exhaust Ventilation (LEV)": { months: 12, basis: "USECHH Regulations 2000, reg. 17(1)(b) · examined and tested every 12 months or less", confidence: "regulation", source: USECHH },
   "Noise Risk Assessment (NRA)": { months: 60, basis: "Noise Exposure Regulations 2019, reg. 4(8)(a) · review within 5 years of the previous assessment", confidence: "regulation", source: NOISE },
-  "Audiometric Testing": { months: 12, basis: "Noise Exposure Regulations 2019, reg. 9(1) · annually for employees exposed above the limit", confidence: "regulation", source: NOISE },
-  "Ergonomic Risk Assessment (ERA)": { months: null, basis: "DOSH ERA Guidelines 2017 · review when the work changes", confidence: "practice", source: { label: "DOSH ergonomics guidelines", url: "https://dosh.gov.my/en/ergonomik/" } },
+  "Noise Control Programme Assessment (NCPA)": { months: null, basis: "Noise Exposure Regulations 2019 · checks the employer's noise control measures; no fixed interval, repeat when the noise risk assessment or the work changes", confidence: "practice", source: NOISE },
+  "Audiometric (Baseline/Annual)": { months: 12, basis: "Noise Exposure Regulations 2019, reg. 9(1) and 10(1)(b) · baseline within 3 months of starting work in the noisy area, then annually", confidence: "regulation", source: NOISE },
+  "Audiometric (Medical Examination/Diagnostic-PTA)": { months: 12, basis: "Noise Exposure Regulations 2019, reg. 9(4)–(5) · medical examination by an occupational health doctor after an abnormal audiogram; repeated with the yearly audiometric programme", confidence: "practice", source: NOISE },
+  "Initial Ergonomic Risk Assessment (IERA)": { months: null, basis: "DOSH ERA Guidelines 2017 · initial screening of ergonomic risk factors; review when the work changes", confidence: "practice", source: ERGONOMICS },
+  "Advanced Ergonomic Risk Assessment (AERA)": { months: null, basis: "DOSH ERA Guidelines 2017 · detailed assessment where the initial ERA finds a risk; review when the work changes", confidence: "practice", source: ERGONOMICS },
   "Hazard Identification, Risk Assessment and Risk Control (HIRARC)": { months: null, basis: "DOSH HIRARC Guidelines 2008 · review when the work changes", confidence: "practice", source: { label: "DOSH HIRARC Guidelines 2008", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/guidelines/hirarc-2/1846-01-guidelines-for-hazard-identification-risk-assessment-and-risk-control-hirarc-2008" } },
   "Indoor Air Quality (IAQ) Testing": { months: null, basis: "ICOP on Indoor Air Quality 2010 · interval set by the employer's IAQ programme", confidence: "practice", source: { label: "DOSH ICOP on Indoor Air Quality 2010", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/codes-of-practice/chemical-management/594-02-industry-code-of-practice-on-indoor-air-quality-2010" } },
   "Control of Industrial Major Accident Hazards (CIMAH)": { months: 36, basis: "CIMAH Regulations 1996 · safety report commonly updated every 3 years (not yet checked in the regulation text)", confidence: "practice", source: { label: "CIMAH Regulations 1996 (P.U.(A) 39/1996), DOSH", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/regulations/regulations-under-occupational-safety-and-health-act-1994-act-514/527-07-occupational-safety-and-health-control-of-industrial-major-accident-hazards-regulations-1996" } },
+  "Chemical Registration": { months: null, basis: "DOSH chemical management · register of the hazardous chemicals on site; no expiry, update when the chemicals change", confidence: "practice", source: { label: "DOSH chemical management", url: "https://dosh.gov.my/en/pengurusan-kimia/" } },
+  "Chemical Classification": { months: null, basis: "CLASS Regulations 2013 · hazard classification of a chemical; no expiry, redo when the chemical or its formulation changes", confidence: "practice", source: { label: "CLASS Regulations 2013 (P.U.(A) 310/2013), DOSH", url: "https://dosh.gov.my/wp-content/uploads/2026/04/Occupational-Safety-and-Health-Classification-Labelling-and-Safety-Data-Sheet-of-Hazardous-Chemicals-Regulations-2013.pdf" } },
   "Psychosocial Assessment": { months: null, basis: "DOSH Psychosocial Guidelines 2024 · no fixed interval; review when the work changes", confidence: "practice", source: { label: "DOSH Psychosocial Risk Guidelines 2024", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/guidelines/occupational-health-1/4850-guidelines-on-psychosocial-risk-assessment-and-management-at-the-workplace-2024" } },
   // Environmental Monitoring (DOE)
   "Boundary Noise Monitoring": { months: 3, basis: "Set by the client's DOE approval conditions · commonly quarterly", confidence: "practice", source: DOE },

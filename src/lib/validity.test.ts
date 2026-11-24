@@ -70,11 +70,34 @@ describe("validity rules", () => {
     expect(missing).toEqual([]);
   });
 
-  it("match the SQL backfill in the expiry migration (KEEP IN SYNC)", () => {
+  it("match the SQL backfill in the expiry migration, following later renames (KEEP IN SYNC)", () => {
     const sql = readFileSync("supabase/migrations/20261114_add_document_expiry_date.sql", "utf8");
-    const fromSql = Object.fromEntries([...sql.matchAll(/when '([^']+)' then (\d+)/g)].map((match) => [match[1], Number(match[2])]));
-    const fromCode = Object.fromEntries(Object.entries(VALIDITY_RULES).filter(([, rule]) => rule.months !== null).map(([category, rule]) => [category, rule.months]));
+    const renameSql = readFileSync("supabase/migrations/20261124_service_types_and_chemical_services.sql", "utf8");
+    const renames = new Map([...renameSql.matchAll(/rename '([^']+)' -> '([^']+)'/g)].map((match) => [match[1], match[2]]));
+    const fromSql = Object.fromEntries([...sql.matchAll(/when '([^']+)' then (\d+)/g)].map((match) => [renames.get(match[1]) ?? match[1], Number(match[2])]));
+    // Fixed-interval services added after the backfill ran (no old reports to backfill).
+    const addedLater = ["Audiometric (Medical Examination/Diagnostic-PTA)"];
+    const fromCode = Object.fromEntries(
+      Object.entries(VALIDITY_RULES).filter(([category, rule]) => rule.months !== null && !addedLater.includes(category)).map(([category, rule]) => [category, rule.months]),
+    );
     expect(fromSql).toEqual(fromCode);
+  });
+
+  it("match the category list in the latest database constraint (KEEP IN SYNC)", () => {
+    const sql = readFileSync("supabase/migrations/20261124_service_types_and_chemical_services.sql", "utf8");
+    const constraint = sql.slice(sql.indexOf("add constraint documents_category_check"));
+    const fromSql = [...constraint.matchAll(/^\s+'([^']+)',?$/gm)].map((match) => match[1]);
+    expect(fromSql).toEqual([...DOCUMENT_CATEGORIES]);
+  });
+
+  it("keep the agreed periods for the split and new services", () => {
+    expect(VALIDITY_RULES["Initial Ergonomic Risk Assessment (IERA)"].months).toBeNull();
+    expect(VALIDITY_RULES["Advanced Ergonomic Risk Assessment (AERA)"].months).toBeNull();
+    expect(VALIDITY_RULES["Audiometric (Baseline/Annual)"].months).toBe(12);
+    expect(VALIDITY_RULES["Audiometric (Medical Examination/Diagnostic-PTA)"].months).toBe(12);
+    expect(VALIDITY_RULES["Noise Control Programme Assessment (NCPA)"].months).toBeNull();
+    expect(VALIDITY_RULES["Chemical Registration"].months).toBeNull();
+    expect(VALIDITY_RULES["Chemical Classification"].months).toBeNull();
   });
 });
 

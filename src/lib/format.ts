@@ -10,12 +10,17 @@ export const CATEGORY_GROUPS = [
       "Medical Surveillance (MS)",
       "Local Exhaust Ventilation (LEV)",
       "Noise Risk Assessment (NRA)",
-      "Audiometric Testing",
-      "Ergonomic Risk Assessment (ERA)",
+      "Noise Control Programme Assessment (NCPA)",
+      "Audiometric (Baseline/Annual)",
+      "Audiometric (Medical Examination/Diagnostic-PTA)",
+      "Initial Ergonomic Risk Assessment (IERA)",
+      "Advanced Ergonomic Risk Assessment (AERA)",
       "Hazard Identification, Risk Assessment and Risk Control (HIRARC)",
       "Indoor Air Quality (IAQ) Testing",
       "Control of Industrial Major Accident Hazards (CIMAH)",
       "Psychosocial Assessment",
+      "Chemical Registration",
+      "Chemical Classification",
     ],
   },
   {
@@ -134,17 +139,22 @@ export function formatServiceDate(value: string, locale = "en-GB") {
   return new Date(`${value}T00:00:00Z`).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
+// A bracket holds an abbreviation only when it's all capitals ("CHRA", "WN");
+// "(Baseline/Annual)" or "(Asas/Tahunan)" is part of the service's name.
+const ABBREVIATION = /\s*\(([A-Z0-9&-]+)\)/g;
+
 /**
  * "CHRA" from "Chemical Health Risk Assessment (CHRA)", "IAQ" from "Indoor
  * Air Quality (IAQ) Testing", "WN/WD" from "DOE Written Notification (WN) &
- * Written Declaration (WD)"; the full name when there's no abbreviation.
+ * Written Declaration (WD)"; the full name when there's no abbreviation, e.g.
+ * "Audiometric (Baseline/Annual)".
  */
 export function shortCategoryLabel(label: string) {
-  const abbreviations = [...label.matchAll(/\(([^()]+)\)/g)].map((match) => match[1]);
+  const abbreviations = [...label.matchAll(ABBREVIATION)].map((match) => match[1]);
   return abbreviations.length > 0 ? abbreviations.join("/") : label;
 }
 
 /** The category name with its abbreviations removed — shown next to the short label. */
 export function categoryNameWithoutAbbreviation(label: string) {
-  return label.replace(/\s*\([^()]+\)/g, "").replace(/\s+/g, " ").trim();
+  return label.replace(ABBREVIATION, "").replace(/\s+/g, " ").trim();
 }
