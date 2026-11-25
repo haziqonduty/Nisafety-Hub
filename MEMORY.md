@@ -1008,5 +1008,12 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 ## Date field: no Today / Yesterday shortcuts (2026-11-26)
 - Kay: removed the Today / Yesterday chips under each service's Date of monitoring (not needed). `services.todayChip` message removed; `services.yesterday` kept (the service timeline uses it).
 
+## Service picker: search + chips (2026-11-26)
+- Kay found "Services the client needs" (client-only form) too crowded (28 full-name chips). Chose "Search + chips" over tabs / collapsible groups.
+- `service-picker.tsx` rewritten, same props (`value`, `onChange`, `disabled`), so both callers changed nothing: the client-only step on /submit and the to-do list editor (`requested-services-card.tsx`). One search box (combobox): typing filters by the shown name in either language, the stored English name and the short code; the grouped list shows "CODE Name" rows with a checkbox; chosen services become small chips (short code, tone dot, ✕) plus "Clear all". Keyboard: ↑/↓, Enter toggles (never submits the form), Escape closes, Backspace on an empty box removes the last chip; click outside closes.
+- The list opens IN PLACE (pushes content down), not as a floating dropdown: the form cards animate in (`animate-[rise]`), which creates stacking contexts, so a floating list was painted BEHIND the next card (seen in testing). Rule: no absolute popovers inside the animated form cards.
+- Copy: hint shortened to one line; "Tick the services" → "Pick the services" (en + ms). New `services.picker*` messages.
+- Verified: lint, tsc, 92 unit, 69 security, Playwright 16/16 (incl. list not behind the next card, keyboard, save order, record-page editor, Malay; cleaned up).
+
 ## Mistakes & lessons
 - 2026-11-26: a service name with "." broke translations (next-intl key nesting). Rule: never put "." in a messages key; look service names up through `categoryMessageKey`. Browser tests must check EXACT visible text, not substrings (a substring check hid this once).

@@ -164,7 +164,7 @@
     "step2Heading": "Perkhidmatan & laporan",
     "step2Subheading": "Setiap perkhidmatan mempunyai tarikh pemantauan, jurujual dan laporannya sendiri. Perkhidmatan baharu menyalin butiran ini daripada yang di atas — ubah jika ia dibuat pada hari lain.",
     "step2SkippedHeading": "Butiran klien sahaja",
-    "step2SkippedText": "Tiada laporan dilampirkan sekarang. Tandakan perkhidmatan yang diperlukan klien ini, dan lampirkan setiap laporan kemudian dari halaman klien.",
+    "step2SkippedText": "Tiada laporan dilampirkan sekarang. Pilih perkhidmatan yang diperlukan klien ini, dan lampirkan setiap laporan kemudian dari halaman klien.",
     "step2Badge": "LANGKAH 02",
     "documentCategory": "Kategori dokumen",
     "selectCategory": "Pilih kategori",
@@ -179,7 +179,7 @@
     "submitButton": "Simpan klien",
     "submitting": "Menghantar…",
     "requestedServicesLabel": "Perkhidmatan yang diperlukan klien",
-    "requestedServicesHint": "Direkod sebagai senarai tugasan: tiada tarikh dan tiada tarikh tamat sehingga laporan ditambah. Setiap perkhidmatan hilang dari senarai sebaik sahaja laporannya dilampirkan.",
+    "requestedServicesHint": "Senarai tugasan: tiada tarikh atau tarikh luput sehingga setiap laporan dilampirkan.",
     "requestedServicesCount": "{count} DIPILIH",
     "optional": "PILIHAN"
   },
@@ -383,7 +383,14 @@
     "addExtraFile": "Tambah dokumen lain",
     "removeExtraFile": "Buang dokumen {number}",
     "documentsTitle": "DOKUMEN",
-    "mainDocument": "Dokumen utama"
+    "mainDocument": "Dokumen utama",
+    "pickerLabel": "Perkhidmatan yang diperlukan klien",
+    "pickerPlaceholder": "Cari perkhidmatan, cth. CHRA atau bising",
+    "pickerToggle": "Tunjuk semua perkhidmatan",
+    "pickerNoMatch": "Tiada perkhidmatan sepadan dengan “{query}”.",
+    "pickerRemove": "Buang {service}",
+    "pickerClear": "Kosongkan semua",
+    "pickerNone": "Belum ada. Cari, atau buka senarai untuk memilih perkhidmatan."
   },
   "expiry": {
     "validUntil": "Sah sehingga",

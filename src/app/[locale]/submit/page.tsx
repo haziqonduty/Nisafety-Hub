@@ -420,7 +420,7 @@ export default function SubmitPage() {
                 <span className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-faint">{requestedServices.length ? t("requestedServicesCount", { count: requestedServices.length }) : t("optional")}</span>
               </div>
               <p className="mt-1 text-xs leading-5 text-ink-muted">{t("requestedServicesHint")}</p>
-              <div className="mt-5"><ServicePicker value={requestedServices} onChange={setRequestedServices} disabled={isSubmitting} /></div>
+              <div className="mt-4"><ServicePicker value={requestedServices} onChange={setRequestedServices} disabled={isSubmitting} /></div>
             </div>}
             {!attachDocument && <JobDetailsFields job={job} onJobChange={setJob} locked={isSubmitting} />}
             {error && <p className="mt-5 rounded-xl border border-danger-soft bg-danger-soft p-3 text-sm text-danger" role="alert">{error}</p>}

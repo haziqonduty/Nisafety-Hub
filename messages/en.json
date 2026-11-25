@@ -164,7 +164,7 @@
     "step2Heading": "Services & reports",
     "step2Subheading": "Each service has its own date of monitoring, sales person and report. A new service copies these from the one above — change them if it was done on another day.",
     "step2SkippedHeading": "Client details only",
-    "step2SkippedText": "No report is attached now. Tick the services this client needs, and attach each report later from the client's page.",
+    "step2SkippedText": "No report is attached now. Pick the services this client needs, and attach each report later from the client's page.",
     "step2Badge": "STEP 02",
     "documentCategory": "Document category",
     "selectCategory": "Select a category",
@@ -179,7 +179,7 @@
     "submitButton": "Save client",
     "submitting": "Submitting…",
     "requestedServicesLabel": "Services the client needs",
-    "requestedServicesHint": "Recorded as a to-do list: no date and no expiry until a report is added. Each service disappears from the list once its report is attached.",
+    "requestedServicesHint": "A to-do list: no date or expiry until each report is attached.",
     "requestedServicesCount": "{count, plural, =1 {1 SELECTED} other {# SELECTED}}",
     "optional": "OPTIONAL"
   },
@@ -383,7 +383,14 @@
     "addExtraFile": "Add another document",
     "removeExtraFile": "Remove document {number}",
     "documentsTitle": "DOCUMENTS",
-    "mainDocument": "Main document"
+    "mainDocument": "Main document",
+    "pickerLabel": "Services the client needs",
+    "pickerPlaceholder": "Search services, e.g. CHRA or noise",
+    "pickerToggle": "Show all services",
+    "pickerNoMatch": "No service matches “{query}”.",
+    "pickerRemove": "Remove {service}",
+    "pickerClear": "Clear all",
+    "pickerNone": "None added yet. Search, or open the list to pick services."
   },
   "expiry": {
     "validUntil": "Valid until",
