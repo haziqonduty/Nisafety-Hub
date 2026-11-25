@@ -3,8 +3,7 @@ import { defaultExpiryFor } from "@/lib/validity";
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { placeReportFile, removeStorageObjects, resolveReportFile, uploadThumbnail } from "@/lib/document-upload";
-
-const MAX_ADDITIONAL_CONTACTS = 4;
+import { MAX_ADDITIONAL_CONTACTS } from "@/lib/client-merge";
 
 function textValue(value: FormDataEntryValue | null, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";

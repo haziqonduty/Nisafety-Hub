@@ -211,7 +211,9 @@
     "whatNextTitle": "APA YANG SETERUSNYA",
     "whatNextBody": "Rekod akan tersedia dalam direktori awam mengikut proses penerbitan platform.",
     "exploreDirectory": "Terokai direktori",
-    "returnToSubmission": "Kembali ke penghantaran"
+    "returnToSubmission": "Kembali ke penghantaran",
+    "joinedExistingTitle": "Ditambah pada syarikat sedia ada.",
+    "joinedExistingBody": "Syarikat ini sudah mempunyai rekod, jadi laporan disimpan di situ dan bukan sebagai rekod pendua. Sebarang nama, telefon atau e-mel baharu disimpan sebagai kenalan tambahan."
   },
   "record": {
     "backToDirectory": "← Kembali ke direktori",

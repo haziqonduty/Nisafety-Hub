@@ -1,7 +1,9 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Close, Plus } from "@/app/_components/icons";
+import { MAX_ADDITIONAL_CONTACTS } from "@/lib/client-merge";
 
-export const MAX_CONTACT_ENTRIES = 5;
+/** The main contact plus up to MAX_ADDITIONAL_CONTACTS extras. */
+export const MAX_CONTACT_ENTRIES = MAX_ADDITIONAL_CONTACTS + 1;
 
 export function addEntry(setList: Dispatch<SetStateAction<string[]>>) {
   setList((current) => (current.length < MAX_CONTACT_ENTRIES ? [...current, ""] : current));

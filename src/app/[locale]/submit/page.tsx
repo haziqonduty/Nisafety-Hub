@@ -185,6 +185,7 @@ export default function SubmitPage() {
 
     let clientId = savedClientId;
     let rowsToUpload = serviceRows;
+    let joinedExistingCompany = false;
 
     if (!clientId) {
       // The client plus the FIRST service of the visit go together, exactly
@@ -212,7 +213,7 @@ export default function SubmitPage() {
 
       try {
         const response = await fetch("/api/submissions", { method: "POST", body: formData });
-        const result = (await response.json()) as { error?: string; clientId?: string };
+        const result = (await response.json()) as { error?: string; clientId?: string; joinedExistingCompany?: boolean };
         if (!response.ok || !result.clientId) {
           const code = errorCodeFrom(result.error);
           if (firstRow && REPORT_ERROR_CODES.has(code)) {
@@ -225,6 +226,7 @@ export default function SubmitPage() {
           return;
         }
         clientId = result.clientId;
+        joinedExistingCompany = Boolean(result.joinedExistingCompany);
         if (firstRow) {
           markRow(firstRow.key, { status: "done" });
           rowsToUpload = serviceRows.map((row) => (row.key === firstRow.key ? { ...row, status: "done" as const } : row));
@@ -251,7 +253,7 @@ export default function SubmitPage() {
     // a finally — resetting made the button pop back to its idle label the
     // instant push() was called, not when /submission-success was ready.
     setIsNavigatingAway(true);
-    router.push("/submission-success");
+    router.push(joinedExistingCompany ? "/submission-success?existing=1" : "/submission-success");
   }
 
   const pendingServiceCount = serviceRows.filter((row) => row.status !== "done").length;

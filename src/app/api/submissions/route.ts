@@ -3,6 +3,7 @@ import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/s
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
 import { resolveReportFile, storeReport, validateReport, type ReportFile } from "@/lib/document-upload";
 import { cleanRequestedServices } from "@/lib/requested-services";
+import { MAX_ADDITIONAL_CONTACTS, mergeIntoCompany } from "@/lib/client-merge";
 
 // Per staff ACCOUNT, not per IP: everyone in the office shares one internet
 // address, so an IP limit of 5 blocked the whole office on a busy hour.
@@ -10,7 +11,6 @@ import { cleanRequestedServices } from "@/lib/requested-services";
 // runaway script or a misused account.
 const RATE_LIMIT_WINDOW_MINUTES = 15;
 const RATE_LIMIT_MAX_ATTEMPTS = 30;
-const MAX_ADDITIONAL_CONTACTS = 4;
 
 function textValue(value: FormDataEntryValue | null, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -163,6 +163,50 @@ export async function POST(request: Request) {
     clientId = "";
   }
 
+  // One record per company: if staff typed in a company that already exists
+  // instead of picking it from the search, add to THAT record. A different
+  // person / phone / email becomes an extra contact; the main one is kept.
+  let joinedExistingCompany = false;
+  if (!clientId) {
+    const { data: matchId } = await supabase.rpc("find_client_by_company", { company: companyName });
+    if (typeof matchId === "string" && matchId) {
+      const { data: match } = await supabase
+        .from("clients")
+        .select("id, client_name, telephone, email, additional_client_names, additional_telephones, additional_emails, requested_services")
+        .eq("id", matchId)
+        .maybeSingle();
+      if (match) {
+        const merged = mergeIntoCompany(
+          {
+            clientName: match.client_name,
+            telephone: match.telephone,
+            email: match.email,
+            additionalClientNames: match.additional_client_names ?? [],
+            additionalTelephones: match.additional_telephones ?? [],
+            additionalEmails: match.additional_emails ?? [],
+            requestedServices: match.requested_services ?? [],
+          },
+          { clientNames, telephones, emails, requestedServices },
+        );
+        const { error: mergeError } = await supabase
+          .from("clients")
+          .update({
+            additional_client_names: merged.additionalClientNames,
+            additional_telephones: merged.additionalTelephones,
+            additional_emails: merged.additionalEmails,
+            requested_services: merged.requestedServices,
+          })
+          .eq("id", match.id);
+        if (mergeError) {
+          return Response.json({ error: "CLIENT_SAVE_ERROR" }, { status: 500 });
+        }
+        clientId = match.id;
+        isNewClient = false;
+        joinedExistingCompany = true;
+      }
+    }
+  }
+
   if (!clientId) {
     const { data: client, error: clientError } = await supabase
       .from("clients")
@@ -188,7 +232,7 @@ export async function POST(request: Request) {
   }
 
   if (!report) {
-    return Response.json({ clientId }, { status: 201 });
+    return Response.json({ clientId, joinedExistingCompany }, { status: 201 });
   }
 
   const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, reportFile: report.reportFile, thumbnail });
@@ -197,5 +241,5 @@ export async function POST(request: Request) {
     return Response.json({ error: stored.error }, { status: 500 });
   }
 
-  return Response.json({ clientId, documentId: stored.documentId }, { status: 201 });
+  return Response.json({ clientId, documentId: stored.documentId, joinedExistingCompany }, { status: 201 });
 }

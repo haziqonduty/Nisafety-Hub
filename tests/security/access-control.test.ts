@@ -45,7 +45,7 @@ const PROTECTED_API: [method: string, path: string][] = [
   ["DELETE", `/api/records/${NOBODY}/renewal-action`],
 ];
 
-const PROTECTED_PAGES = ["/", "/ms", "/submit", "/renewals", "/map", `/records/${NOBODY}`, "/admin", "/admin/staff", "/admin/analytics", "/admin/recycle-bin"];
+const PROTECTED_PAGES = ["/", "/ms", "/submit", "/renewals", "/map", `/records/${NOBODY}`, "/admin", "/admin/staff", "/admin/analytics", "/admin/recycle-bin", "/admin/companies/example-company"];
 
 function call(method: string, path: string, headers: Record<string, string> = {}) {
   const hasBody = method !== "GET" && method !== "DELETE";

@@ -211,7 +211,9 @@
     "whatNextTitle": "WHAT HAPPENS NEXT",
     "whatNextBody": "The record will be available in the public directory according to the platform publishing process.",
     "exploreDirectory": "Explore the directory",
-    "returnToSubmission": "Return to submission"
+    "returnToSubmission": "Return to submission",
+    "joinedExistingTitle": "Added to the existing company.",
+    "joinedExistingBody": "This company already had a record, so the report was saved there instead of creating a duplicate. Any new contact person, phone or email was kept as an extra contact."
   },
   "record": {
     "backToDirectory": "← Back to directory",

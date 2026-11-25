@@ -886,6 +886,7 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Always check for an existing client (company name, phone) before inserting; flag rows with missing required fields (contact name, phone) instead of guessing.
 - 2026-11-18: 16 clients inserted this way. Left open: one company with no contact/phone not inserted; two names spelled "SDB BHD" kept as written; Champion Precision Plant 2 and Plant 4 kept as separate clients.
 - Privacy: never write client contact names, phone numbers or emails into this file — it is committed to GitHub. Real client data lives only in the database.
+- Same rule for test files and fixtures (2026-11-25 mistake: copied a real contact name/phone/email from a screenshot into a unit test; the push was blocked). Always use made-up data (e.g. "MS TESTER", 012-000 0001, tester@example.com, ACME SDN BHD) in tests, previews and examples.
 
 ## Directory: compact cards + page-size picker with real pages (2026-11-18)
 - Kay: cards "too big, too crowded" → minimalist with the same details; wants to choose how many to show (10 / 50 …).
@@ -920,3 +921,17 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 ## CEM and Boundary Noise default to 1 year (2026-11-25)
 - Kay's request: CEM 6 → 12 months, Boundary Noise Monitoring 3 → 12 months. CEM is now "practice" (not "regulation"): USECHH reg. 26(2) only fixes ≤ 6 months for Schedule II chemicals, otherwise the CHRA sets the interval — the rule text tells staff to set Schedule II expiries by hand.
 - Migration `20261125_cem_boundary_noise_one_year.sql` moved only reports still on the old automatic expiry (all 4: 3 CEM, 1 Boundary Noise — G.B INDUSTRIES no longer expired). Its `-- interval 'X' -> N` lines feed the KEEP-IN-SYNC test in validity.test.ts.
+
+## Admin: company-first client list (2026-11-25)
+- Kay's request: the admin list showed the same company twice (PIAU CHEZ was saved as 2 client records, 1 report each; TOA TEC has 2 records with different contacts). Now `/admin` lists each COMPANY once; clicking opens `/admin/companies/[key]` with services & reports (grouped by service, latest sets status, Open ↗ /records/id, move-to-bin) and contacts (edit name/phone/email/internal note, move-to-bin). No database change — records are grouped in code; duplicates are NOT merged.
+- `src/lib/admin-companies.ts`: `companyKey` (lowercase letters/digits slug — "Piau Chez Sdn. Bhd." = "PIAU CHEZ SDN BHD"), `groupCompanies` (status = most urgent latest-per-service report, ignoring renewed/closed; outstanding requested services). Tested.
+- Components: `admin-companies-table.tsx` (search, status filter chips, PaginationBar, same localStorage key), `admin-company-view.tsx` (server, page body), `admin-company-detail.tsx` (client: ContactCard, ReportActions), `admin-company-ui.tsx` (badge, monogram, service code). Old `admin-clients-table.tsx` deleted. `getAdminClients` now also returns requested services and report dates/expiry/closed.
+- Verified visually via a temporary preview page with fake data, signed in as a throwaway staff user (can't use a test admin: single-admin trigger, and never Kay's account) — preview deleted before commit. 73 unit, 63 security, build.
+- Possible follow-up (not built): a "merge records" action for true duplicates like PIAU CHEZ.
+
+## One record per company (2026-11-25)
+- Kay: a company must never have duplicate records for different services — combine them; different contact names are fine. Rule: "same company" = same letters/digits ignoring case/spaces/punctuation (`company_match_key` in SQL, `companyMatchKey` in `src/lib/client-merge.ts`).
+- Migration `20261125_one_record_per_company.sql` (applied): extra-contact limits 4 → 10 (`MAX_ADDITIONAL_CONTACTS`, form allows 11 entries), `company_match_key()` + index, `find_client_by_company(text)` (SECURITY INVOKER), and a one-time merge: kept the oldest record, moved reports, added other contacts as extras, unioned requested services / notes / map pin, removed emptied records. Merged PIAU CHEZ (2 → 1, CHRA + NRA) and TOA TEC (its second contact name was added as an extra contact — likely a spelling variant, staff can remove it). Now 39 companies = 39 records.
+- `POST /api/submissions`: when no company was picked from the search, it calls `find_client_by_company`; on a match it adds new names/phones/emails as extras (`mergeIntoCompany`, no repeats, skips no-email@example.com), unions requested services, keeps the main contact, and returns `joinedExistingCompany` → `/submission-success?existing=1` shows "Added to the existing company".
+- Not enforced by a unique index (recycle-bin restore of an old duplicate would fail) — the server match is the guard. Renaming a company on the record page to an existing name could still create a pair; admin view groups them anyway.
+- Verified: 79 unit, Playwright 11/11 (throwaway user/companies, cleaned up).

@@ -619,9 +619,20 @@ export type AdminClient = {
   additionalTelephones: string[];
   additionalEmails: string[];
   internalNotes: string | null;
+  /** Services recorded without a report yet (see requested-services.ts). */
+  requestedServices: string[];
   date: string;
   createdAt: string;
-  documents: { id: string; category: string; fileName: string }[];
+  documents: {
+    id: string;
+    category: string;
+    fileName: string;
+    /** YYYY-MM-DD */
+    serviceDate: string;
+    expiryDate: string | null;
+    renewalClosed: boolean;
+    createdAt: string;
+  }[];
 };
 
 type AdminClientRow = {
@@ -635,8 +646,9 @@ type AdminClientRow = {
   additional_telephones: string[] | null;
   additional_emails: string[] | null;
   internal_notes: string | null;
+  requested_services: string[] | null;
   created_at: string;
-  documents: { id: string; category: string; file_name: string }[] | null;
+  documents: { id: string; category: string; file_name: string; service_date: string; expiry_date: string | null; renewal_closed_at: string | null; created_at: string }[] | null;
 };
 
 // internal_notes is admin-only and no longer in anon's column-level grant
@@ -647,7 +659,7 @@ export async function getAdminClients(): Promise<AdminClient[]> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, created_at, documents(id, category, file_name)")
+    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, requested_services, created_at, documents(id, category, file_name, service_date, expiry_date, renewal_closed_at, created_at)")
     // Service role bypasses RLS, so exclude the recycle bin by hand.
     .is("deleted_at", null)
     .is("documents.deleted_at", null)
@@ -666,12 +678,17 @@ export async function getAdminClients(): Promise<AdminClient[]> {
     additionalTelephones: row.additional_telephones ?? [],
     additionalEmails: row.additional_emails ?? [],
     internalNotes: row.internal_notes,
+    requestedServices: row.requested_services ?? [],
     date: formatDate(row.created_at),
     createdAt: row.created_at,
     documents: (row.documents ?? []).map((document) => ({
       id: document.id,
       category: document.category,
       fileName: document.file_name,
+      serviceDate: document.service_date,
+      expiryDate: document.expiry_date,
+      renewalClosed: Boolean(document.renewal_closed_at),
+      createdAt: document.created_at,
     })),
   }));
 }
