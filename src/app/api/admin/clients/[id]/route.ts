@@ -18,11 +18,12 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const email = textValue(body.email, 254).toLowerCase();
   const internalNotes = textValue(body.internalNotes, 2000);
 
-  if (!clientName || !telephone || !email) {
-    return Response.json({ error: "Client name, telephone, and email are all required." }, { status: 400 });
+  if (!clientName || !telephone) {
+    return Response.json({ error: "Client name and telephone are required." }, { status: 400 });
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  // Email is optional; when given it must look like one.
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return Response.json({ error: "Enter a valid email address." }, { status: 400 });
   }
 

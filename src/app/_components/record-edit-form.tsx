@@ -200,6 +200,8 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
           placeholder=""
           removeLabel={tSubmit("removeEntry")}
           addLabel={tSubmit("addAnotherEmail")}
+          optional
+          optionalLabel={tServices("optional")}
           values={emails}
           onChange={(index, value) => updateEntry(setEmails, index, value)}
           onAdd={() => addEntry(setEmails)}

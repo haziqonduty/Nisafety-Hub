@@ -18,8 +18,8 @@ export function updateEntry(setList: Dispatch<SetStateAction<string[]>>, index: 
 const repeatableInputClass = "w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft";
 
 // A company report sometimes has more than one contact — e.g. two people, or
-// two phone numbers. The first entry is always required; staff can add up to
-// MAX_CONTACT_ENTRIES total, and remove any entry past the first.
+// two phone numbers. The first entry is required unless `optional`; staff can
+// add up to MAX_CONTACT_ENTRIES total, and remove any entry past the first.
 export function RepeatableField({
   label,
   name,
@@ -33,6 +33,8 @@ export function RepeatableField({
   onRemove,
   onFocusFirst,
   onBlurFirst,
+  optional = false,
+  optionalLabel,
 }: {
   label: string;
   name: string;
@@ -46,15 +48,23 @@ export function RepeatableField({
   onRemove: (index: number) => void;
   onFocusFirst?: () => void;
   onBlurFirst?: () => void;
+  /** The field may be left empty (e.g. a client with no email). */
+  optional?: boolean;
+  optionalLabel?: string;
 }) {
   return (
     <div>
-      <p className="text-sm font-semibold">{label}</p>
+      <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+        {label}
+        {optional && optionalLabel && (
+          <span className="rounded-full bg-surface-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-ink-muted">{optionalLabel}</span>
+        )}
+      </p>
       <div className="mt-2 flex flex-col gap-2">
         {values.map((value, index) => (
           <div key={index} className="flex items-center gap-2">
             <input
-              required={index === 0}
+              required={index === 0 && !optional}
               name={name}
               type={type}
               value={value}

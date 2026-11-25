@@ -115,7 +115,7 @@ export async function GET() {
       clientName: client.clientName,
       companyName: client.companyName,
       telephone: client.telephone,
-      email: client.email,
+      email: client.email || "—",
       additionalClientNames: client.additionalClientNames.join("; ") || "—",
       additionalTelephones: client.additionalTelephones.join("; ") || "—",
       additionalEmails: client.additionalEmails.join("; ") || "—",

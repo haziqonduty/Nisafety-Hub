@@ -55,7 +55,16 @@ export function mergeIntoCompany(
   existing: CompanyContacts,
   incoming: { clientNames: string[]; telephones: string[]; emails: string[]; requestedServices: string[] },
 ) {
+  // Email is optional: a company saved without one takes the first real
+  // address that arrives as its main email.
+  const realEmails = incoming.emails.map((value) => value.trim()).filter((value) => value && emailKey(value) !== PLACEHOLDER_EMAIL);
+  if (!existing.email.trim() && realEmails.length > 0) {
+    const [first, ...rest] = realEmails;
+    existing = { ...existing, email: first };
+    incoming = { ...incoming, emails: rest };
+  }
   return {
+    email: existing.email,
     additionalClientNames: addNew(existing.additionalClientNames, existing.clientName, incoming.clientNames, nameKey),
     additionalTelephones: addNew(existing.additionalTelephones, existing.telephone, incoming.telephones, phoneKey),
     additionalEmails: addNew(existing.additionalEmails, existing.email, incoming.emails, emailKey, (value) => emailKey(value) === PLACEHOLDER_EMAIL),

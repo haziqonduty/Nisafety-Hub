@@ -48,6 +48,14 @@ describe("mergeIntoCompany", () => {
     expect(merged.additionalEmails).toEqual([]);
   });
 
+  it("gives a company with no email the first real address as its main email", () => {
+    const merged = mergeIntoCompany({ ...existing, email: "" }, { clientNames: [], telephones: [], emails: ["no-email@example.com", "first@example.com", "second@example.com"], requestedServices: [] });
+    expect(merged.email).toBe("first@example.com");
+    expect(merged.additionalEmails).toEqual(["second@example.com"]);
+    expect(mergeIntoCompany({ ...existing, email: "" }, { clientNames: [], telephones: [], emails: [], requestedServices: [] }).email).toBe("");
+    expect(mergeIntoCompany(existing, { clientNames: [], telephones: [], emails: ["other@example.com"], requestedServices: [] }).email).toBe("tester@example.com");
+  });
+
   it("stops at the limit", () => {
     const many = Array.from({ length: 15 }, (_, index) => `PERSON ${index}`);
     expect(mergeIntoCompany(existing, { clientNames: many, telephones: [], emails: [], requestedServices: [] }).additionalClientNames).toHaveLength(MAX_ADDITIONAL_CONTACTS);

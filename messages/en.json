@@ -248,7 +248,8 @@
       "keepExistingFile": "Leave empty to keep the current file.",
       "NOT_FOUND": "This record no longer exists.",
       "GENERIC": "We could not save these changes. Please try again."
-    }
+    },
+    "noEmail": "No email"
   },
   "categories": {
     "groups": {

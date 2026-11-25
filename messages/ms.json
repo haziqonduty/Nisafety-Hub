@@ -248,7 +248,8 @@
       "keepExistingFile": "Biarkan kosong untuk mengekalkan fail semasa.",
       "NOT_FOUND": "Rekod ini tidak lagi wujud.",
       "GENERIC": "Kami tidak dapat menyimpan perubahan ini. Sila cuba lagi."
-    }
+    },
+    "noEmail": "Tiada e-mel"
   },
   "categories": {
     "groups": {

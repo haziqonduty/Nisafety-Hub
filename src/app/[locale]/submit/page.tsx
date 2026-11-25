@@ -372,6 +372,8 @@ export default function SubmitPage() {
                 placeholder={t("emailPlaceholder")}
                 removeLabel={t("removeEntry")}
                 addLabel={t("addAnotherEmail")}
+                optional
+                optionalLabel={tServices("optional")}
                 values={emails}
                 onChange={(index, value) => updateEntry(setEmails, index, value)}
                 onAdd={() => addEntry(setEmails)}

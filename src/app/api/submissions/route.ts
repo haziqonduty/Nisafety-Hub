@@ -198,6 +198,7 @@ export async function POST(request: Request) {
         const { error: mergeError } = await supabase
           .from("clients")
           .update({
+            email: merged.email,
             additional_client_names: merged.additionalClientNames,
             additional_telephones: merged.additionalTelephones,
             additional_emails: merged.additionalEmails,

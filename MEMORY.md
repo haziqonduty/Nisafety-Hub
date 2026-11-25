@@ -942,3 +942,8 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - `readJobDetails` (server, tidy + required check → `MISSING_SALES_PERSON`) is used by POST /api/submissions, POST /api/clients/[id]/reports, and PATCH /api/records/[id] (required only when attaching a first report; older reports may stay blank). `ServiceReportsFields` takes `job`/`onJobChange` (New Report + Add a service); edit form has both fields.
 - Shown on the record page (tiles: "Not recorded" / "Direct with client"), admin company page rows, Excel export (2 new columns). EN/MS: "Jurujual", "Kontraktor utama".
 - Verified: 84 unit, Playwright 10/10 (real form, real upload, cleaned up incl. storage).
+
+## Client email optional (2026-11-25)
+- Kay: the New Report form must submit without an email. `clients.email` stays NOT NULL; '' = no email (`clients_email_check`: '' or 3–254 chars). Migration `20261125_optional_client_email.sql` (applied) also cleared the "no-email@example.com" placeholder from the 16 clients that used it — no dummy email is needed for data entry any more.
+- `RepeatableField` has `optional` + `optionalLabel` (first entry not required); used for email on /submit and the record edit form. Admin contact edit: email optional (validated only if given). Record page / admin card show "No email" ("Tiada e-mel"); export "—". `mergeIntoCompany` gives a company with no email the first real address as its main email.
+- Verified: 85 unit, Playwright 12/12 (real form saved with no email, cleaned up).

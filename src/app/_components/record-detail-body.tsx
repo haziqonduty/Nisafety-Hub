@@ -35,7 +35,7 @@ export function RecordDetailBody({ record }: { record: RecordDetail }) {
           </div>
           <div>
             <p className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{t("email")}</p>
-            <p className="mt-1 text-sm font-semibold">{record.email}</p>
+            <p className={`mt-1 text-sm ${record.email ? "font-semibold" : "italic text-ink-muted"}`}>{record.email || t("noEmail")}</p>
             {record.additionalEmails.length > 0 && <p className="mt-0.5 text-xs text-ink-muted">{t("alsoLabel")} {record.additionalEmails.join(", ")}</p>}
           </div>
           <div>

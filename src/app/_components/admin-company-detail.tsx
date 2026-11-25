@@ -53,7 +53,7 @@ function EditContact({ client, onDone }: { client: AdminClient; onDone: () => vo
         </label>
         <label className="text-xs font-semibold text-ink-muted">
           Email
-          <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className={fieldClass} />
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Optional" className={fieldClass} />
         </label>
       </div>
       <label className="text-xs font-semibold text-ink-muted">
@@ -161,7 +161,7 @@ export function ContactCard({ client, reportCount, isOnlyContact }: { client: Ad
             </div>
             <div className="flex min-w-0 items-center gap-2 text-ink-muted">
               <Mail className="h-3.5 w-3.5 shrink-0 text-accent" />
-              <span className="truncate font-medium text-ink">{client.email}</span>
+              {client.email ? <span className="truncate font-medium text-ink">{client.email}</span> : <span className="italic">No email</span>}
             </div>
             <div className="flex items-center gap-2 text-ink-muted">
               <Calendar className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
