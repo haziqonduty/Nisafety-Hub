@@ -4,6 +4,7 @@ import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { placeReportFile, removeStorageObjects, resolveReportFile, uploadThumbnail } from "@/lib/document-upload";
 import { MAX_ADDITIONAL_CONTACTS } from "@/lib/client-merge";
+import { readJobDetails } from "@/lib/job-details";
 
 function textValue(value: FormDataEntryValue | null, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -110,11 +111,21 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
   // (storagePath) or, from older clients, as the file itself.
   const hasNewFile = formData.has("storagePath") || formData.get("file") instanceof File;
 
+  // Sales person / maincon of the job: required when a first report is
+  // attached here; older reports may still leave them blank on edit.
+  let job: { salesPerson: string | null; maincon: string | null } | null = null;
+  if (formData.has("salesPerson") || (hasNewFile && !existingDocument)) {
+    const jobDetails = readJobDetails(formData, { requireSalesPerson: hasNewFile && !existingDocument });
+    if ("error" in jobDetails) return Response.json({ error: jobDetails.error }, { status: 400 });
+    job = jobDetails;
+  }
+  const jobColumns = job ? { sales_person: job.salesPerson, maincon: job.maincon } : {};
+
   if (!hasNewFile) {
     // No replacement/attachment file — the only other possible document
     // changes are the category and/or service date of an existing report.
     if (existingDocument) {
-      const changes: { category?: string; service_date?: string; service_date_confirmed?: boolean; expiry_date?: string | null } = {};
+      const changes: { category?: string; service_date?: string; service_date_confirmed?: boolean; expiry_date?: string | null; sales_person?: string | null; maincon?: string | null } = { ...jobColumns };
       if (category && category !== existingDocument.category) {
         if (!(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) {
           return Response.json({ error: "INVALID_CATEGORY" }, { status: 400 });
@@ -187,6 +198,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
         file_type: placed.fileType,
         file_size: placed.fileSize,
         thumbnail_path: thumbnailPath,
+        ...jobColumns,
       })
       .eq("id", existingDocument.id);
 
@@ -209,6 +221,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
     file_type: placed.fileType,
     file_size: placed.fileSize,
     thumbnail_path: thumbnailPath,
+    ...jobColumns,
   });
 
   if (insertError) {

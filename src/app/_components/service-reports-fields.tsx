@@ -7,6 +7,7 @@ import { compressPdf } from "@/lib/compress-pdf";
 import { appendUploadedFile, MAX_UPLOAD_SIZE } from "@/lib/direct-upload";
 import { CATEGORY_GROUPS, formatServiceDate, todayInMalaysia } from "@/lib/format";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
+import { appendJobDetails, MAX_MAINCON_LENGTH, MAX_SALES_PERSON_LENGTH, type JobDetails } from "@/lib/job-details";
 import { addDays, addMonths, defaultExpiryFor, validityRuleFor } from "@/lib/validity";
 
 // Reports upload straight to Supabase Storage (src/lib/direct-upload.ts),
@@ -42,6 +43,7 @@ export function newServiceRow(): ServiceRow {
 }
 
 const KNOWN_ERROR_CODES = new Set([
+  "MISSING_SALES_PERSON",
   "INVALID_CATEGORY",
   "INVALID_SERVICE_DATE",
   "INVALID_EXPIRY_DATE",
@@ -72,9 +74,10 @@ export function effectiveExpiry(row: ServiceRow, serviceDate: string) {
  * category, dates, storage path and (for PDFs) a thumbnail. Returns an
  * error code if the upload itself failed, otherwise null.
  */
-export async function appendServiceReport(formData: FormData, row: ServiceRow, serviceDate: string): Promise<string | null> {
+export async function appendServiceReport(formData: FormData, row: ServiceRow, serviceDate: string, job: JobDetails): Promise<string | null> {
   formData.append("category", row.category);
   formData.append("serviceDate", serviceDate);
+  appendJobDetails(formData, job);
   // Always sent, so the server stores exactly what the row showed.
   formData.append("expiryDate", effectiveExpiry(row, serviceDate));
   if (!row.file) return null;
@@ -98,14 +101,14 @@ function patchRow(setRows: Dispatch<SetStateAction<ServiceRow[]>>, key: string, 
  * calling this again after a partial failure retries only what failed.
  * Returns whether every row is now saved.
  */
-export async function uploadServiceRows(clientId: string, rows: ServiceRow[], serviceDate: string, setRows: Dispatch<SetStateAction<ServiceRow[]>>) {
+export async function uploadServiceRows(clientId: string, rows: ServiceRow[], serviceDate: string, job: JobDetails, setRows: Dispatch<SetStateAction<ServiceRow[]>>) {
   let allSaved = true;
   for (const row of rows) {
     if (row.status === "done") continue;
     patchRow(setRows, row.key, { status: "uploading", errorCode: "" });
     try {
       const formData = new FormData();
-      const uploadError = await appendServiceReport(formData, row, serviceDate);
+      const uploadError = await appendServiceReport(formData, row, serviceDate, job);
       if (uploadError) {
         allSaved = false;
         patchRow(setRows, row.key, { status: "error", errorCode: knownErrorCode(uploadError) });
@@ -128,11 +131,15 @@ export async function uploadServiceRows(clientId: string, rows: ServiceRow[], se
 }
 
 /** Client-side check before anything is sent; marks offending rows. */
-export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>, serviceDate: string) {
+export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>, serviceDate: string, job: JobDetails) {
   // The browser's own `required` check normally stops the form first (see
-  // the date input's onInvalid); this is the backstop.
+  // the date / sales person inputs' onInvalid); this is the backstop.
   if (!serviceDate) {
     document.getElementById(SERVICE_DATE_INPUT_ID)?.focus();
+    return false;
+  }
+  if (!job.salesPerson.trim()) {
+    document.getElementById(SALES_PERSON_INPUT_ID)?.focus();
     return false;
   }
   const problems = new Map<string, string>();
@@ -149,6 +156,7 @@ export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetSta
 }
 
 export const SERVICE_DATE_INPUT_ID = "service-date";
+export const SALES_PERSON_INPUT_ID = "sales-person";
 
 const fieldClass =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:opacity-60";
@@ -156,13 +164,16 @@ const fieldClass =
 type Props = {
   serviceDate: string;
   onServiceDateChange: (value: string) => void;
+  /** Sales person + maincon of this job; saved on every report of the visit. */
+  job: JobDetails;
+  onJobChange: (job: JobDetails) => void;
   rows: ServiceRow[];
   setRows: Dispatch<SetStateAction<ServiceRow[]>>;
   /** Locks the date and every saved/uploading row (e.g. mid-upload, or after a partial save). */
   locked?: boolean;
 };
 
-export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, setRows, locked = false }: Props) {
+export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, onJobChange, rows, setRows, locked = false }: Props) {
   const t = useTranslations("services");
   const tSubmit = useTranslations("submit");
   const tErrors = useTranslations("submissionErrors");
@@ -173,6 +184,7 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
   const yesterday = addDays(today, -1);
   // Set when the form was submitted without a date; cleared once one is picked.
   const [dateMissing, setDateMissing] = useState(false);
+  const [salesPersonMissing, setSalesPersonMissing] = useState(false);
   const chosenCategories = rows.map((row) => row.category).filter(Boolean);
 
   async function chooseFile(row: ServiceRow, event: ChangeEvent<HTMLInputElement>) {
@@ -287,6 +299,66 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, rows, s
             {serviceDate ? t("serviceDateHint") : t("dateRequiredHint")}
           </p>
         )}
+      </div>
+
+      {/* Who sold the job, and the main contractor when it came through one. */}
+      <div className="mt-4 grid gap-4 rounded-2xl border border-line bg-surface p-4 sm:grid-cols-2 sm:p-5">
+        <div>
+          <label htmlFor={SALES_PERSON_INPUT_ID} className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {t("salesPerson")}
+            {!job.salesPerson.trim() && <span className="rounded-full bg-amber-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-amber">{t("required")}</span>}
+          </label>
+          <input
+            id={SALES_PERSON_INPUT_ID}
+            required
+            maxLength={MAX_SALES_PERSON_LENGTH}
+            value={job.salesPerson}
+            disabled={locked}
+            onChange={(event) => {
+              onJobChange({ ...job, salesPerson: event.target.value });
+              if (event.target.value.trim()) setSalesPersonMissing(false);
+            }}
+            onInvalid={(event) => {
+              event.preventDefault();
+              setSalesPersonMissing(true);
+              event.currentTarget.focus();
+            }}
+            aria-invalid={salesPersonMissing}
+            aria-describedby="sales-person-hint"
+            placeholder={t("salesPersonPlaceholder")}
+            autoComplete="off"
+            className={`${fieldClass} mt-2 ${salesPersonMissing ? "border-danger focus:border-danger focus:ring-danger-soft" : ""}`}
+          />
+          {salesPersonMissing ? (
+            <p id="sales-person-hint" role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-danger">
+              <AlertTriangle className="h-3.5 w-3.5" /> {t("salesPersonRequiredError")}
+            </p>
+          ) : (
+            <p id="sales-person-hint" className="mt-1.5 text-xs text-ink-muted">
+              {t("salesPersonHint")}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="maincon" className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {t("maincon")}
+            <span className="rounded-full bg-surface-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-ink-muted">{t("optional")}</span>
+          </label>
+          <input
+            id="maincon"
+            maxLength={MAX_MAINCON_LENGTH}
+            value={job.maincon}
+            disabled={locked}
+            onChange={(event) => onJobChange({ ...job, maincon: event.target.value })}
+            aria-describedby="maincon-hint"
+            placeholder={t("mainconPlaceholder")}
+            autoComplete="off"
+            className={`${fieldClass} mt-2`}
+          />
+          <p id="maincon-hint" className="mt-1.5 text-xs text-ink-muted">
+            {t("mainconHint")}
+          </p>
+        </div>
       </div>
 
       <ol className="mt-5 space-y-3">

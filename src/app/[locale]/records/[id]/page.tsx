@@ -89,6 +89,19 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
             <h1 className="mt-6 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">{record.hasDocument ? record.fileName : record.companyName}</h1>
           </ViewTransition>
           {record.hasDocument && <p className="mt-2 text-sm text-ink-muted">{record.fileType} · {record.fileSize}</p>}
+          {record.hasDocument && (
+            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              {[
+                { label: tServices("salesPerson"), value: record.salesPerson ?? tServices("notRecorded") },
+                { label: tServices("maincon"), value: record.maincon ?? tServices("directJob") },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-line bg-surface-soft px-4 py-3">
+                  <dt className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{item.label.toUpperCase()}</dt>
+                  <dd className="mt-1 text-sm font-semibold">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
 
           {record.hasDocument && record.category && record.serviceDate && !record.serviceDateConfirmed && (
             <ConfirmMonitoringDate id={record.id} category={record.category} guessedDate={record.serviceDate} expiryDate={record.expiryDate} />

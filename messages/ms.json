@@ -202,7 +202,8 @@
     "RATE_LIMITED": "Terlalu banyak penghantaran dari rangkaian anda baru-baru ini. Sila tunggu beberapa minit dan cuba lagi.",
     "INVALID_SERVICE_DATE": "Pilih tarikh perkhidmatan yang sah — ia tidak boleh pada masa hadapan.",
     "NOT_FOUND": "Klien ini tidak lagi wujud.",
-    "INVALID_EXPIRY_DATE": "Tarikh tamat mestilah selepas tarikh pemantauan."
+    "INVALID_EXPIRY_DATE": "Tarikh tamat mestilah selepas tarikh pemantauan.",
+    "MISSING_SALES_PERSON": "Masukkan jurujual untuk kerja ini."
   },
   "submissionSuccess": {
     "eyebrow": "PENGHANTARAN DITERIMA",
@@ -344,7 +345,17 @@
     "requestedSaveError": "Senarai tidak dapat disimpan. Semak sambungan anda dan cuba lagi.",
     "requestedAttach": "Lampirkan laporan {service}",
     "requestedAttachShort": "Lampir laporan",
-    "requestedShort": "TUGASAN"
+    "requestedShort": "TUGASAN",
+    "salesPerson": "Jurujual",
+    "salesPersonPlaceholder": "Siapa yang menjual kerja ini",
+    "salesPersonHint": "Disimpan pada setiap perkhidmatan dalam lawatan ini.",
+    "salesPersonRequiredError": "Masukkan jurujual untuk kerja ini.",
+    "maincon": "Kontraktor utama",
+    "mainconPlaceholder": "Kontraktor utama, jika ada",
+    "mainconHint": "Biarkan kosong jika kerja terus dengan klien.",
+    "optional": "PILIHAN",
+    "notRecorded": "Tidak direkodkan",
+    "directJob": "Terus dengan klien"
   },
   "expiry": {
     "validUntil": "Sah sehingga",

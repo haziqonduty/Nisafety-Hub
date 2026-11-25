@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/supabase/rate-limit";
 import { resolveReportFile, storeReport, validateReport, type ReportFile } from "@/lib/document-upload";
 import { cleanRequestedServices } from "@/lib/requested-services";
 import { MAX_ADDITIONAL_CONTACTS, mergeIntoCompany } from "@/lib/client-merge";
+import { readJobDetails } from "@/lib/job-details";
 
 // Per staff ACCOUNT, not per IP: everyone in the office shares one internet
 // address, so an IP limit of 5 blocked the whole office on a busy hour.
@@ -106,8 +107,14 @@ export async function POST(request: Request) {
   // Any further services from the same visit (or a later one) are added one
   // request each via POST /api/clients/[id]/reports.
   let report: { reportFile: ReportFile; expiryDate: string | null } | null = null;
+  let job: { salesPerson: string | null; maincon: string | null } = { salesPerson: null, maincon: null };
 
   if (hasDocument) {
+    const jobDetails = readJobDetails(formData, { requireSalesPerson: true });
+    if ("error" in jobDetails) {
+      return Response.json({ error: jobDetails.error }, { status: 400 });
+    }
+    job = jobDetails;
     const validation = await validateReport(category, serviceDate, expiryInput, await resolveReportFile(formData));
     if ("error" in validation) {
       return Response.json({ error: validation.error }, { status: 400 });
@@ -235,7 +242,7 @@ export async function POST(request: Request) {
     return Response.json({ clientId, joinedExistingCompany }, { status: 201 });
   }
 
-  const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, reportFile: report.reportFile, thumbnail });
+  const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, reportFile: report.reportFile, thumbnail, ...job });
   if ("error" in stored) {
     await rollbackNewClient(clientId, isNewClient);
     return Response.json({ error: stored.error }, { status: 500 });

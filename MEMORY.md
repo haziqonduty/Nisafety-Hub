@@ -935,3 +935,10 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - `POST /api/submissions`: when no company was picked from the search, it calls `find_client_by_company`; on a match it adds new names/phones/emails as extras (`mergeIntoCompany`, no repeats, skips no-email@example.com), unions requested services, keeps the main contact, and returns `joinedExistingCompany` → `/submission-success?existing=1` shows "Added to the existing company".
 - Not enforced by a unique index (recycle-bin restore of an old duplicate would fail) — the server match is the guard. Renaming a company on the record page to an existing name could still create a pair; admin view groups them anyway.
 - Verified: 79 unit, Playwright 11/11 (throwaway user/companies, cleaned up).
+
+## Sales person + maincon on every report (2026-11-25)
+- Kay's choices: stored per JOB on each report (`documents.sales_person`, `documents.maincon`), not on the company; Sales person REQUIRED on every new report, Maincon optional (blank = direct with client). Every service of one visit gets the same values. Client-details-only has no report, so no fields there.
+- Migration `20261125_report_sales_person_maincon.sql` (applied): the two columns with length checks (120 / 160, = `src/lib/job-details.ts`), and `directory_page` search also matches them.
+- `readJobDetails` (server, tidy + required check → `MISSING_SALES_PERSON`) is used by POST /api/submissions, POST /api/clients/[id]/reports, and PATCH /api/records/[id] (required only when attaching a first report; older reports may stay blank). `ServiceReportsFields` takes `job`/`onJobChange` (New Report + Add a service); edit form has both fields.
+- Shown on the record page (tiles: "Not recorded" / "Direct with client"), admin company page rows, Excel export (2 new columns). EN/MS: "Jurujual", "Kontraktor utama".
+- Verified: 84 unit, Playwright 10/10 (real form, real upload, cleaned up incl. storage).

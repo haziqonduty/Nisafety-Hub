@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { EMPTY_JOB_DETAILS, type JobDetails } from "@/lib/job-details";
 import { useEffect, useRef, useState, type FormEvent, type SVGProps } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
@@ -39,6 +40,7 @@ const KNOWN_ERROR_CODES = [
   "DOCUMENT_REQUIRED_FOR_EXISTING_CLIENT",
   "TOO_MANY_CONTACTS",
   "INVALID_SERVICE_DATE",
+  "MISSING_SALES_PERSON",
 ] as const;
 type ErrorCode = (typeof KNOWN_ERROR_CODES)[number];
 
@@ -75,6 +77,7 @@ export default function SubmitPage() {
   const [telephones, setTelephones] = useState<string[]>([""]);
   const [emails, setEmails] = useState<string[]>([""]);
   const [serviceDate, setServiceDate] = useState("");
+  const [job, setJob] = useState<JobDetails>(EMPTY_JOB_DETAILS);
   const [serviceRows, setServiceRows] = useState<ServiceRow[]>(() => [newServiceRow()]);
   // Set once the client (and its first report) is saved but a later service
   // failed — from then on, submitting again only retries what failed instead
@@ -175,7 +178,7 @@ export default function SubmitPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isCompressing) return;
-    if (attachDocument && !validateServiceRows(serviceRows, setServiceRows, serviceDate)) {
+    if (attachDocument && !validateServiceRows(serviceRows, setServiceRows, serviceDate, job)) {
       setError("");
       return;
     }
@@ -203,7 +206,7 @@ export default function SubmitPage() {
       if (!attachDocument) requestedServices.forEach((service) => formData.append("requestedService", service));
       if (firstRow) {
         markRow(firstRow.key, { status: "uploading", errorCode: "" });
-        const uploadError = await appendServiceReport(formData, firstRow, serviceDate);
+        const uploadError = await appendServiceReport(formData, firstRow, serviceDate, job);
         if (uploadError) {
           markRow(firstRow.key, { status: "error", errorCode: knownErrorCode(uploadError) });
           setIsSubmitting(false);
@@ -240,7 +243,7 @@ export default function SubmitPage() {
     }
 
     if (attachDocument) {
-      const allSaved = await uploadServiceRows(clientId, rowsToUpload, serviceDate, setServiceRows);
+      const allSaved = await uploadServiceRows(clientId, rowsToUpload, serviceDate, job, setServiceRows);
       if (!allSaved) {
         setSavedClientId(clientId);
         setError(tServices("partialSaved"));
@@ -392,7 +395,7 @@ export default function SubmitPage() {
           </div> : <div key={attachDocument ? "step-2-doc" : "step-2-nodoc"} className="animate-[rise_.35s_ease-out_both]">
             <div className="flex items-start justify-between gap-5"><div><h2 className="text-xl font-semibold tracking-[-0.04em]">{attachDocument ? t("step2Heading") : t("step2SkippedHeading")}</h2><p className="mt-1 text-sm text-ink-muted">{attachDocument ? t("step2Subheading") : t("step2SkippedText")}</p></div><span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold text-accent">{t("step2Badge")}</span></div>
             {attachDocument && <div className="mt-7">
-              <ServiceReportsFields serviceDate={serviceDate} onServiceDateChange={setServiceDate} rows={serviceRows} setRows={setServiceRows} locked={isSubmitting || Boolean(savedClientId)} />
+              <ServiceReportsFields serviceDate={serviceDate} onServiceDateChange={setServiceDate} job={job} onJobChange={setJob} rows={serviceRows} setRows={setServiceRows} locked={isSubmitting || Boolean(savedClientId)} />
               <div className="mt-5 rounded-xl border border-amber-soft bg-amber-soft p-4 text-xs leading-5 text-amber"><strong>{t("beforeSubmitStrong")}</strong> {t("beforeSubmitText")}</div>
             </div>}
             {!attachDocument && <div className="mt-7 rounded-2xl border border-line bg-surface-soft p-5">

@@ -125,6 +125,8 @@ export function AdminCompanyView({ company }: { company: AdminCompany }) {
                                 </span>
                               )}
                               {manyContacts && <span>{report.clientName}</span>}
+                              <span>Sales: {report.salesPerson ?? "—"}</span>
+                              {report.maincon && <span>Maincon: {report.maincon}</span>}
                               <ExpiryBadge status={report.status} label={badgeText(report)} />
                             </p>
                           </div>

@@ -237,6 +237,9 @@ type StoreReportInput = {
   expiryDate: string | null;
   reportFile: ReportFile;
   thumbnail: FormDataEntryValue | null;
+  /** The job's sales person and main contractor (null = blank / direct job). */
+  salesPerson: string | null;
+  maincon: string | null;
 };
 
 /**
@@ -265,6 +268,8 @@ export async function storeReport(supabase: SupabaseClient, input: StoreReportIn
       file_type: placed.fileType,
       file_size: placed.fileSize,
       thumbnail_path: thumbnailPath,
+      sales_person: input.salesPerson,
+      maincon: input.maincon,
     })
     .select("id")
     .single();

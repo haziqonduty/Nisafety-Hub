@@ -25,7 +25,7 @@ function client(overrides: Partial<AdminClient> & { id: string; companyName: str
 }
 
 function report(id: string, category: string, serviceDate: string, expiryDate: string | null, extra: { renewalClosed?: boolean; createdAt?: string } = {}) {
-  return { id, category, fileName: `${id}.pdf`, serviceDate, expiryDate, renewalClosed: extra.renewalClosed ?? false, createdAt: extra.createdAt ?? `${serviceDate}T00:00:00Z` };
+  return { id, category, fileName: `${id}.pdf`, serviceDate, expiryDate, renewalClosed: extra.renewalClosed ?? false, salesPerson: null, maincon: null, createdAt: extra.createdAt ?? `${serviceDate}T00:00:00Z` };
 }
 
 describe("companyKey", () => {

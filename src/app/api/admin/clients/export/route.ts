@@ -33,6 +33,8 @@ const COLUMNS: { header: string; width: number }[] = [
   { header: "Submission Date", width: 18 },
   { header: "Category", width: 44 },
   { header: "Document File Name", width: 38 },
+  { header: "Sales Person", width: 22 },
+  { header: "Maincon", width: 26 },
 ];
 
 const ACCENT_ROW = 1;
@@ -104,6 +106,8 @@ export async function GET() {
     createdAt: string;
     category: string | null;
     fileName: string | null;
+    salesPerson: string | null;
+    maincon: string | null;
   };
 
   const rows: ExportRow[] = clients.flatMap((client): ExportRow[] => {
@@ -118,8 +122,8 @@ export async function GET() {
       submitterName: client.submitterName,
       createdAt: client.createdAt,
     };
-    if (client.documents.length === 0) return [{ ...base, category: null, fileName: null }];
-    return client.documents.map((document) => ({ ...base, category: document.category, fileName: document.fileName }));
+    if (client.documents.length === 0) return [{ ...base, category: null, fileName: null, salesPerson: null, maincon: null }];
+    return client.documents.map((document) => ({ ...base, category: document.category, fileName: document.fileName, salesPerson: document.salesPerson, maincon: document.maincon }));
   });
 
   const workbook = new ExcelJS.Workbook();
@@ -218,6 +222,8 @@ export async function GET() {
       new Date(row.createdAt),
       row.category ?? "—",
       row.fileName ?? "—",
+      row.salesPerson ?? "—",
+      row.maincon ?? "—",
     ];
     values.forEach((value, columnIndex) => {
       const cell = excelRow.getCell(columnIndex + 1);

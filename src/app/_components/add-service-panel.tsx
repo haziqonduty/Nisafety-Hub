@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Close, Plus } from "@/app/_components/icons";
 import { newServiceRow, ServiceReportsFields, uploadServiceRows, validateServiceRows, type ServiceRow } from "@/app/_components/service-reports-fields";
+import { EMPTY_JOB_DETAILS, type JobDetails } from "@/lib/job-details";
 import { useRouter } from "@/i18n/routing";
 
 /**
@@ -27,6 +28,7 @@ export function AddServicePanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(Boolean(renewCategory));
   const [serviceDate, setServiceDate] = useState("");
+  const [job, setJob] = useState<JobDetails>(EMPTY_JOB_DETAILS);
   const [rows, setRows] = useState<ServiceRow[]>(() => [{ ...newServiceRow(), category: renewCategory ?? "" }]);
 
   // Arriving via a "Renew" link: bring the pre-filled panel into view.
@@ -44,16 +46,17 @@ export function AddServicePanel({
   function reset() {
     setRows([newServiceRow()]);
     setServiceDate("");
+    setJob(EMPTY_JOB_DETAILS);
     setError("");
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isCompressing || !validateServiceRows(rows, setRows, serviceDate)) return;
+    if (isCompressing || !validateServiceRows(rows, setRows, serviceDate, job)) return;
     setError("");
     setIsSaving(true);
     const savedCount = rows.length;
-    const allSaved = await uploadServiceRows(clientId, rows, serviceDate, setRows);
+    const allSaved = await uploadServiceRows(clientId, rows, serviceDate, job, setRows);
     setIsSaving(false);
     router.refresh();
     if (allSaved) {
@@ -110,7 +113,7 @@ export function AddServicePanel({
       </div>
 
       <div className="mt-5">
-        <ServiceReportsFields serviceDate={serviceDate} onServiceDateChange={setServiceDate} rows={rows} setRows={setRows} locked={isSaving || anySaved} />
+        <ServiceReportsFields serviceDate={serviceDate} onServiceDateChange={setServiceDate} job={job} onJobChange={setJob} rows={rows} setRows={setRows} locked={isSaving || anySaved} />
       </div>
 
       {error && (

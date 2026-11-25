@@ -202,7 +202,8 @@
     "RATE_LIMITED": "Too many submissions from your network recently. Please wait a few minutes and try again.",
     "INVALID_SERVICE_DATE": "Choose a valid service date — it can't be in the future.",
     "NOT_FOUND": "This client no longer exists.",
-    "INVALID_EXPIRY_DATE": "The expiry date must be after the date of monitoring."
+    "INVALID_EXPIRY_DATE": "The expiry date must be after the date of monitoring.",
+    "MISSING_SALES_PERSON": "Enter the sales person for this job."
   },
   "submissionSuccess": {
     "eyebrow": "SUBMISSION RECEIVED",
@@ -344,7 +345,17 @@
     "requestedSaveError": "Couldn't save the list. Check your connection and try again.",
     "requestedAttach": "Attach the {service} report",
     "requestedAttachShort": "Attach report",
-    "requestedShort": "TO DO"
+    "requestedShort": "TO DO",
+    "salesPerson": "Sales person",
+    "salesPersonPlaceholder": "Who sold this job",
+    "salesPersonHint": "Saved on every service in this visit.",
+    "salesPersonRequiredError": "Enter the sales person for this job.",
+    "maincon": "Maincon",
+    "mainconPlaceholder": "Main contractor, if any",
+    "mainconHint": "Leave blank if the job is direct with the client.",
+    "optional": "OPTIONAL",
+    "notRecorded": "Not recorded",
+    "directJob": "Direct with client"
   },
   "expiry": {
     "validUntil": "Valid until",

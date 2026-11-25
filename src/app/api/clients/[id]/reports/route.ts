@@ -1,5 +1,6 @@
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { resolveReportFile, storeReport, validateReport } from "@/lib/document-upload";
+import { readJobDetails } from "@/lib/job-details";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function textValue(value: FormDataEntryValue | null, maxLength: number) {
@@ -24,6 +25,11 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
   const serviceDate = textValue(formData.get("serviceDate"), 10);
   const expiryInput = formData.has("expiryDate") ? textValue(formData.get("expiryDate"), 10) : null;
 
+  const job = readJobDetails(formData, { requireSalesPerson: true });
+  if ("error" in job) {
+    return Response.json({ error: job.error }, { status: 400 });
+  }
+
   const validation = await validateReport(category, serviceDate, expiryInput, await resolveReportFile(formData));
   if ("error" in validation) {
     return Response.json({ error: validation.error }, { status: 400 });
@@ -44,6 +50,8 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
     expiryDate: validation.expiryDate,
     reportFile: validation.reportFile,
     thumbnail: formData.get("thumbnail"),
+    salesPerson: job.salesPerson,
+    maincon: job.maincon,
   });
   if ("error" in stored) {
     return Response.json({ error: stored.error }, { status: 500 });

@@ -290,6 +290,9 @@ export type RecordDetail = {
   /** False while the date of monitoring is still the automatic guess (reports saved before staff had to key it in). */
   serviceDateConfirmed: boolean;
   expiryDate: string | null;
+  /** Who sold the job and its main contractor; null when blank (older reports, or a direct job). */
+  salesPerson: string | null;
+  maincon: string | null;
   /** When staff closed this report's renewal ("Action taken"), and why; null while it's still tracked. */
   renewalClosedAt: string | null;
   renewalClosedReason: RenewalCloseReason | null;
@@ -318,6 +321,8 @@ type RecordDetailRow = {
   expiry_date: string | null;
   renewal_closed_at: string | null;
   renewal_closed_reason: string | null;
+  sales_person: string | null;
+  maincon: string | null;
   file_name: string;
   file_size: number;
   storage_path: string;
@@ -329,7 +334,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, renewal_closed_reason, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, renewal_closed_reason, sales_person, maincon, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services)")
     .eq("id", id)
     .single();
 
@@ -361,6 +366,8 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
     serviceDate: row.service_date,
     serviceDateConfirmed: row.service_date_confirmed,
     expiryDate: row.expiry_date,
+    salesPerson: row.sales_person,
+    maincon: row.maincon,
     renewalClosedAt: row.renewal_closed_at,
     renewalClosedReason: isRenewalCloseReason(row.renewal_closed_reason) ? row.renewal_closed_reason : null,
     tone: toneForCategory(row.category),
@@ -430,6 +437,8 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
     serviceDate: null,
     serviceDateConfirmed: true,
     expiryDate: null,
+    salesPerson: null,
+    maincon: null,
     renewalClosedAt: null,
     renewalClosedReason: null,
     tone: null,
@@ -631,6 +640,8 @@ export type AdminClient = {
     serviceDate: string;
     expiryDate: string | null;
     renewalClosed: boolean;
+    salesPerson: string | null;
+    maincon: string | null;
     createdAt: string;
   }[];
 };
@@ -648,7 +659,7 @@ type AdminClientRow = {
   internal_notes: string | null;
   requested_services: string[] | null;
   created_at: string;
-  documents: { id: string; category: string; file_name: string; service_date: string; expiry_date: string | null; renewal_closed_at: string | null; created_at: string }[] | null;
+  documents: { id: string; category: string; file_name: string; service_date: string; expiry_date: string | null; renewal_closed_at: string | null; sales_person: string | null; maincon: string | null; created_at: string }[] | null;
 };
 
 // internal_notes is admin-only and no longer in anon's column-level grant
@@ -659,7 +670,7 @@ export async function getAdminClients(): Promise<AdminClient[]> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, requested_services, created_at, documents(id, category, file_name, service_date, expiry_date, renewal_closed_at, created_at)")
+    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, requested_services, created_at, documents(id, category, file_name, service_date, expiry_date, renewal_closed_at, sales_person, maincon, created_at)")
     // Service role bypasses RLS, so exclude the recycle bin by hand.
     .is("deleted_at", null)
     .is("documents.deleted_at", null)
@@ -688,6 +699,8 @@ export async function getAdminClients(): Promise<AdminClient[]> {
       serviceDate: document.service_date,
       expiryDate: document.expiry_date,
       renewalClosed: Boolean(document.renewal_closed_at),
+      salesPerson: document.sales_person,
+      maincon: document.maincon,
       createdAt: document.created_at,
     })),
   }));

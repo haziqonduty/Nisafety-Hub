@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { appendJobDetails, MAX_MAINCON_LENGTH, MAX_SALES_PERSON_LENGTH } from "@/lib/job-details";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { addEntry, removeEntry, RepeatableField, updateEntry } from "@/app/_components/repeatable-field";
 import { useRouter } from "@/i18n/routing";
@@ -22,6 +23,7 @@ const fieldClass = "mt-2 w-full rounded-xl border border-line bg-surface px-3.5 
 
 const KNOWN_ERROR_CODES = [
   "MISSING_FIELDS",
+  "MISSING_SALES_PERSON",
   "INVALID_EMAIL",
   "INVALID_CATEGORY",
   "INVALID_FILE_TYPE",
@@ -56,6 +58,8 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
   // report whose date was only ever filled in automatically, starts blank.
   const [serviceDate, setServiceDate] = useState(record.serviceDateConfirmed ? (record.serviceDate ?? "") : "");
   const [expiryDate, setExpiryDate] = useState(record.hasDocument ? (record.expiryDate ?? "") : "");
+  const [salesPerson, setSalesPerson] = useState(record.salesPerson ?? "");
+  const [maincon, setMaincon] = useState(record.maincon ?? "");
   // An unconfirmed report whose expiry was auto-calculated from the guessed
   // date should recalculate from the real one as staff type it in.
   const expiryFollowsDate =
@@ -124,6 +128,7 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
     if (record.hasDocument || selectedFile) {
       formData.append("serviceDate", serviceDate);
       formData.append("expiryDate", effectiveExpiry);
+      appendJobDetails(formData, { salesPerson, maincon });
     }
     if (selectedFile) {
       const uploadError = await appendUploadedFile(formData, selectedFile);
@@ -247,6 +252,35 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
             <span className="mt-1.5 block text-xs font-normal text-ink-muted">{tServices("editUnconfirmedHint")}</span>
           )}
         </label>
+      )}
+
+      {(record.hasDocument || selectedFile) && (
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-semibold">
+            {tServices("salesPerson")}
+            {/* Required for a first report; older reports may still be blank. */}
+            <input
+              required={!record.hasDocument}
+              maxLength={MAX_SALES_PERSON_LENGTH}
+              value={salesPerson}
+              onChange={(event) => setSalesPerson(event.target.value)}
+              placeholder={tServices("salesPersonPlaceholder")}
+              autoComplete="off"
+              className={fieldClass}
+            />
+          </label>
+          <label className="block text-sm font-semibold">
+            {tServices("maincon")} <span className="font-normal text-ink-muted">({tServices("optional")})</span>
+            <input
+              maxLength={MAX_MAINCON_LENGTH}
+              value={maincon}
+              onChange={(event) => setMaincon(event.target.value)}
+              placeholder={tServices("mainconPlaceholder")}
+              autoComplete="off"
+              className={fieldClass}
+            />
+          </label>
+        </div>
       )}
 
       {(record.hasDocument || selectedFile) && (
