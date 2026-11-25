@@ -1016,7 +1016,7 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Verified: lint, tsc, 92 unit, 69 security, Playwright 16/16 (incl. list not behind the next card, keyboard, save order, record-page editor, Malay; cleaned up).
 
 ## Record page documents list: view only (2026-11-26)
-- Kay: first removed the ↗ / download icons (rows became links), then asked for the list to be VIEW ONLY: no links, no hover, and no file names — only the name staff typed for each document. Layout: card with file icon + "DOCUMENTS" + count pill, hairline-divided rows "01  <name>  [MAIN]  PDF · 3.2 MB" (MAIN tag on the main report; `services.mainBadge` MAIN / UTAMA).
+- Kay: first removed the ↗ / download icons (rows became links), then asked for the list to be VIEW ONLY: no links, no hover, and no file names — only the name staff typed for each document. Layout: card with file icon + "DOCUMENTS" + count pill, hairline-divided rows "01  <name>". Later the same day Kay also removed the MAIN tag and the "PDF · size" text: each row is only the number and the staff name (`services.mainBadge` removed).
 - Consequence Kay accepted: extra documents can't be opened from the record page (the main report keeps Download / Open in new tab above). Extras are still in Storage and in the admin Backup ZIP. If staff need them again, offer a download per row.
 - Verified: Playwright 10/10 (no links/buttons in the list, staff names shown, no ".pdf", MAIN tag), 92 unit, 69 security.
 

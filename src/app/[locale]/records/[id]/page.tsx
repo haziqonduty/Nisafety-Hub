@@ -169,20 +169,12 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
                   </div>
                   <ol className="relative mt-4 divide-y divide-line">
                     {[
-                      { id: "main", label: record.fileLabel ?? tServices("mainDocument"), fileType: record.fileType!, fileSize: record.fileSize! },
+                      { id: "main", label: record.fileLabel ?? tServices("mainDocument") },
                       ...record.extraFiles,
                     ].map((file, index) => (
                       <li key={file.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                         <span className="w-6 shrink-0 font-mono text-xs font-bold tabular-nums text-accent">{String(index + 1).padStart(2, "0")}</span>
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em]">{file.label}</span>
-                        {index === 0 && (
-                          <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[9px] font-bold tracking-[0.1em] text-accent">
-                            {tServices("mainBadge")}
-                          </span>
-                        )}
-                        <span className="shrink-0 font-mono text-[11px] tabular-nums text-ink-faint">
-                          {file.fileType} · {file.fileSize}
-                        </span>
                       </li>
                     ))}
                   </ol>

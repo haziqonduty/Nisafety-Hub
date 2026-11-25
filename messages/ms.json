@@ -390,8 +390,7 @@
     "pickerNoMatch": "Tiada perkhidmatan sepadan dengan “{query}”.",
     "pickerRemove": "Buang {service}",
     "pickerClear": "Kosongkan semua",
-    "pickerNone": "Belum ada. Cari, atau buka senarai untuk memilih perkhidmatan.",
-    "mainBadge": "UTAMA"
+    "pickerNone": "Belum ada. Cari, atau buka senarai untuk memilih perkhidmatan."
   },
   "expiry": {
     "validUntil": "Sah sehingga",
