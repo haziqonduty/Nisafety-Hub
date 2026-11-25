@@ -379,11 +379,6 @@
     "optional": "OPTIONAL",
     "notRecorded": "Not recorded",
     "directJob": "Direct with client",
-    "duplicateReportEyebrow": "POSSIBLE DUPLICATE",
-    "duplicateReportTitle": "{count, plural, =1 {This client already has this report} other {This client already has these reports}}",
-    "duplicateReportBody": "A report for the same service and service date is already saved. Upload again only if this is a different or corrected report — both will be kept in the service history.",
-    "duplicateReportBack": "Go back",
-    "duplicateReportUploadAnyway": "Upload anyway",
     "fileLabel": "Document {number} name",
     "fileLabelPlaceholder": "Document name / remark, e.g. Main report",
     "extraFileLabelPlaceholder": "Name / remark, e.g. Appendix A",
@@ -578,5 +573,23 @@
     "guide2": "On a computer, right-click the exact building and click the numbers at the top to copy them. On a phone, tap Share → Copy link.",
     "guide3": "Paste it in the box above and press Use this location. You can also just click the map.",
     "openInGoogleMaps": "Open in Google Maps"
+  },
+  "review": {
+    "eyebrow": "REVIEW BEFORE SUBMITTING",
+    "title": "Check the details",
+    "subtitle": "Nothing is uploaded until you confirm.",
+    "close": "Go back and edit",
+    "dateLabel": "Date of monitoring",
+    "today": "today",
+    "yesterday": "yesterday",
+    "daysAgo": "{count} days ago",
+    "dateHint": "{count, plural, =1 {This service uses this date.} other {All # services below use this date. If one was done on a different day, go back and add it separately.}}",
+    "validUntil": "Valid until {date}",
+    "noExpiry": "No fixed expiry",
+    "duplicateTitle": "{count, plural, =1 {This client already has this report} other {This client already has these reports}}",
+    "duplicateBody": "Same service and same date of monitoring. Submit again only if this is a different or corrected report; otherwise go back.",
+    "back": "Go back and edit",
+    "confirm": "{count, plural, =1 {Confirm & submit} other {Confirm & submit # services}}",
+    "confirmAnyway": "Submit anyway"
   }
 }

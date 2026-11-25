@@ -379,11 +379,6 @@
     "optional": "PILIHAN",
     "notRecorded": "Tidak direkodkan",
     "directJob": "Terus dengan klien",
-    "duplicateReportEyebrow": "KEMUNGKINAN PENDUA",
-    "duplicateReportTitle": "{count, plural, =1 {Klien ini sudah ada laporan ini} other {Klien ini sudah ada laporan-laporan ini}}",
-    "duplicateReportBody": "Laporan untuk perkhidmatan dan tarikh perkhidmatan yang sama sudah disimpan. Muat naik semula hanya jika ini laporan yang berbeza atau telah dibetulkan — kedua-duanya akan disimpan dalam sejarah perkhidmatan.",
-    "duplicateReportBack": "Kembali",
-    "duplicateReportUploadAnyway": "Muat naik juga",
     "fileLabel": "Nama dokumen {number}",
     "fileLabelPlaceholder": "Nama / catatan dokumen, cth. Laporan utama",
     "extraFileLabelPlaceholder": "Nama / catatan, cth. Lampiran A",
@@ -578,5 +573,23 @@
     "guide2": "Di komputer, klik kanan bangunan yang tepat dan klik nombor di atas untuk menyalinnya. Di telefon, ketik Kongsi → Salin pautan.",
     "guide3": "Tampal di kotak di atas dan tekan Guna lokasi ini. Anda juga boleh klik peta.",
     "openInGoogleMaps": "Buka di Google Maps"
+  },
+  "review": {
+    "eyebrow": "SEMAK SEBELUM HANTAR",
+    "title": "Semak butiran",
+    "subtitle": "Tiada apa dimuat naik sehingga anda sahkan.",
+    "close": "Kembali dan sunting",
+    "dateLabel": "Tarikh pemantauan",
+    "today": "hari ini",
+    "yesterday": "semalam",
+    "daysAgo": "{count} hari lepas",
+    "dateHint": "{count, plural, =1 {Perkhidmatan ini menggunakan tarikh ini.} other {Kesemua # perkhidmatan di bawah menggunakan tarikh ini. Jika ada yang dibuat pada hari lain, kembali dan tambahkannya secara berasingan.}}",
+    "validUntil": "Sah sehingga {date}",
+    "noExpiry": "Tiada tarikh luput tetap",
+    "duplicateTitle": "{count, plural, =1 {Klien ini sudah ada laporan ini} other {Klien ini sudah ada laporan-laporan ini}}",
+    "duplicateBody": "Perkhidmatan dan tarikh pemantauan yang sama. Hantar semula hanya jika ini laporan yang berbeza atau telah dibetulkan; jika tidak, kembali.",
+    "back": "Kembali dan sunting",
+    "confirm": "{count, plural, =1 {Sahkan & hantar} other {Sahkan & hantar # perkhidmatan}}",
+    "confirmAnyway": "Hantar juga"
   }
 }
