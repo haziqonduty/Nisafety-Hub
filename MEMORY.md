@@ -961,3 +961,10 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Messages: `services.duplicateReport*` (en + ms). Security test list includes the route.
 - Not built (offered earlier): a fuzzy "possible duplicate COMPANY" warning for name variants ("ABC" vs "ABC SDN BHD", "(M)", typos).
 - Verified: lint, tsc, 85 unit, 65 security, Playwright 10/10 (cleaned up incl. storage).
+
+## Staff delete: report + whole client, PERMANENT (2026-11-25)
+- Kay's choices: staff can delete a single report AND a whole client; it is **permanent** (no recycle bin, admin can't restore); any approved staff can delete anything (same rule as edit). Admin deletes still go to the Recycle Bin.
+- `DELETE /api/documents/[id]` → returns `{clientId}`. `DELETE /api/clients/[id]` → the client, every report (binned ones too) and their Storage files. Both: `requireApprovedProfile`, visibility check via the session client (RLS, not binned), then `deleteDocumentRecord` / `deleteClientRecord` (admin-mutations.ts) with the service client, because staff can't remove bucket objects.
+- UI `record-delete-buttons.tsx`: "Delete report" in the record page's Download row (then goes to `/records/<clientId>`, which shows the newest remaining report), and "Delete client" under Edit in `RecordDetailBody` (new prop `reportCount`). The client delete needs the company name typed back (case-insensitive). Messages: `record.delete.*` (en + ms).
+- No audit trail of staff deletes (nothing kept). Offer a delete log if Kay ever asks "who deleted X".
+- Verified: lint, tsc, 85 unit, 69 security, Playwright 11/11 (files confirmed gone from Storage; cleaned up).

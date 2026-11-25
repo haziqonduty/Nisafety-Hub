@@ -249,7 +249,23 @@
       "NOT_FOUND": "Rekod ini tidak lagi wujud.",
       "GENERIC": "Kami tidak dapat menyimpan perubahan ini. Sila cuba lagi."
     },
-    "noEmail": "Tiada e-mel"
+    "noEmail": "Tiada e-mel",
+    "delete": {
+      "eyebrow": "PADAM KEKAL",
+      "reportButton": "Padam laporan",
+      "reportTitle": "Padam laporan ini?",
+      "reportBody": "Fail laporan dan butirannya akan dibuang untuk semua orang. Tindakan ini tidak boleh dibatalkan — walaupun oleh admin. Klien dan laporan lain akan kekal.",
+      "clientButton": "Padam klien",
+      "clientTitle": "Padam klien ini dan semua laporannya?",
+      "clientReportCount": "{count, plural, =0 {Tiada laporan} other {# laporan}} juga akan dipadam",
+      "clientBody": "Rekod syarikat, kenalan dan setiap fail laporan akan dibuang untuk semua orang. Tindakan ini tidak boleh dibatalkan — walaupun oleh admin.",
+      "typeToConfirm": "Taip nama syarikat untuk mengesahkan",
+      "confirm": "Padam kekal",
+      "deleting": "Memadam…",
+      "cancel": "Batal",
+      "notFound": "Ini sudah dipadam.",
+      "error": "Kami tidak dapat memadam ini. Sila cuba lagi."
+    }
   },
   "categories": {
     "groups": {

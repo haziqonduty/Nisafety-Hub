@@ -249,7 +249,23 @@
       "NOT_FOUND": "This record no longer exists.",
       "GENERIC": "We could not save these changes. Please try again."
     },
-    "noEmail": "No email"
+    "noEmail": "No email",
+    "delete": {
+      "eyebrow": "PERMANENT DELETE",
+      "reportButton": "Delete report",
+      "reportTitle": "Delete this report?",
+      "reportBody": "The report file and its details are removed for everyone. This can't be undone — not even by admin. The client and its other reports stay.",
+      "clientButton": "Delete client",
+      "clientTitle": "Delete this client and all its reports?",
+      "clientReportCount": "{count, plural, =0 {No reports} =1 {1 report} other {# reports}} will also be deleted",
+      "clientBody": "The company record, its contacts and every report file are removed for everyone. This can't be undone — not even by admin.",
+      "typeToConfirm": "Type the company name to confirm",
+      "confirm": "Delete permanently",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "notFound": "This was already deleted.",
+      "error": "We couldn't delete this. Please try again."
+    }
   },
   "categories": {
     "groups": {

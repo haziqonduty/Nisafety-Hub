@@ -6,6 +6,7 @@ import { ConfirmMonitoringDate } from "@/app/_components/confirm-monitoring-date
 import { Calendar, Download, File } from "@/app/_components/icons";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
+import { DeleteReportButton } from "@/app/_components/record-delete-buttons";
 import { RecordDetailBody } from "@/app/_components/record-detail-body";
 import { RequestedServicesCard } from "@/app/_components/requested-services-card";
 import { ServiceTimeline } from "@/app/_components/service-timeline";
@@ -140,6 +141,9 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
                     {t("openInNewTab")}
                   </a>
                 )}
+                <span className="ml-auto">
+                  <DeleteReportButton documentId={record.id} fileName={record.fileName!} category={categoryLabel ?? ""} />
+                </span>
               </div>
 
               <div className="mt-7 print:hidden">
@@ -164,7 +168,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
             </div>
           )}
 
-          <RecordDetailBody record={record} />
+          <RecordDetailBody record={record} reportCount={history.length} />
 
           <section id="service-history" className="mt-10 scroll-mt-6 border-t border-line pt-8 print:hidden" aria-labelledby="service-history-title">
             <div className="flex flex-wrap items-start justify-between gap-4">

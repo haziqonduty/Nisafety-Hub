@@ -3,10 +3,12 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Pencil } from "@/app/_components/icons";
+import { DeleteClientButton } from "@/app/_components/record-delete-buttons";
 import { RecordEditForm } from "@/app/_components/record-edit-form";
 import type { RecordDetail } from "@/lib/supabase/queries";
 
-export function RecordDetailBody({ record }: { record: RecordDetail }) {
+/** `reportCount`: the client's reports, shown in the delete-client warning. */
+export function RecordDetailBody({ record, reportCount }: { record: RecordDetail; reportCount: number }) {
   const t = useTranslations("record");
   const tEdit = useTranslations("record.edit");
   const [isEditing, setIsEditing] = useState(false);
@@ -43,13 +45,16 @@ export function RecordDetailBody({ record }: { record: RecordDetail }) {
             <p className="mt-1 text-sm font-semibold">{record.submitterName}</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsEditing(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:border-accent hover:bg-accent-soft hover:text-accent print:hidden"
-        >
-          <Pencil className="h-3.5 w-3.5" /> {tEdit("editButton")}
-        </button>
+        <div className="flex shrink-0 flex-col items-stretch gap-2 print:hidden">
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:border-accent hover:bg-accent-soft hover:text-accent"
+          >
+            <Pencil className="h-3.5 w-3.5" /> {tEdit("editButton")}
+          </button>
+          <DeleteClientButton clientId={record.clientId} companyName={record.companyName} reportCount={reportCount} />
+        </div>
       </div>
     </div>
   );
