@@ -19,7 +19,7 @@ const BRAND = {
   white: "FFFFFFFF",
 };
 
-const TONE_ACCENT: Record<CategoryTone, string> = { teal: BRAND.teal, amber: BRAND.amberText, navy: BRAND.navy };
+const TONE_ACCENT: Record<CategoryTone, string> = { teal: BRAND.teal, amber: BRAND.amberText, navy: BRAND.navy, iris: "FF4F46E5" };
 
 const COLUMNS: { header: string; width: number }[] = [
   { header: "Client Name", width: 24 },
@@ -237,8 +237,8 @@ export async function GET() {
     const categoryCell = excelRow.getCell(10);
     if (row.category) {
       const tone = toneForCategory(row.category);
-      categoryCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: tone === "teal" ? BRAND.tealSoft : tone === "amber" ? BRAND.amberSoft : BRAND.line } };
-      categoryCell.font = { size: 10.5, bold: true, color: { argb: tone === "amber" ? BRAND.amberText : BRAND.teal } };
+      categoryCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: tone === "teal" ? BRAND.tealSoft : tone === "amber" ? BRAND.amberSoft : tone === "iris" ? "FFEEF0FF" : BRAND.line } };
+      categoryCell.font = { size: 10.5, bold: true, color: { argb: tone === "amber" ? BRAND.amberText : tone === "iris" ? "FF4F46E5" : tone === "navy" ? BRAND.navy : BRAND.teal } };
     }
 
     if (index % 2 === 1) {

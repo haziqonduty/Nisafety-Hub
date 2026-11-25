@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
-import { categoryNameWithoutAbbreviation, formatServiceDate, shortCategoryLabel, todayInMalaysia, toneDotClass, toneForCategory } from "@/lib/format";
+import { categoryMessageKey, categoryNameWithoutAbbreviation, formatServiceDate, shortCategoryLabel, todayInMalaysia, toneDotClass, toneForCategory } from "@/lib/format";
 import type { ServiceHistoryEntry } from "@/lib/supabase/queries";
 import { expiryStatus } from "@/lib/validity";
 
@@ -44,7 +44,7 @@ export async function ServiceTimeline({ history, currentId }: { history: Service
 
   function label(category: string) {
     try {
-      return tCategories(category);
+      return tCategories(categoryMessageKey(category));
     } catch {
       return category;
     }

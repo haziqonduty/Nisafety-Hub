@@ -1,4 +1,5 @@
-export type CategoryTone = "teal" | "amber" | "navy";
+/** "navy" = neutral (unknown / retired categories); "iris" = Training. */
+export type CategoryTone = "teal" | "amber" | "navy" | "iris";
 
 export const CATEGORY_GROUPS = [
   {
@@ -10,6 +11,7 @@ export const CATEGORY_GROUPS = [
       "Medical Surveillance (MS)",
       "Local Exhaust Ventilation (LEV)",
       "Noise Risk Assessment (NRA)",
+      "Additional Noise Risk Assessment (Add.NRA)",
       "Noise Control Programme Assessment (NCPA)",
       "Audiometric (Baseline/Annual)",
       "Audiometric (Medical Examination/Diagnostic-PTA)",
@@ -38,9 +40,24 @@ export const CATEGORY_GROUPS = [
       "Scheduled Waste Testing",
     ],
   },
+  {
+    group: "Training",
+    tone: "iris" as CategoryTone,
+    categories: ["Training"],
+  },
 ] as const;
 
 export const DOCUMENT_CATEGORIES = CATEGORY_GROUPS.flatMap((group) => group.categories);
+
+/**
+ * The key of a service's name under `categories.items` in messages/*.json.
+ * next-intl reads "." in a key as nesting, so "Additional Noise Risk
+ * Assessment (Add.NRA)" is stored as "...(Add_NRA)". ALWAYS look service
+ * names up through this: tCategories(categoryMessageKey(category)).
+ */
+export function categoryMessageKey(category: string) {
+  return category.replaceAll(".", "_");
+}
 
 const CATEGORY_TONES: Record<string, CategoryTone> = Object.fromEntries(
   CATEGORY_GROUPS.flatMap((group) => group.categories.map((category) => [category, group.tone])),
@@ -54,6 +71,7 @@ const TONE_BADGE_CLASSES: Record<CategoryTone, string> = {
   teal: "bg-accent-soft text-accent",
   amber: "bg-amber-soft text-amber",
   navy: "bg-badge-neutral-bg text-badge-neutral-text",
+  iris: "bg-iris-soft text-iris",
 };
 
 export function toneBadgeClass(tone: CategoryTone) {
@@ -64,6 +82,7 @@ const TONE_DOT_CLASSES: Record<CategoryTone, string> = {
   teal: "bg-accent",
   amber: "bg-amber",
   navy: "bg-badge-neutral-text",
+  iris: "bg-iris",
 };
 
 export function toneDotClass(tone: CategoryTone) {
@@ -139,9 +158,10 @@ export function formatServiceDate(value: string, locale = "en-GB") {
   return new Date(`${value}T00:00:00Z`).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
-// A bracket holds an abbreviation only when it's all capitals ("CHRA", "WN");
-// "(Baseline/Annual)" or "(Asas/Tahunan)" is part of the service's name.
-const ABBREVIATION = /\s*\(([A-Z0-9&-]+)\)/g;
+// A bracket holds an abbreviation when it's one word with at least two capitals
+// in a row ("CHRA", "WN", "Add.NRA"); "(Baseline/Annual)" or "(Asas/Tahunan)"
+// is part of the service's name.
+const ABBREVIATION = /\s*\(((?=[^)]*[A-Z]{2})[A-Za-z0-9&.-]+)\)/g;
 
 /**
  * "CHRA" from "Chemical Health Risk Assessment (CHRA)", "IAQ" from "Indoor

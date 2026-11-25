@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/app/_components/confirm-dialog";
 import { ArrowUpRight, Close, Crosshair, Globe, MapPin, Maximize, Minimize, Minus, Navigation, Pencil, Phone, Plus, Search, Trash } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
 import { MALAYSIA_VIEW, MAP_STATUS_COLORS, MAP_STATUSES, compareUrgency, type MapClient, type MapStatus, type PlaceResult } from "@/lib/client-map";
-import { formatServiceDate, shortCategoryLabel } from "@/lib/format";
+import { categoryMessageKey, formatServiceDate, shortCategoryLabel } from "@/lib/format";
 import { looksLikeLocationInput, searchableCompanyName } from "@/lib/place-match";
 
 type MapLib = typeof import("maplibre-gl");
@@ -387,7 +387,7 @@ export function ClientMap({ initialClients }: { initialClients: MapClient[] }) {
 
   function categoryLabel(category: string) {
     try {
-      return shortCategoryLabel(tCategories(category));
+      return shortCategoryLabel(tCategories(categoryMessageKey(category)));
     } catch {
       return shortCategoryLabel(category);
     }

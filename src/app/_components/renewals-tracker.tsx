@@ -6,7 +6,7 @@ import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { RenewalActionButton } from "@/app/_components/renewal-action-button";
 import { Arrow, Calendar, RefreshCw, Search } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
-import { categoryNameWithoutAbbreviation, formatServiceDate, shortCategoryLabel, todayInMalaysia, toneDotClass, toneForCategory } from "@/lib/format";
+import { categoryMessageKey, categoryNameWithoutAbbreviation, formatServiceDate, shortCategoryLabel, todayInMalaysia, toneDotClass, toneForCategory } from "@/lib/format";
 import type { RenewalItem } from "@/lib/supabase/queries";
 import { EXPIRY_STATUS_STYLES, validityProgress } from "@/lib/validity";
 
@@ -32,7 +32,7 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
 
   function label(category: string) {
     try {
-      return tCategories(category);
+      return tCategories(categoryMessageKey(category));
     } catch {
       return category;
     }

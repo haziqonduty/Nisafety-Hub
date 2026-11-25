@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Plus } from "@/app/_components/icons";
 import { ServicePicker } from "@/app/_components/service-picker";
 import { Link, useRouter } from "@/i18n/routing";
-import { shortCategoryLabel, toneDotClass, toneForCategory } from "@/lib/format";
+import { categoryMessageKey, shortCategoryLabel, toneDotClass, toneForCategory } from "@/lib/format";
 
 /**
  * Services the client needs that have no report yet. Each one links to "Add a
@@ -83,7 +83,7 @@ export function RequestedServicesCard({ clientId, recordId, outstanding }: { cli
         outstanding.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2">
             {outstanding.map((category) => {
-              const label = tCategories(category);
+              const label = tCategories(categoryMessageKey(category));
               return (
                 <li key={category}>
                   <Link

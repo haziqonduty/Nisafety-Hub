@@ -25,8 +25,8 @@ const AMBER_TEXT = "#B86A00";
 const AMBER_SOFT = "#FFF1D8";
 const INK_MUTED = "#647679";
 const LINE = "#DCE7E3";
-const TONE_ACCENT: Record<CategoryTone, string> = { teal: TEAL, amber: AMBER_TEXT, navy: NAVY };
-const TONE_SOFT: Record<CategoryTone, string> = { teal: TEAL_SOFT, amber: AMBER_SOFT, navy: "#EAF0F2" };
+const TONE_ACCENT: Record<CategoryTone, string> = { teal: TEAL, amber: AMBER_TEXT, navy: NAVY, iris: "#4F46E5" };
+const TONE_SOFT: Record<CategoryTone, string> = { teal: TEAL_SOFT, amber: AMBER_SOFT, navy: "#EAF0F2", iris: "#EEF0FF" };
 
 function KpiBox({ label, value }: { label: string; value: string | number }) {
   return (

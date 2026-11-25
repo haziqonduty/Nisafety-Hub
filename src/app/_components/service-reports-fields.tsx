@@ -5,7 +5,7 @@ import { useState, type ChangeEvent, type Dispatch, type SetStateAction } from "
 import { AlertTriangle, Calendar, Check, Close, File, Hourglass, Plus, Upload } from "@/app/_components/icons";
 import { compressPdf } from "@/lib/compress-pdf";
 import { appendUploadedFile, MAX_UPLOAD_SIZE, uploadReportFile } from "@/lib/direct-upload";
-import { CATEGORY_GROUPS, formatServiceDate, todayInMalaysia } from "@/lib/format";
+import { CATEGORY_GROUPS, categoryMessageKey, formatServiceDate, todayInMalaysia } from "@/lib/format";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
 import { appendJobDetails, MAX_MAINCON_LENGTH, MAX_SALES_PERSON_LENGTH, type JobDetails } from "@/lib/job-details";
 import { MAX_EXTRA_FILES, MAX_FILE_LABEL_LENGTH } from "@/lib/report-files";
@@ -401,7 +401,7 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
                     <optgroup key={group.group} label={tGroups(group.group)}>
                       {group.categories.map((category) => (
                         <option key={category} value={category}>
-                          {tCategories(category)}
+                          {tCategories(categoryMessageKey(category))}
                         </option>
                       ))}
                     </optgroup>

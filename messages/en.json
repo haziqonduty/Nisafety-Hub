@@ -274,7 +274,8 @@
   "categories": {
     "groups": {
       "Industrial Hygiene": "Industrial Hygiene",
-      "Environmental Monitoring": "Environmental Monitoring"
+      "Environmental Monitoring": "Environmental Monitoring",
+      "Training": "Training"
     },
     "items": {
       "Chemical Health Risk Assessment (CHRA)": "Chemical Health Risk Assessment (CHRA)",
@@ -282,6 +283,7 @@
       "Medical Surveillance (MS)": "Medical Surveillance (MS)",
       "Local Exhaust Ventilation (LEV)": "Local Exhaust Ventilation (LEV)",
       "Noise Risk Assessment (NRA)": "Noise Risk Assessment (NRA)",
+      "Additional Noise Risk Assessment (Add_NRA)": "Additional Noise Risk Assessment (Add.NRA)",
       "Noise Control Programme Assessment (NCPA)": "Noise Control Programme Assessment (NCPA)",
       "Audiometric (Baseline/Annual)": "Audiometric (Baseline/Annual)",
       "Audiometric (Medical Examination/Diagnostic-PTA)": "Audiometric (Medical Examination/Diagnostic-PTA)",
@@ -301,7 +303,8 @@
       "Stack Emission Monitoring": "Stack Emission Monitoring",
       "Genset Monitoring": "Genset Monitoring",
       "Waste Water Analysis": "Waste Water Analysis",
-      "Scheduled Waste Testing": "Scheduled Waste Testing"
+      "Scheduled Waste Testing": "Scheduled Waste Testing",
+      "Training": "Training"
     }
   },
   "services": {

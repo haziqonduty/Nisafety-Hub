@@ -274,7 +274,8 @@
   "categories": {
     "groups": {
       "Industrial Hygiene": "Kebersihan Perindustrian",
-      "Environmental Monitoring": "Pemantauan Alam Sekitar"
+      "Environmental Monitoring": "Pemantauan Alam Sekitar",
+      "Training": "Latihan"
     },
     "items": {
       "Chemical Health Risk Assessment (CHRA)": "Penilaian Risiko Kesihatan Bahan Kimia (CHRA)",
@@ -282,6 +283,7 @@
       "Medical Surveillance (MS)": "Pengawasan Perubatan (MS)",
       "Local Exhaust Ventilation (LEV)": "Pengudaraan Ekzos Setempat (LEV)",
       "Noise Risk Assessment (NRA)": "Penilaian Risiko Bunyi Bising (NRA)",
+      "Additional Noise Risk Assessment (Add_NRA)": "Penilaian Risiko Bunyi Bising Tambahan (Add.NRA)",
       "Noise Control Programme Assessment (NCPA)": "Penilaian Program Kawalan Bunyi Bising (NCPA)",
       "Audiometric (Baseline/Annual)": "Audiometrik (Asas/Tahunan)",
       "Audiometric (Medical Examination/Diagnostic-PTA)": "Audiometrik (Pemeriksaan Perubatan/Diagnostik-PTA)",
@@ -301,7 +303,8 @@
       "Stack Emission Monitoring": "Pemantauan Pelepasan Corong Asap",
       "Genset Monitoring": "Pemantauan Set Janakuasa",
       "Waste Water Analysis": "Analisis Air Sisa",
-      "Scheduled Waste Testing": "Ujian Sisa Terjadual"
+      "Scheduled Waste Testing": "Ujian Sisa Terjadual",
+      "Training": "Latihan"
     }
   },
   "services": {

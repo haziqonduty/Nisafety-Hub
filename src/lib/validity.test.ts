@@ -84,7 +84,7 @@ describe("validity rules", () => {
     const fromSql: Record<string, number> = Object.fromEntries([...sql.matchAll(/when '([^']+)' then (\d+)/g)].map((match) => [renames.get(match[1]) ?? match[1], Number(match[2])]));
     for (const match of intervalSql.matchAll(/interval '([^']+)' -> (\d+)/g)) fromSql[match[1]] = Number(match[2]);
     // Fixed-interval services added after the backfill ran (no old reports to backfill).
-    const addedLater = ["Audiometric (Medical Examination/Diagnostic-PTA)"];
+    const addedLater = ["Audiometric (Medical Examination/Diagnostic-PTA)", "Additional Noise Risk Assessment (Add.NRA)"];
     const fromCode = Object.fromEntries(
       Object.entries(VALIDITY_RULES).filter(([category, rule]) => rule.months !== null && !addedLater.includes(category)).map(([category, rule]) => [category, rule.months]),
     );
@@ -92,7 +92,7 @@ describe("validity rules", () => {
   });
 
   it("match the category list in the latest database constraint (KEEP IN SYNC)", () => {
-    const sql = readFileSync("supabase/migrations/20261124_service_types_and_chemical_services.sql", "utf8");
+    const sql = readFileSync("supabase/migrations/20261126_training_and_additional_nra.sql", "utf8");
     const constraint = sql.slice(sql.indexOf("add constraint documents_category_check"));
     const fromSql = [...constraint.matchAll(/^\s+'([^']+)',?$/gm)].map((match) => match[1]);
     expect(fromSql).toEqual([...DOCUMENT_CATEGORIES]);
@@ -108,6 +108,8 @@ describe("validity rules", () => {
     expect(VALIDITY_RULES["Chemical Classification"].months).toBeNull();
     expect(VALIDITY_RULES["Chemical Exposure Monitoring (CEM)"].months).toBe(12);
     expect(VALIDITY_RULES["Boundary Noise Monitoring"].months).toBe(12);
+    expect(VALIDITY_RULES["Additional Noise Risk Assessment (Add.NRA)"].months).toBe(60);
+    expect(VALIDITY_RULES["Training"].months).toBeNull();
   });
 });
 

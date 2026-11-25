@@ -7,7 +7,7 @@ import { PaginationBar } from "@/app/_components/pagination-bar";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow, Calendar, ChevronDown, Download, Paperclip, Search } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
-import { formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass, toneForCategory } from "@/lib/format";
+import { categoryMessageKey, formatServiceDate, isRecentlySubmitted, shortCategoryLabel, todayInMalaysia, toneBadgeClass, toneForCategory } from "@/lib/format";
 import { DEFAULT_DIRECTORY_PAGE_SIZE, DIRECTORY_SORTS, DIRECTORY_STATUSES, parseDirectoryPageSize, type DirectorySort, type DirectoryStatus } from "@/lib/directory";
 import type { DirectoryDocument, DirectoryPage } from "@/lib/supabase/queries";
 import { EXPIRY_STATUS_STYLES, expiryStatus } from "@/lib/validity";
@@ -192,7 +192,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
   function categoryLabel(value: string | null) {
     if (!value) return t("clientOnlyBadge");
     try {
-      return tCategories(value);
+      return tCategories(categoryMessageKey(value));
     } catch {
       return value;
     }

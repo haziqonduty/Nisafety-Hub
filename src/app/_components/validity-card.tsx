@@ -3,7 +3,7 @@ import { expiryLabel } from "@/app/_components/expiry-badge";
 import { AlertTriangle, Arrow, ArrowUpRight, Check, Hourglass, RefreshCw } from "@/app/_components/icons";
 import { RenewalActionButton, RenewalUndoButton } from "@/app/_components/renewal-action-button";
 import { Link } from "@/i18n/routing";
-import { formatServiceDate, todayInMalaysia } from "@/lib/format";
+import { categoryMessageKey, formatServiceDate, todayInMalaysia } from "@/lib/format";
 import type { ServiceHistoryEntry } from "@/lib/supabase/queries";
 import { expiryStatus, type RenewalCloseReason, validityProgress, validityRuleFor } from "@/lib/validity";
 
@@ -58,7 +58,7 @@ export async function ValidityCard({
   const progress = expiryDate && !superseded && !closed ? validityProgress(serviceDate, expiryDate, today) : 0;
   let serviceName = category;
   try {
-    serviceName = tCategories(category);
+    serviceName = tCategories(categoryMessageKey(category));
   } catch {}
   const renewHref = { pathname: `/records/${id}`, query: { renew: category } } as const;
 

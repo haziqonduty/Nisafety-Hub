@@ -5,7 +5,7 @@ import { Activity, Arrow, Check, ChevronDown, File, Inbox, Paperclip, Upload, Us
 import { Reveal } from "@/app/_components/reveal";
 import { SpotlightCard } from "@/app/_components/spotlight-card";
 import { Link } from "@/i18n/routing";
-import { toneBadgeClass, toneForCategory } from "@/lib/format";
+import { categoryMessageKey, toneBadgeClass, toneForCategory } from "@/lib/format";
 import type { WorkspaceData, WorkspaceRecord } from "@/lib/supabase/queries";
 
 /** Queue rows shown before "Show all". */
@@ -18,7 +18,7 @@ export async function WorkspaceBento({ data, isAdmin, renewalAlerts }: { data: W
   function categoryLabel(category: string | null) {
     if (!category) return t("noReport");
     try {
-      return tCategories(category);
+      return tCategories(categoryMessageKey(category));
     } catch {
       return category;
     }

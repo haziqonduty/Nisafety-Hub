@@ -8,7 +8,7 @@ import { useRouter } from "@/i18n/routing";
 import { compressPdf } from "@/lib/compress-pdf";
 import { appendUploadedFile, MAX_UPLOAD_SIZE } from "@/lib/direct-upload";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
-import { CATEGORY_GROUPS, todayInMalaysia } from "@/lib/format";
+import { CATEGORY_GROUPS, categoryMessageKey, todayInMalaysia } from "@/lib/format";
 import { addDays, defaultExpiryFor, validityRuleFor } from "@/lib/validity";
 import type { RecordDetail } from "@/lib/supabase/queries";
 
@@ -235,7 +235,7 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
               <optgroup key={group.group} label={tGroups(group.group)}>
                 {group.categories.map((categoryOption) => (
                   <option key={categoryOption} value={categoryOption}>
-                    {tCategories(categoryOption)}
+                    {tCategories(categoryMessageKey(categoryOption))}
                   </option>
                 ))}
               </optgroup>

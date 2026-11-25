@@ -19,6 +19,7 @@ const TONE_COLOR: Record<CategoryTone, string> = {
   teal: "var(--color-accent)",
   amber: "var(--color-amber)",
   navy: "var(--color-badge-neutral-text)",
+  iris: "var(--color-iris)",
 };
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {

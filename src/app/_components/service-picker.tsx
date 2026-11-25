@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Check } from "@/app/_components/icons";
-import { CATEGORY_GROUPS, toneDotClass } from "@/lib/format";
+import { CATEGORY_GROUPS, categoryMessageKey, toneDotClass } from "@/lib/format";
 
 /** Tick the services a client needs (no file, no date). Grouped like the category filter. */
 export function ServicePicker({ value, onChange, disabled = false }: { value: string[]; onChange: (next: string[]) => void; disabled?: boolean }) {
@@ -37,7 +37,7 @@ export function ServicePicker({ value, onChange, disabled = false }: { value: st
                   }`}
                 >
                   {on ? <Check className="h-3.5 w-3.5 shrink-0" /> : <span className={`h-2 w-2 shrink-0 rounded-full ${toneDotClass(group.tone)}`} aria-hidden="true" />}
-                  {tCategories(category)}
+                  {tCategories(categoryMessageKey(category))}
                 </button>
               );
             })}

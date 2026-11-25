@@ -22,6 +22,9 @@
      AA for the small (10-12px) badge/notice text it's actually used at. */
   --amber: #955400;
   --amber-soft: #fff1d8;
+  /* Training services. 5.55:1 on --iris-soft. */
+  --iris: #4f46e5;
+  --iris-soft: #eef0ff;
   --danger: #9b3325;
   --danger-soft: #fff5f3;
   --badge-neutral-bg: #eaf0f2;
@@ -54,6 +57,8 @@
     --accent-soft: #123832;
     --amber: #f2b25c;
     --amber-soft: #3a2a10;
+    --iris: #a5b4fc;
+    --iris-soft: #1f2147;
     --danger: #f2a08e;
     --danger-soft: #3a1c17;
     --badge-neutral-bg: #1c2e32;
@@ -76,6 +81,8 @@
   --accent-soft: #123832;
   --amber: #f2b25c;
   --amber-soft: #3a2a10;
+  --iris: #a5b4fc;
+  --iris-soft: #1f2147;
   --danger: #f2a08e;
   --danger-soft: #3a1c17;
   --badge-neutral-bg: #1c2e32;
@@ -97,6 +104,8 @@
   --color-accent-soft: var(--accent-soft);
   --color-amber: var(--amber);
   --color-amber-soft: var(--amber-soft);
+  --color-iris: var(--iris);
+  --color-iris-soft: var(--iris-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-badge-neutral-bg: var(--badge-neutral-bg);
@@ -247,6 +256,8 @@ body {
     --accent-soft: #dff4f0;
     --amber: #955400;
     --amber-soft: #fff1d8;
+    --iris: #4f46e5;
+    --iris-soft: #eef0ff;
     --badge-neutral-bg: #eaf0f2;
     --badge-neutral-text: #31515b;
     color-scheme: light;

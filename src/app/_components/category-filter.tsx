@@ -4,7 +4,7 @@ import { Command } from "cmdk";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search } from "@/app/_components/icons";
-import { CATEGORY_GROUPS, toneDotClass, toneForCategory } from "@/lib/format";
+import { CATEGORY_GROUPS, categoryMessageKey, toneDotClass, toneForCategory } from "@/lib/format";
 
 export function CategoryFilter({ category, onChange, className = "mt-4" }: { category: string; onChange: (category: string) => void; className?: string }) {
   const t = useTranslations("categoryFilter");
@@ -16,7 +16,7 @@ export function CategoryFilter({ category, onChange, className = "mt-4" }: { cat
   function categoryLabel(value: string) {
     if (value === "All records") return t("allRecords");
     try {
-      return tCategories(value);
+      return tCategories(categoryMessageKey(value));
     } catch {
       return value;
     }
@@ -91,7 +91,7 @@ export function CategoryFilter({ category, onChange, className = "mt-4" }: { cat
                       className="flex cursor-pointer items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm normal-case not-italic tracking-normal text-ink data-[selected=true]:bg-accent-soft"
                     >
                       <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${toneDotClass(group.tone)}`} />
-                      <span className="min-w-0">{tCategories(item)}</span>
+                      <span className="min-w-0">{tCategories(categoryMessageKey(item))}</span>
                     </Command.Item>
                   ))}
                 </Command.Group>

@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { Close, Upload } from "@/app/_components/icons";
 import type { ServiceRow } from "@/app/_components/service-reports-fields";
-import { formatServiceDate } from "@/lib/format";
+import { categoryMessageKey, formatServiceDate } from "@/lib/format";
 
 type Duplicate = { category: string; serviceDate: string; fileName: string };
 
@@ -56,7 +56,7 @@ export function useDuplicateReportCheck() {
     });
   }
 
-  const label = (category: string) => (tCategories.has(category) ? tCategories(category) : category);
+  const label = (category: string) => (tCategories.has(categoryMessageKey(category)) ? tCategories(categoryMessageKey(category)) : category);
 
   const dialog = (
     <dialog

@@ -56,6 +56,7 @@ export const VALIDITY_RULES: Record<string, ValidityRule> = {
   "Medical Surveillance (MS)": { months: 12, basis: "USECHH Regulations 2000, reg. 27(3) · every 12 months or less for Schedule II chemicals", confidence: "regulation", source: USECHH },
   "Local Exhaust Ventilation (LEV)": { months: 12, basis: "USECHH Regulations 2000, reg. 17(1)(b) · examined and tested every 12 months or less", confidence: "regulation", source: USECHH },
   "Noise Risk Assessment (NRA)": { months: 60, basis: "Noise Exposure Regulations 2019, reg. 4(8)(a) · review within 5 years of the previous assessment", confidence: "regulation", source: NOISE },
+  "Additional Noise Risk Assessment (Add.NRA)": { months: 60, basis: "Noise Exposure Regulations 2019 · further assessment on top of the noise risk assessment; tracked on the same 5-year review as NRA (reg. 4(8)(a))", confidence: "practice", source: NOISE },
   "Noise Control Programme Assessment (NCPA)": { months: null, basis: "Noise Exposure Regulations 2019 · checks the employer's noise control measures; no fixed interval, repeat when the noise risk assessment or the work changes", confidence: "practice", source: NOISE },
   "Audiometric (Baseline/Annual)": { months: 12, basis: "Noise Exposure Regulations 2019, reg. 9(1) and 10(1)(b) · baseline within 3 months of starting work in the noisy area, then annually", confidence: "regulation", source: NOISE },
   "Audiometric (Medical Examination/Diagnostic-PTA)": { months: 12, basis: "Noise Exposure Regulations 2019, reg. 9(4)–(5) · medical examination by an occupational health doctor after an abnormal audiogram; repeated with the yearly audiometric programme", confidence: "practice", source: NOISE },
@@ -77,6 +78,8 @@ export const VALIDITY_RULES: Record<string, ValidityRule> = {
   "Genset Monitoring": { months: 12, basis: "Clean Air Regulations 2014 · frequency set in the DOE licence, commonly yearly", confidence: "practice", source: CLEAN_AIR },
   "Waste Water Analysis": { months: null, basis: "Industrial Effluent Regulations 2009 · frequency set by the licence conditions", confidence: "practice", source: EFFLUENT },
   "Scheduled Waste Testing": { months: null, basis: "Scheduled Wastes Regulations 2005 · as required for each waste stream", confidence: "practice", source: { label: "Scheduled Wastes Regulations 2005", url: "https://leap.unep.org/en/countries/my/national-legislation/environmental-quality-scheduled-wastes-regulations-2005-pua" } },
+  // Training
+  "Training": { months: null, basis: "Training certificates · no fixed expiry; validity depends on the course, so set a custom date on the report if the certificate has one", confidence: "practice", source: { label: "NIOSH Malaysia (training)", url: "https://www.niosh.com.my/" } },
 };
 
 export function validityRuleFor(category: string): ValidityRule | null {

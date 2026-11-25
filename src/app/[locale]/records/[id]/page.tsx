@@ -13,7 +13,7 @@ import { ServiceTimeline } from "@/app/_components/service-timeline";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { ValidityCard } from "@/app/_components/validity-card";
 import { Link } from "@/i18n/routing";
-import { DOCUMENT_CATEGORIES, formatServiceDate, toneBadgeClass } from "@/lib/format";
+import { categoryMessageKey, DOCUMENT_CATEGORIES, formatServiceDate, toneBadgeClass } from "@/lib/format";
 import { outstandingServices } from "@/lib/requested-services";
 import { getClientServiceHistory, getRecordById } from "@/lib/supabase/queries";
 
@@ -39,7 +39,7 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
   // than let a missing message crash the page.
   function categoryLabelFor(category: string) {
     try {
-      return tCategories(category);
+      return tCategories(categoryMessageKey(category));
     } catch {
       return category;
     }

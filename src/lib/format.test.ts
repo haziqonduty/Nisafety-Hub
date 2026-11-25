@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { categoryNameWithoutAbbreviation, formatServiceDate, isValidServiceDate, resolveExpiryInput, shortCategoryLabel, todayInMalaysia } from "@/lib/format";
+import { CATEGORY_GROUPS, categoryMessageKey, categoryNameWithoutAbbreviation, DOCUMENT_CATEGORIES, formatServiceDate, isValidServiceDate, resolveExpiryInput, shortCategoryLabel, todayInMalaysia } from "@/lib/format";
 
 describe("todayInMalaysia", () => {
   afterEach(() => vi.useRealTimers());
@@ -66,15 +67,43 @@ describe("category labels", () => {
     expect(shortCategoryLabel("Initial Ergonomic Risk Assessment (IERA)")).toBe("IERA");
     expect(shortCategoryLabel("Noise Control Programme Assessment (NCPA)")).toBe("NCPA");
     expect(shortCategoryLabel("Chemical Registration")).toBe("Chemical Registration");
+    expect(shortCategoryLabel("Additional Noise Risk Assessment (Add.NRA)")).toBe("Add.NRA");
+    expect(categoryNameWithoutAbbreviation("Additional Noise Risk Assessment (Add.NRA)")).toBe("Additional Noise Risk Assessment");
+    expect(shortCategoryLabel("Training")).toBe("Training");
   });
   it("keeps a bracket that is part of the name, not an abbreviation", () => {
     expect(shortCategoryLabel("Audiometric (Baseline/Annual)")).toBe("Audiometric (Baseline/Annual)");
     expect(shortCategoryLabel("Audiometric (Medical Examination/Diagnostic-PTA)")).toBe("Audiometric (Medical Examination/Diagnostic-PTA)");
     expect(shortCategoryLabel("Audiometrik (Asas/Tahunan)")).toBe("Audiometrik (Asas/Tahunan)");
+    expect(shortCategoryLabel("Audit (Annual)")).toBe("Audit (Annual)");
     expect(categoryNameWithoutAbbreviation("Audiometric (Baseline/Annual)")).toBe("Audiometric (Baseline/Annual)");
   });
   it("strips abbreviations from the long name", () => {
     expect(categoryNameWithoutAbbreviation("Indoor Air Quality (IAQ) Testing")).toBe("Indoor Air Quality Testing");
     expect(categoryNameWithoutAbbreviation("DOE Written Notification (WN) & Written Declaration (WD)")).toBe("DOE Written Notification & Written Declaration");
+  });
+});
+
+describe("service names in both languages", () => {
+  const read = (locale: string) => JSON.parse(readFileSync(`messages/${locale}.json`, "utf8")).categories as { groups: Record<string, string>; items: Record<string, string> };
+
+  it("every service and group has an English and Malay name, looked up by categoryMessageKey", () => {
+    for (const locale of ["en", "ms"]) {
+      const { groups, items } = read(locale);
+      const missing = DOCUMENT_CATEGORIES.filter((category) => !items[categoryMessageKey(category)]);
+      expect(missing, locale).toEqual([]);
+      expect(CATEGORY_GROUPS.filter((group) => !groups[group.group]).map((group) => group.group), locale).toEqual([]);
+    }
+  });
+
+  it("no message key contains a dot (next-intl reads it as nesting)", () => {
+    for (const locale of ["en", "ms"]) {
+      expect(Object.keys(read(locale).items).filter((key) => key.includes(".")), locale).toEqual([]);
+    }
+  });
+
+  it("keeps the dot in the stored name and the short code", () => {
+    expect(categoryMessageKey("Additional Noise Risk Assessment (Add.NRA)")).toBe("Additional Noise Risk Assessment (Add_NRA)");
+    expect(read("en").items[categoryMessageKey("Additional Noise Risk Assessment (Add.NRA)")]).toBe("Additional Noise Risk Assessment (Add.NRA)");
   });
 });

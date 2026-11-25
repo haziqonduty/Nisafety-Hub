@@ -3,7 +3,7 @@ import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { AlertTriangle, Arrow, Bell } from "@/app/_components/icons";
 import { RenewalActionButton } from "@/app/_components/renewal-action-button";
 import { Link } from "@/i18n/routing";
-import { shortCategoryLabel } from "@/lib/format";
+import { categoryMessageKey, shortCategoryLabel } from "@/lib/format";
 import type { RenewalSummary } from "@/lib/supabase/queries";
 
 const MAX_CHIPS = 4;
@@ -21,7 +21,7 @@ export async function RenewalBanner({ renewals }: { renewals: RenewalSummary }) 
 
   function label(category: string) {
     try {
-      return tCategories(category);
+      return tCategories(categoryMessageKey(category));
     } catch {
       return category;
     }

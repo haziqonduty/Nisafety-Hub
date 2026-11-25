@@ -4,7 +4,7 @@ import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { Arrow, Hourglass, RefreshCw } from "@/app/_components/icons";
 import { Reveal } from "@/app/_components/reveal";
 import { Link } from "@/i18n/routing";
-import { formatServiceDate, shortCategoryLabel, todayInMalaysia } from "@/lib/format";
+import { categoryMessageKey, formatServiceDate, shortCategoryLabel, todayInMalaysia } from "@/lib/format";
 import type { RenewalSummary } from "@/lib/supabase/queries";
 import { EXPIRY_STATUS_STYLES, validityProgress } from "@/lib/validity";
 
@@ -19,7 +19,7 @@ export async function RenewalsRadar({ renewals }: { renewals: RenewalSummary }) 
 
   function label(category: string) {
     try {
-      return tCategories(category);
+      return tCategories(categoryMessageKey(category));
     } catch {
       return category;
     }

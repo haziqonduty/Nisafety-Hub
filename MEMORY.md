@@ -979,3 +979,13 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Also fixed: the TOO_MANY_CONTACTS message said 4 extra contacts; the limit is 10 (en + ms).
 - Migration applied by Kay. Verified: lint, tsc, 89 unit, 69 security, Playwright 11/11 (add/remove slots, name required, rows + Storage, record list + download, Add a service, delete removes extras from Storage; cleaned up).
 
+## New services: Add.NRA + Training (2026-11-26)
+- Kay: "Additional Noise Risk Assessment (Add.NRA)" in Industrial Hygiene, right after NRA, with the same 5-year expiry (marked "practice", not statutory). The code is Kay's choice ("Add.NRA"); the abbreviation regex now accepts one word with 2+ capitals in a row (`[A-Za-z0-9&.-]`), so the short label is "Add.NRA" while "(Baseline/Annual)" etc. stay part of the name (test added).
+- "Training" is its own third group ("Training" / ms "Latihan"), no expiry. Validity source: NIOSH Malaysia (https://www.niosh.com.my/, checked 200).
+- New tone "iris" (indigo) so Training isn't the grey neutral badge: CSS `--iris` / `--iris-soft` in all 4 theme blocks (#4f46e5 on #eef0ff = 5.55:1; dark #a5b4fc on #1f2147). Added to every `Record<CategoryTone>` (badges, dots, analytics charts, PDF report, Excel export). Monthly trends chart: Training #6366F1 (dataviz validator: all checks pass, light + dark).
+- Migration `20261126_training_and_additional_nra.sql` (category constraint only, no data change). validity.test now reads the category list from it; Add.NRA is listed in `addedLater` (no backfill).
+- BUG caught in testing: next-intl treats "." in a message key as nesting, so "(Add.NRA)" showed as "categories.items.Additional…". Fix: `categoryMessageKey(category)` in format.ts (dots → "_"); message key is "...(Add_NRA)" while the stored name and short code keep the dot. EVERY service-name lookup must be `tCategories(categoryMessageKey(x))` (16 files). New test: every service and group has en + ms names, and no message key contains ".".
+- Migration applied by Kay. Verified: lint, tsc, 92 unit, 69 security, Playwright 10/10 (list order, Training section, auto expiry 60 MO, saved expiry, exact names in en + ms, indigo badge; cleaned up).
+
+## Mistakes & lessons
+- 2026-11-26: a service name with "." broke translations (next-intl key nesting). Rule: never put "." in a messages key; look service names up through `categoryMessageKey`. Browser tests must check EXACT visible text, not substrings (a substring check hid this once).

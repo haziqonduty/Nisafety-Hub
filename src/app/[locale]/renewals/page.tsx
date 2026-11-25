@@ -7,7 +7,7 @@ import { RenewalsTracker, type TrackerFilter } from "@/app/_components/renewals-
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { Link } from "@/i18n/routing";
 import { getRenewals } from "@/lib/supabase/queries";
-import { CATEGORY_GROUPS } from "@/lib/format";
+import { CATEGORY_GROUPS, categoryMessageKey } from "@/lib/format";
 import { VALIDITY_RULES } from "@/lib/validity";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function RenewalsPage(props: PageProps<"/[locale]/renewals"
 
   function label(category: string) {
     try {
-      return tCategories(category);
+      return tCategories(categoryMessageKey(category));
     } catch {
       return category;
     }

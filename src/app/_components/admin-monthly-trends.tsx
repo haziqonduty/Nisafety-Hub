@@ -22,6 +22,9 @@ import { CATEGORY_GROUPS } from "@/lib/format";
 const GROUP_COLOR: Record<string, string> = {
   [CATEGORY_GROUPS[0].group]: "#0D9488",
   [CATEGORY_GROUPS[1].group]: "#B86A00",
+  // Training (added 2026-11-26) — indigo, validated with the same script
+  // next to the two above, in both modes.
+  [CATEGORY_GROUPS[2].group]: "#6366F1",
 };
 const DOCUMENTS_HUE = "#0D9488";
 const CLIENTS_HUE = "#475569";
