@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DOCUMENT_CATEGORIES } from "@/lib/format";
-import { addDays, addMonths, daysUntil, defaultExpiryFor, expiryStatus, validityProgress, VALIDITY_RULES } from "@/lib/validity";
+import { addDays, addMonths, daysUntil, defaultExpiryFor, expiryStatus, isRenewalCloseReason, RENEWAL_CLOSE_REASONS, validityProgress, VALIDITY_RULES } from "@/lib/validity";
 
 describe("addMonths", () => {
   it("adds calendar months", () => {
@@ -53,6 +53,11 @@ describe("expiryStatus", () => {
   it("handles no expiry and superseded reports", () => {
     expect(expiryStatus(null, today).status).toBe("none");
     expect(expiryStatus("2020-01-01", today, true).status).toBe("renewed");
+  });
+  it("is closed when staff marked action taken, whatever the date (renewed still wins)", () => {
+    expect(expiryStatus("2020-01-01", today, false, true)).toEqual({ status: "closed", daysLeft: null });
+    expect(expiryStatus(null, today, false, true).status).toBe("closed");
+    expect(expiryStatus("2020-01-01", today, true, true).status).toBe("renewed");
   });
 });
 
@@ -113,5 +118,20 @@ describe("validity rule sources", () => {
     for (const [category, rule] of Object.entries(VALIDITY_RULES)) {
       if (rule.confidence === "regulation") expect(rule.basis, category).toMatch(/reg\. \d+\(/);
     }
+  });
+});
+
+describe("renewal close reasons", () => {
+  it("accept only the known reasons", () => {
+    expect(isRenewalCloseReason("other_consultant")).toBe(true);
+    expect(isRenewalCloseReason("not_needed")).toBe(true);
+    expect(isRenewalCloseReason("nope")).toBe(false);
+    expect(isRenewalCloseReason(null)).toBe(false);
+  });
+
+  it("match the database check (KEEP IN SYNC)", () => {
+    const sql = readFileSync("supabase/migrations/20261124_renewal_action_taken.sql", "utf8");
+    const list = sql.match(/renewal_closed_reason in \(([^)]+)\)/)?.[1] ?? "";
+    expect([...list.matchAll(/'([^']+)'/g)].map((match) => match[1])).toEqual([...RENEWAL_CLOSE_REASONS]);
   });
 });

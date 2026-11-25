@@ -95,7 +95,16 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
           )}
 
           {record.hasDocument && record.category && record.serviceDate && (
-            <ValidityCard id={record.id} category={record.category} serviceDate={record.serviceDate} expiryDate={record.expiryDate} history={history} />
+            <ValidityCard
+              id={record.id}
+              category={record.category}
+              serviceDate={record.serviceDate}
+              expiryDate={record.expiryDate}
+              history={history}
+              company={record.companyName}
+              closedAt={record.renewalClosedAt}
+              closedReason={record.renewalClosedReason}
+            />
           )}
 
           {record.hasDocument ? (

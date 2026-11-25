@@ -3,7 +3,7 @@ import { ADMIN_LOGIN_EMAIL } from "@/lib/auth/admin-account";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { extensionFromFileName, formatDate, formatFileSize, titleFromFileName, todayInMalaysia, toneForCategory } from "@/lib/format";
 import { compareUrgency, moreUrgent, toMapStatus, type MapClient, type MapService, type MapStatus } from "@/lib/client-map";
-import { expiryStatus, type ExpiryStatus } from "@/lib/validity";
+import { expiryStatus, isRenewalCloseReason, type ExpiryStatus, type RenewalCloseReason } from "@/lib/validity";
 import { DEFAULT_DIRECTORY_PAGE_SIZE, type DirectorySort, type DirectoryStatus, type DirectoryStatusCounts } from "@/lib/directory";
 
 // Short-lived signed URL — the "safety-documents" bucket is private now that
@@ -60,6 +60,8 @@ export type DirectoryDocument = {
   serviceDate: string | null;
   /** YYYY-MM-DD the service needs redoing; null when there's no fixed expiry (or no report). */
   expiryDate: string | null;
+  /** Staff closed this report's renewal ("Action taken"). */
+  renewalClosed: boolean;
   tone: ReturnType<typeof toneForCategory> | null;
   /** Services the client needs that were recorded without a report (see requested-services.ts). */
   requestedServices: string[];
@@ -82,6 +84,7 @@ type DocumentRow = {
   category: string;
   service_date: string;
   expiry_date: string | null;
+  renewal_closed_at: string | null;
   file_name: string;
   file_size: number;
   storage_path: string;
@@ -133,6 +136,7 @@ function toDirectoryDocument(row: DocumentRow, urls: Map<string, string>): Direc
     createdAt: row.created_at,
     serviceDate: row.service_date,
     expiryDate: row.expiry_date,
+    renewalClosed: Boolean(row.renewal_closed_at),
     tone: toneForCategory(row.category),
   };
 }
@@ -175,6 +179,7 @@ function toClientOnlyDirectoryDocument(row: ClientOnlyRow): DirectoryDocument {
     createdAt: row.created_at,
     serviceDate: null,
     expiryDate: null,
+    renewalClosed: false,
     tone: null,
   };
 }
@@ -235,7 +240,7 @@ export async function getDirectoryPage({
   const { data: clientData } = await supabase
     .from("clients")
     .select(
-      "id, client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails, requested_services, created_at, documents(id, client_id, category, service_date, expiry_date, file_name, file_size, storage_path, thumbnail_path, created_at)",
+      "id, client_name, company_name, telephone, email, additional_client_names, additional_telephones, additional_emails, requested_services, created_at, documents(id, client_id, category, service_date, expiry_date, renewal_closed_at, file_name, file_size, storage_path, thumbnail_path, created_at)",
     )
     .in("id", ids);
 
@@ -285,6 +290,9 @@ export type RecordDetail = {
   /** False while the date of monitoring is still the automatic guess (reports saved before staff had to key it in). */
   serviceDateConfirmed: boolean;
   expiryDate: string | null;
+  /** When staff closed this report's renewal ("Action taken"), and why; null while it's still tracked. */
+  renewalClosedAt: string | null;
+  renewalClosedReason: RenewalCloseReason | null;
   tone: ReturnType<typeof toneForCategory> | null;
   requestedServices: string[];
 };
@@ -308,6 +316,8 @@ type RecordDetailRow = {
   service_date: string;
   service_date_confirmed: boolean;
   expiry_date: string | null;
+  renewal_closed_at: string | null;
+  renewal_closed_reason: string | null;
   file_name: string;
   file_size: number;
   storage_path: string;
@@ -319,7 +329,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, renewal_closed_reason, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services)")
     .eq("id", id)
     .single();
 
@@ -351,6 +361,8 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
     serviceDate: row.service_date,
     serviceDateConfirmed: row.service_date_confirmed,
     expiryDate: row.expiry_date,
+    renewalClosedAt: row.renewal_closed_at,
+    renewalClosedReason: isRenewalCloseReason(row.renewal_closed_reason) ? row.renewal_closed_reason : null,
     tone: toneForCategory(row.category),
     requestedServices: client.requested_services ?? [],
   };
@@ -418,6 +430,8 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
     serviceDate: null,
     serviceDateConfirmed: true,
     expiryDate: null,
+    renewalClosedAt: null,
+    renewalClosedReason: null,
     tone: null,
     requestedServices: row.requested_services ?? [],
   };
@@ -435,6 +449,7 @@ export type ServiceHistoryEntry = {
   /** YYYY-MM-DD */
   serviceDate: string;
   expiryDate: string | null;
+  renewalClosed: boolean;
 };
 
 type ServiceHistoryRow = {
@@ -443,6 +458,7 @@ type ServiceHistoryRow = {
   file_name: string;
   service_date: string;
   expiry_date: string | null;
+  renewal_closed_at: string | null;
   created_at: string;
 };
 
@@ -454,7 +470,7 @@ export async function getClientServiceHistory(clientId: string): Promise<Service
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, category, file_name, service_date, expiry_date, created_at")
+    .select("id, category, file_name, service_date, expiry_date, renewal_closed_at, created_at")
     .eq("client_id", clientId)
     .order("service_date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -468,6 +484,7 @@ export async function getClientServiceHistory(clientId: string): Promise<Service
     fileType: extensionFromFileName(row.file_name),
     serviceDate: row.service_date,
     expiryDate: row.expiry_date,
+    renewalClosed: Boolean(row.renewal_closed_at),
   }));
 }
 
@@ -480,7 +497,7 @@ export type RenewalItem = {
   serviceDate: string;
   serviceDateConfirmed: boolean;
   expiryDate: string;
-  status: Exclude<ExpiryStatus, "none" | "renewed">;
+  status: Exclude<ExpiryStatus, "none" | "renewed" | "closed">;
   daysLeft: number;
 };
 
@@ -501,6 +518,7 @@ type RenewalRow = {
   service_date: string;
   service_date_confirmed: boolean;
   expiry_date: string | null;
+  renewal_closed_at: string | null;
   created_at: string;
   clients: { company_name: string; client_name: string } | { company_name: string; client_name: string }[] | null;
 };
@@ -509,13 +527,14 @@ type RenewalRow = {
  * Every service that's currently being tracked for renewal: for each client
  * and service category, only the LATEST report counts (by service date, then
  * upload time) — uploading a renewal automatically clears the old report's
- * alert. Reports with no fixed expiry are left out. Sorted soonest first.
+ * alert. Reports with no fixed expiry, or whose renewal staff closed
+ * ("Action taken"), are left out. Sorted soonest first.
  */
 export async function getRenewals(): Promise<RenewalSummary> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, created_at, clients(company_name, client_name)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, created_at, clients(company_name, client_name)")
     .order("service_date", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -526,7 +545,8 @@ export async function getRenewals(): Promise<RenewalSummary> {
     const key = `${row.client_id}|${row.category}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    if (!row.expiry_date) continue;
+    // No fixed expiry, or staff marked "Action taken" (e.g. the client went elsewhere).
+    if (!row.expiry_date || row.renewal_closed_at) continue;
     const client = Array.isArray(row.clients) ? row.clients[0] : row.clients;
     const { status, daysLeft } = expiryStatus(row.expiry_date, today);
     items.push({
@@ -917,7 +937,7 @@ type MapClientRow = {
   latitude: number | null;
   longitude: number | null;
   location_label: string | null;
-  documents: { id: string; category: string; service_date: string; expiry_date: string | null; created_at: string; deleted_at: string | null }[] | null;
+  documents: { id: string; category: string; service_date: string; expiry_date: string | null; renewal_closed_at: string | null; created_at: string; deleted_at: string | null }[] | null;
 };
 
 /**
@@ -930,7 +950,7 @@ export async function getClientMap(): Promise<MapClient[]> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("clients")
-    .select("id, company_name, client_name, telephone, latitude, longitude, location_label, documents(id, category, service_date, expiry_date, created_at, deleted_at)")
+    .select("id, company_name, client_name, telephone, latitude, longitude, location_label, documents(id, category, service_date, expiry_date, renewal_closed_at, created_at, deleted_at)")
     .is("deleted_at", null)
     .order("company_name", { ascending: true });
 
@@ -945,8 +965,9 @@ export async function getClientMap(): Promise<MapClient[]> {
     for (const doc of documents) {
       if (seen.has(doc.category)) continue;
       seen.add(doc.category);
-      const { status, daysLeft } = expiryStatus(doc.expiry_date, today);
-      services.push({ documentId: doc.id, category: doc.category, serviceDate: doc.service_date, expiryDate: doc.expiry_date, status: toMapStatus(status), daysLeft });
+      const closed = Boolean(doc.renewal_closed_at);
+      const { status, daysLeft } = expiryStatus(doc.expiry_date, today, false, closed);
+      services.push({ documentId: doc.id, category: doc.category, serviceDate: doc.service_date, expiryDate: closed ? null : doc.expiry_date, status: toMapStatus(status), daysLeft });
     }
     services.sort((a, b) => compareUrgency(a.status, b.status) || (a.expiryDate ?? "9999").localeCompare(b.expiryDate ?? "9999"));
 

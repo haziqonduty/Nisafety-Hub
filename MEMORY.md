@@ -909,3 +909,10 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Tests now check the code list against the latest DB constraint, the expiry backfill (following renames), and the requested-services cap. Rule: when adding/renaming a service, update `CATEGORY_GROUPS`, `VALIDITY_RULES`, both `messages/*.json` `categories.items`, and a new migration recreating `documents_category_check`.
 - Verified: 65 unit tests, build, Playwright 9/9 on /renewals (EN + MS).
 
+
+## Renewals: "Action taken" closes a report's renewal (2026-11-24)
+- Kay's request: the expiry banner couldn't be dismissed, but not every job comes back to Nisafety (the client may use another consultant). Decision: save it ON THE REPORT (shared by all staff), not a per-browser dismiss.
+- Migration `20261124_renewal_action_taken.sql`: `documents.renewal_closed_at / renewal_closed_reason ('other_consultant' | 'not_needed' | 'other') / renewal_closed_by`, a check tying reason to closed_at, and `directory_page` ignoring a closed latest report's expiry.
+- `POST/DELETE /api/records/[id]/renewal-action` (id = document id; RLS client; 400 on unknown reason). New `ExpiryStatus` "closed" ("Action taken" badge); `getRenewals` skips closed reports, so the banner, tracker, nav badge and map all drop them.
+- UI: `renewal-action-button.tsx` (native `<dialog>` asking why) on banner chips, tracker rows and the record page's validity card; the validity card shows "Closed on … · reason" with "Track renewal again" (undo). A new report for the same service supersedes as usual.
+- Verified: 68 unit, 62 security, Playwright 15/15 (throwaway staff/client/report, cleaned up), desktop + mobile dark.

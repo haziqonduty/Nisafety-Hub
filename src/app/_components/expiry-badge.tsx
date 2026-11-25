@@ -17,6 +17,8 @@ export function expiryLabel(status: ExpiryStatus, daysLeft: number | null): { ke
       return { key: "validFor", values: { months: Math.max(1, Math.floor((daysLeft ?? 0) / 30.4)) } };
     case "renewed":
       return { key: "renewed" };
+    case "closed":
+      return { key: "actionTaken" };
     default:
       return { key: "noExpiry" };
   }

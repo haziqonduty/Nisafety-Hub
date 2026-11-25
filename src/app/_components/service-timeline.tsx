@@ -120,7 +120,7 @@ export async function ServiceTimeline({ history, currentId }: { history: Service
                               <span className="truncate">{service.fileName}</span>
                               {(service.expiryDate || superseded.has(service.id)) &&
                                 (() => {
-                                  const { status, daysLeft } = expiryStatus(service.expiryDate, today, superseded.has(service.id));
+                                  const { status, daysLeft } = expiryStatus(service.expiryDate, today, superseded.has(service.id), service.renewalClosed);
                                   const label = expiryLabel(status, daysLeft);
                                   return <ExpiryBadge status={status} label={tExpiry(label.key as Parameters<typeof tExpiry>[0], label.values)} className="shrink-0" />;
                                 })()}

@@ -1,10 +1,11 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { expiryLabel } from "@/app/_components/expiry-badge";
 import { AlertTriangle, Arrow, ArrowUpRight, Check, Hourglass, RefreshCw } from "@/app/_components/icons";
+import { RenewalActionButton, RenewalUndoButton } from "@/app/_components/renewal-action-button";
 import { Link } from "@/i18n/routing";
 import { formatServiceDate, todayInMalaysia } from "@/lib/format";
 import type { ServiceHistoryEntry } from "@/lib/supabase/queries";
-import { expiryStatus, validityProgress, validityRuleFor } from "@/lib/validity";
+import { expiryStatus, type RenewalCloseReason, validityProgress, validityRuleFor } from "@/lib/validity";
 
 const TONE = {
   expired: { ring: "border-danger/40", glow: "from-danger-soft", text: "text-danger", bar: "bg-danger", icon: AlertTriangle },
@@ -13,6 +14,7 @@ const TONE = {
   valid: { ring: "border-accent/30", glow: "from-accent-soft", text: "text-accent", bar: "bg-accent", icon: Check },
   none: { ring: "border-line", glow: "from-surface-soft", text: "text-ink-muted", bar: "bg-line", icon: Hourglass },
   renewed: { ring: "border-line", glow: "from-surface-soft", text: "text-ink-muted", bar: "bg-line", icon: RefreshCw },
+  closed: { ring: "border-line", glow: "from-surface-soft", text: "text-ink-muted", bar: "bg-line", icon: Check },
 } as const;
 
 /**
@@ -26,26 +28,38 @@ export async function ValidityCard({
   serviceDate,
   expiryDate,
   history,
+  company,
+  closedAt,
+  closedReason,
 }: {
   id: string;
   category: string;
   serviceDate: string;
   expiryDate: string | null;
   history: ServiceHistoryEntry[];
+  company: string;
+  /** "Action taken": when staff closed this report's renewal, and why. */
+  closedAt: string | null;
+  closedReason: RenewalCloseReason | null;
 }) {
-  const [t, locale] = await Promise.all([getTranslations("expiry"), getLocale()]);
+  const [t, tCategories, locale] = await Promise.all([getTranslations("expiry"), getTranslations("categories.items"), getLocale()]);
   const intlLocale = locale === "ms" ? "ms-MY" : "en-GB";
   const today = todayInMalaysia();
 
   // History is newest-first, so the first report of this category is the latest one.
   const latest = history.find((entry) => entry.category === category);
   const superseded = Boolean(latest && latest.id !== id);
-  const { status, daysLeft } = expiryStatus(expiryDate, today, superseded);
+  const closed = Boolean(closedAt);
+  const { status, daysLeft } = expiryStatus(expiryDate, today, superseded, closed);
   const tone = TONE[status];
   const Icon = tone.icon;
   const rule = validityRuleFor(category);
   const label = expiryLabel(status, daysLeft);
-  const progress = expiryDate && !superseded ? validityProgress(serviceDate, expiryDate, today) : 0;
+  const progress = expiryDate && !superseded && !closed ? validityProgress(serviceDate, expiryDate, today) : 0;
+  let serviceName = category;
+  try {
+    serviceName = tCategories(category);
+  } catch {}
   const renewHref = { pathname: `/records/${id}`, query: { renew: category } } as const;
 
   return (
@@ -71,6 +85,14 @@ export async function ValidityCard({
               </p>
             )}
             {status === "none" && <p className="mt-1 text-sm text-ink-muted">{t("noExpiryHint")}</p>}
+            {status === "closed" && closedAt && (
+              <p className="mt-1 text-sm text-ink-muted">
+                {t("actionClosedOn", {
+                  date: new Date(closedAt).toLocaleDateString(intlLocale, { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kuala_Lumpur" }),
+                  reason: closedReason ? t(`reason.${closedReason}`) : t("reason.other"),
+                })}
+              </p>
+            )}
           </div>
         </div>
 
@@ -81,20 +103,25 @@ export async function ValidityCard({
           >
             {t("viewLatest")} <Arrow className="h-4 w-4" />
           </Link>
+        ) : status === "closed" ? (
+          <RenewalUndoButton documentId={id} />
         ) : status === "expired" || status === "expiring" || status === "upcoming" ? (
-          <Link
-            href={renewHref}
-            scroll={false}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(16,42,51,.18)] transition-all hover:-translate-y-0.5 ${
-              status === "expired" ? "bg-danger hover:opacity-90" : "bg-brand hover:bg-brand-hover"
-            }`}
-          >
-            <RefreshCw className="h-4 w-4" /> {t("renewNow")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <RenewalActionButton documentId={id} company={company} service={serviceName} />
+            <Link
+              href={renewHref}
+              scroll={false}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(16,42,51,.18)] transition-all hover:-translate-y-0.5 ${
+                status === "expired" ? "bg-danger hover:opacity-90" : "bg-brand hover:bg-brand-hover"
+              }`}
+            >
+              <RefreshCw className="h-4 w-4" /> {t("renewNow")}
+            </Link>
+          </div>
         ) : null}
       </div>
 
-      {expiryDate && !superseded && (
+      {expiryDate && !superseded && !closed && (
         <div className="mt-6">
           <div className="relative h-2 rounded-full bg-line/70">
             <div className={`absolute inset-y-0 left-0 rounded-full ${tone.bar} origin-left animate-[grow-x_.9s_cubic-bezier(.22,1,.36,1)_both]`} style={{ width: `${Math.max(2, progress * 100)}%` }} />

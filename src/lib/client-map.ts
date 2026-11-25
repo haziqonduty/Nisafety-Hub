@@ -19,7 +19,7 @@ export function compareUrgency(a: MapStatus, b: MapStatus) {
 }
 
 export function toMapStatus(status: ExpiryStatus): MapStatus {
-  return status === "renewed" ? "none" : status;
+  return status === "renewed" || status === "closed" ? "none" : status;
 }
 
 /** Marker colours (hex — the map draws with WebGL, not CSS classes). */

@@ -107,15 +107,27 @@ export function defaultExpiryFor(category: string, serviceDate: string) {
 export const EXPIRING_SOON_DAYS = 30;
 export const UPCOMING_DAYS = 90;
 
-export type ExpiryStatus = "expired" | "expiring" | "upcoming" | "valid" | "none" | "renewed";
+export type ExpiryStatus = "expired" | "expiring" | "upcoming" | "valid" | "none" | "renewed" | "closed";
+
+/** Why staff closed a report's renewal ("Action taken"). KEEP IN SYNC with documents_renewal_closed_check. */
+export const RENEWAL_CLOSE_REASONS = ["other_consultant", "not_needed", "other"] as const;
+export type RenewalCloseReason = (typeof RENEWAL_CLOSE_REASONS)[number];
+
+export function isRenewalCloseReason(value: unknown): value is RenewalCloseReason {
+  return typeof value === "string" && (RENEWAL_CLOSE_REASONS as readonly string[]).includes(value);
+}
 
 export function daysUntil(date: string, today: string) {
   return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
 }
 
-/** Status of one report's expiry relative to today (Malaysia). A superseded report is "renewed". */
-export function expiryStatus(expiryDate: string | null, today: string, superseded = false): { status: ExpiryStatus; daysLeft: number | null } {
+/**
+ * Status of one report's expiry relative to today (Malaysia). A superseded
+ * report is "renewed"; one whose renewal staff closed ("Action taken") is "closed".
+ */
+export function expiryStatus(expiryDate: string | null, today: string, superseded = false, closed = false): { status: ExpiryStatus; daysLeft: number | null } {
   if (superseded) return { status: "renewed", daysLeft: null };
+  if (closed) return { status: "closed", daysLeft: null };
   if (!expiryDate) return { status: "none", daysLeft: null };
   const daysLeft = daysUntil(expiryDate, today);
   if (daysLeft < 0) return { status: "expired", daysLeft };
@@ -138,4 +150,5 @@ export const EXPIRY_STATUS_STYLES: Record<ExpiryStatus, { chip: string; dot: str
   valid: { chip: "bg-accent-soft text-accent", dot: "bg-accent", bar: "bg-accent" },
   none: { chip: "bg-badge-neutral-bg text-badge-neutral-text", dot: "bg-ink-faint", bar: "bg-line" },
   renewed: { chip: "bg-badge-neutral-bg text-badge-neutral-text", dot: "bg-ink-faint", bar: "bg-line" },
+  closed: { chip: "bg-badge-neutral-bg text-badge-neutral-text", dot: "bg-ink-faint", bar: "bg-line" },
 };

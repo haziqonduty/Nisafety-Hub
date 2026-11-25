@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
+import { RenewalActionButton } from "@/app/_components/renewal-action-button";
 import { Arrow, Calendar, RefreshCw, Search } from "@/app/_components/icons";
 import { Link } from "@/i18n/routing";
 import { categoryNameWithoutAbbreviation, formatServiceDate, shortCategoryLabel, todayInMalaysia, toneDotClass, toneForCategory } from "@/lib/format";
@@ -179,7 +180,7 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-end gap-2 border-t border-line pt-3 lg:border-0 lg:pt-0">
+                      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3 lg:flex-nowrap lg:border-0 lg:pt-0">
                         {/* Desktop-only copy of the badge (mobile shows it next to the company). Wrapped so `hidden` isn't fighting the badge's own inline-flex. */}
                         <span className="mr-2 hidden lg:block">
                           <ExpiryBadge status={item.status} label={t(badge.key as Parameters<typeof t>[0], badge.values)} />
@@ -187,6 +188,7 @@ export function RenewalsTracker({ items, initialFilter }: { items: RenewalItem[]
                         <Link href={`/records/${item.id}`} className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:text-accent">
                           {t("viewReport")} <Arrow className="h-3.5 w-3.5" />
                         </Link>
+                        {item.status !== "valid" && <RenewalActionButton documentId={item.id} company={item.company} service={full} />}
                         {item.status !== "valid" && (
                           <Link
                             href={{ pathname: `/records/${item.id}`, query: { renew: item.category } }}

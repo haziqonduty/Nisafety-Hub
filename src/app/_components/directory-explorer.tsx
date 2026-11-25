@@ -379,7 +379,7 @@ export function DirectoryExplorer({ initialPage }: { initialPage: DirectoryPage 
                               )}
                               {(report.expiryDate || client.superseded.has(report.id)) &&
                                 (() => {
-                                  const { status, daysLeft } = expiryStatus(report.expiryDate, today, client.superseded.has(report.id));
+                                  const { status, daysLeft } = expiryStatus(report.expiryDate, today, client.superseded.has(report.id), report.renewalClosed);
                                   const label = expiryLabel(status, daysLeft);
                                   return <ExpiryBadge status={status} label={tExpiry(label.key as Parameters<typeof tExpiry>[0], label.values)} />;
                                 })()}

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ExpiryBadge, expiryLabel } from "@/app/_components/expiry-badge";
 import { AlertTriangle, Arrow, Bell } from "@/app/_components/icons";
+import { RenewalActionButton } from "@/app/_components/renewal-action-button";
 import { Link } from "@/i18n/routing";
 import { shortCategoryLabel } from "@/lib/format";
 import type { RenewalSummary } from "@/lib/supabase/queries";
@@ -57,15 +58,13 @@ export async function RenewalBanner({ renewals }: { renewals: RenewalSummary }) 
           {urgent.slice(0, MAX_CHIPS).map((item) => {
             const badge = expiryLabel(item.status, item.daysLeft);
             return (
-              <li key={item.id} className="shrink-0">
-                <Link
-                  href={`/records/${item.id}`}
-                  className="flex items-center gap-2.5 rounded-xl border border-line bg-surface/90 px-3 py-2 text-xs backdrop-blur transition-all hover:-translate-y-0.5 hover:border-accent"
-                >
+              <li key={item.id} className="flex shrink-0 items-center gap-1 rounded-xl border border-line bg-surface/90 py-1 pl-1 pr-1.5 text-xs backdrop-blur transition-colors hover:border-accent/60">
+                <Link href={`/records/${item.id}`} className="flex items-center gap-2.5 rounded-lg px-2 py-1 transition-colors hover:bg-surface-soft">
                   <span className="max-w-[10rem] truncate font-semibold">{item.company}</span>
                   <span className="font-mono text-[10px] font-bold text-ink-muted">{shortCategoryLabel(label(item.category))}</span>
                   <ExpiryBadge status={item.status} label={t(badge.key as Parameters<typeof t>[0], badge.values)} />
                 </Link>
+                <RenewalActionButton documentId={item.id} company={item.company} service={label(item.category)} variant="chip" />
               </li>
             );
           })}

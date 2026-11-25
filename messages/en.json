@@ -413,7 +413,23 @@
     "sourceLink": "Read the source",
     "legendStatutory": "The period is written in the regulation. The exact clause is shown, and the source link opens the regulation.",
     "legendTypical": "The usual period in practice. The real one is in the client's DOE licence, approval conditions or assessor's report, so check it for each client.",
-    "legendNoExpiry": "There is no legal renewal period, so no expiry is filled in. Review it when the work changes, or add an expiry by hand if the client's own programme sets one."
+    "legendNoExpiry": "There is no legal renewal period, so no expiry is filled in. Review it when the work changes, or add an expiry by hand if the client's own programme sets one.",
+    "actionTaken": "Action taken",
+    "actionTakenButton": "Action taken",
+    "actionEyebrow": "RENEWAL",
+    "actionTitle": "Mark action taken",
+    "actionReasonLabel": "What happened?",
+    "reason": {
+      "other_consultant": "Client used another consultant",
+      "not_needed": "Client doesn't need a renewal",
+      "other": "Other reason"
+    },
+    "actionHint": "The report stops showing as due for renewal for every staff member. You can undo this from the report page.",
+    "actionConfirm": "Confirm",
+    "actionCancel": "Cancel",
+    "actionError": "We couldn't save this. Please try again.",
+    "actionClosedOn": "Closed on {date} · {reason}",
+    "actionUndo": "Track renewal again"
   },
   "confirmDate": {
     "eyebrow": "ACTION NEEDED",

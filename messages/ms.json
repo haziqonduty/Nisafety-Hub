@@ -413,7 +413,23 @@
     "sourceLink": "Baca sumber",
     "legendStatutory": "Tempoh ini ditulis dalam peraturan. Fasal tepat ditunjukkan, dan pautan sumber membuka peraturan tersebut.",
     "legendTypical": "Tempoh lazim dalam amalan. Tempoh sebenar ada dalam lesen JAS, syarat kelulusan atau laporan penilai klien, jadi semak bagi setiap klien.",
-    "legendNoExpiry": "Tiada tempoh pembaharuan di sisi undang-undang, jadi tarikh tamat tidak diisi. Semak semula apabila kerja berubah, atau masukkan tarikh tamat sendiri jika program klien menetapkannya."
+    "legendNoExpiry": "Tiada tempoh pembaharuan di sisi undang-undang, jadi tarikh tamat tidak diisi. Semak semula apabila kerja berubah, atau masukkan tarikh tamat sendiri jika program klien menetapkannya.",
+    "actionTaken": "Tindakan diambil",
+    "actionTakenButton": "Tindakan diambil",
+    "actionEyebrow": "PEMBAHARUAN",
+    "actionTitle": "Tandakan tindakan diambil",
+    "actionReasonLabel": "Apa yang berlaku?",
+    "reason": {
+      "other_consultant": "Klien menggunakan perunding lain",
+      "not_needed": "Klien tidak memerlukan pembaharuan",
+      "other": "Sebab lain"
+    },
+    "actionHint": "Laporan ini tidak lagi dipaparkan sebagai perlu diperbaharui untuk semua kakitangan. Anda boleh membatalkannya dari halaman laporan.",
+    "actionConfirm": "Sahkan",
+    "actionCancel": "Batal",
+    "actionError": "Kami tidak dapat menyimpan ini. Sila cuba lagi.",
+    "actionClosedOn": "Ditutup pada {date} · {reason}",
+    "actionUndo": "Jejak pembaharuan semula"
   },
   "confirmDate": {
     "eyebrow": "TINDAKAN DIPERLUKAN",
