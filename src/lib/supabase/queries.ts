@@ -293,6 +293,9 @@ export type RecordDetail = {
   /** Who sold the job and its main contractor; null when blank (older reports, or a direct job). */
   salesPerson: string | null;
   maincon: string | null;
+  /** Sales person / maincon saved with "client details only" for the services still to do; pre-fills the next report. */
+  pendingSalesPerson: string | null;
+  pendingMaincon: string | null;
   /** When staff closed this report's renewal ("Action taken"), and why; null while it's still tracked. */
   renewalClosedAt: string | null;
   renewalClosedReason: RenewalCloseReason | null;
@@ -310,6 +313,8 @@ type RecordDetailClient = {
   additional_telephones: string[] | null;
   additional_emails: string[] | null;
   requested_services: string[] | null;
+  pending_sales_person: string | null;
+  pending_maincon: string | null;
 };
 
 type RecordDetailRow = {
@@ -334,7 +339,7 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, renewal_closed_reason, sales_person, maincon, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, renewal_closed_reason, sales_person, maincon, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services, pending_sales_person, pending_maincon)")
     .eq("id", id)
     .single();
 
@@ -368,6 +373,8 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
     expiryDate: row.expiry_date,
     salesPerson: row.sales_person,
     maincon: row.maincon,
+    pendingSalesPerson: client.pending_sales_person,
+    pendingMaincon: client.pending_maincon,
     renewalClosedAt: row.renewal_closed_at,
     renewalClosedReason: isRenewalCloseReason(row.renewal_closed_reason) ? row.renewal_closed_reason : null,
     tone: toneForCategory(row.category),
@@ -386,6 +393,8 @@ type ClientOnlyRecordRow = {
   additional_telephones: string[] | null;
   additional_emails: string[] | null;
   requested_services: string[] | null;
+  pending_sales_person: string | null;
+  pending_maincon: string | null;
   created_at: string;
 };
 
@@ -408,7 +417,7 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
 
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services, created_at")
+    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services, pending_sales_person, pending_maincon, created_at")
     .eq("id", id)
     .single();
 
@@ -439,6 +448,8 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
     expiryDate: null,
     salesPerson: null,
     maincon: null,
+    pendingSalesPerson: row.pending_sales_person,
+    pendingMaincon: row.pending_maincon,
     renewalClosedAt: null,
     renewalClosedReason: null,
     tone: null,
@@ -630,6 +641,9 @@ export type AdminClient = {
   internalNotes: string | null;
   /** Services recorded without a report yet (see requested-services.ts). */
   requestedServices: string[];
+  /** Sales person / maincon saved with those services. */
+  pendingSalesPerson: string | null;
+  pendingMaincon: string | null;
   date: string;
   createdAt: string;
   documents: {
@@ -658,6 +672,8 @@ type AdminClientRow = {
   additional_emails: string[] | null;
   internal_notes: string | null;
   requested_services: string[] | null;
+  pending_sales_person: string | null;
+  pending_maincon: string | null;
   created_at: string;
   documents: { id: string; category: string; file_name: string; service_date: string; expiry_date: string | null; renewal_closed_at: string | null; sales_person: string | null; maincon: string | null; created_at: string }[] | null;
 };
@@ -670,7 +686,7 @@ export async function getAdminClients(): Promise<AdminClient[]> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("clients")
-    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, requested_services, created_at, documents(id, category, file_name, service_date, expiry_date, renewal_closed_at, sales_person, maincon, created_at)")
+    .select("id, client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, internal_notes, requested_services, pending_sales_person, pending_maincon, created_at, documents(id, category, file_name, service_date, expiry_date, renewal_closed_at, sales_person, maincon, created_at)")
     // Service role bypasses RLS, so exclude the recycle bin by hand.
     .is("deleted_at", null)
     .is("documents.deleted_at", null)
@@ -690,6 +706,8 @@ export async function getAdminClients(): Promise<AdminClient[]> {
     additionalEmails: row.additional_emails ?? [],
     internalNotes: row.internal_notes,
     requestedServices: row.requested_services ?? [],
+    pendingSalesPerson: row.pending_sales_person,
+    pendingMaincon: row.pending_maincon,
     date: formatDate(row.created_at),
     createdAt: row.created_at,
     documents: (row.documents ?? []).map((document) => ({

@@ -58,8 +58,9 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
   // report whose date was only ever filled in automatically, starts blank.
   const [serviceDate, setServiceDate] = useState(record.serviceDateConfirmed ? (record.serviceDate ?? "") : "");
   const [expiryDate, setExpiryDate] = useState(record.hasDocument ? (record.expiryDate ?? "") : "");
-  const [salesPerson, setSalesPerson] = useState(record.salesPerson ?? "");
-  const [maincon, setMaincon] = useState(record.maincon ?? "");
+  // A client with no report yet keeps them as "pending" until it gets one.
+  const [salesPerson, setSalesPerson] = useState((record.hasDocument ? record.salesPerson : record.pendingSalesPerson) ?? "");
+  const [maincon, setMaincon] = useState((record.hasDocument ? record.maincon : record.pendingMaincon) ?? "");
   // An unconfirmed report whose expiry was auto-calculated from the guessed
   // date should recalculate from the real one as staff type it in.
   const expiryFollowsDate =
@@ -128,8 +129,8 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
     if (record.hasDocument || selectedFile) {
       formData.append("serviceDate", serviceDate);
       formData.append("expiryDate", effectiveExpiry);
-      appendJobDetails(formData, { salesPerson, maincon });
     }
+    appendJobDetails(formData, { salesPerson, maincon });
     if (selectedFile) {
       const uploadError = await appendUploadedFile(formData, selectedFile);
       if (uploadError) {
@@ -256,13 +257,13 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
         </label>
       )}
 
-      {(record.hasDocument || selectedFile) && (
+      {(
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="block text-sm font-semibold">
             {tServices("salesPerson")}
             {/* Required for a first report; older reports may still be blank. */}
             <input
-              required={!record.hasDocument}
+              required={!record.hasDocument && Boolean(selectedFile)}
               maxLength={MAX_SALES_PERSON_LENGTH}
               value={salesPerson}
               onChange={(event) => setSalesPerson(event.target.value)}

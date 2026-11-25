@@ -184,7 +184,6 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
   const yesterday = addDays(today, -1);
   // Set when the form was submitted without a date; cleared once one is picked.
   const [dateMissing, setDateMissing] = useState(false);
-  const [salesPersonMissing, setSalesPersonMissing] = useState(false);
   const chosenCategories = rows.map((row) => row.category).filter(Boolean);
 
   async function chooseFile(row: ServiceRow, event: ChangeEvent<HTMLInputElement>) {
@@ -301,64 +300,7 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
         )}
       </div>
 
-      {/* Who sold the job, and the main contractor when it came through one. */}
-      <div className="mt-4 grid gap-4 rounded-2xl border border-line bg-surface p-4 sm:grid-cols-2 sm:p-5">
-        <div>
-          <label htmlFor={SALES_PERSON_INPUT_ID} className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            {t("salesPerson")}
-            {!job.salesPerson.trim() && <span className="rounded-full bg-amber-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-amber">{t("required")}</span>}
-          </label>
-          <input
-            id={SALES_PERSON_INPUT_ID}
-            required
-            maxLength={MAX_SALES_PERSON_LENGTH}
-            value={job.salesPerson}
-            disabled={locked}
-            onChange={(event) => {
-              onJobChange({ ...job, salesPerson: event.target.value });
-              if (event.target.value.trim()) setSalesPersonMissing(false);
-            }}
-            onInvalid={(event) => {
-              event.preventDefault();
-              setSalesPersonMissing(true);
-              event.currentTarget.focus();
-            }}
-            aria-invalid={salesPersonMissing}
-            aria-describedby="sales-person-hint"
-            placeholder={t("salesPersonPlaceholder")}
-            autoComplete="off"
-            className={`${fieldClass} mt-2 ${salesPersonMissing ? "border-danger focus:border-danger focus:ring-danger-soft" : ""}`}
-          />
-          {salesPersonMissing ? (
-            <p id="sales-person-hint" role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-danger">
-              <AlertTriangle className="h-3.5 w-3.5" /> {t("salesPersonRequiredError")}
-            </p>
-          ) : (
-            <p id="sales-person-hint" className="mt-1.5 text-xs text-ink-muted">
-              {t("salesPersonHint")}
-            </p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="maincon" className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            {t("maincon")}
-            <span className="rounded-full bg-surface-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-ink-muted">{t("optional")}</span>
-          </label>
-          <input
-            id="maincon"
-            maxLength={MAX_MAINCON_LENGTH}
-            value={job.maincon}
-            disabled={locked}
-            onChange={(event) => onJobChange({ ...job, maincon: event.target.value })}
-            aria-describedby="maincon-hint"
-            autoComplete="off"
-            className={`${fieldClass} mt-2`}
-          />
-          <p id="maincon-hint" className="mt-1.5 text-xs text-ink-muted">
-            {t("mainconHint")}
-          </p>
-        </div>
-      </div>
+      <JobDetailsFields job={job} onJobChange={onJobChange} locked={locked} />
 
       <ol className="mt-5 space-y-3">
         {rows.map((row, index) => {
@@ -561,5 +503,74 @@ function ExpiryStrip({
 
       {rule && <span className="basis-full text-[11px] leading-4 text-ink-faint">{rule.basis}</span>}
     </div>
+  );
+}
+
+/**
+ * Who owns the job, and the main contractor when it came through one. Used
+ * by every report form and by "client details only" (saved on the client and
+ * pre-filled when its report is attached later).
+ */
+export function JobDetailsFields({ job, onJobChange, locked = false, className = "mt-4" }: { job: JobDetails; onJobChange: (job: JobDetails) => void; locked?: boolean; className?: string }) {
+  const t = useTranslations("services");
+  const [salesPersonMissing, setSalesPersonMissing] = useState(false);
+  return (
+      <div className={`${className} grid gap-4 rounded-2xl border border-line bg-surface p-4 sm:grid-cols-2 sm:p-5`}>
+        <div>
+          <label htmlFor={SALES_PERSON_INPUT_ID} className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {t("salesPerson")}
+            {!job.salesPerson.trim() && <span className="rounded-full bg-amber-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-amber">{t("required")}</span>}
+          </label>
+          <input
+            id={SALES_PERSON_INPUT_ID}
+            required
+            maxLength={MAX_SALES_PERSON_LENGTH}
+            value={job.salesPerson}
+            disabled={locked}
+            onChange={(event) => {
+              onJobChange({ ...job, salesPerson: event.target.value });
+              if (event.target.value.trim()) setSalesPersonMissing(false);
+            }}
+            onInvalid={(event) => {
+              event.preventDefault();
+              setSalesPersonMissing(true);
+              event.currentTarget.focus();
+            }}
+            aria-invalid={salesPersonMissing}
+            aria-describedby="sales-person-hint"
+            placeholder={t("salesPersonPlaceholder")}
+            autoComplete="off"
+            className={`${fieldClass} mt-2 ${salesPersonMissing ? "border-danger focus:border-danger focus:ring-danger-soft" : ""}`}
+          />
+          {salesPersonMissing ? (
+            <p id="sales-person-hint" role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-danger">
+              <AlertTriangle className="h-3.5 w-3.5" /> {t("salesPersonRequiredError")}
+            </p>
+          ) : (
+            <p id="sales-person-hint" className="mt-1.5 text-xs text-ink-muted">
+              {t("salesPersonHint")}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="maincon" className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {t("maincon")}
+            <span className="rounded-full bg-surface-soft px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-ink-muted">{t("optional")}</span>
+          </label>
+          <input
+            id="maincon"
+            maxLength={MAX_MAINCON_LENGTH}
+            value={job.maincon}
+            disabled={locked}
+            onChange={(event) => onJobChange({ ...job, maincon: event.target.value })}
+            aria-describedby="maincon-hint"
+            autoComplete="off"
+            className={`${fieldClass} mt-2`}
+          />
+          <p id="maincon-hint" className="mt-1.5 text-xs text-ink-muted">
+            {t("mainconHint")}
+          </p>
+        </div>
+      </div>
   );
 }

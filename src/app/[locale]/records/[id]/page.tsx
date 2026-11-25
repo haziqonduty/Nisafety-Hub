@@ -89,11 +89,11 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
             <h1 className="mt-6 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">{record.hasDocument ? record.fileName : record.companyName}</h1>
           </ViewTransition>
           {record.hasDocument && <p className="mt-2 text-sm text-ink-muted">{record.fileType} · {record.fileSize}</p>}
-          {record.hasDocument && (
+          {(record.hasDocument || record.pendingSalesPerson || record.pendingMaincon) && (
             <dl className="mt-5 grid gap-3 sm:grid-cols-2">
               {[
-                { label: tServices("salesPerson"), value: record.salesPerson ?? tServices("notRecorded") },
-                { label: tServices("maincon"), value: record.maincon ?? tServices("directJob") },
+                { label: tServices("salesPerson"), value: (record.hasDocument ? record.salesPerson : record.pendingSalesPerson) ?? tServices("notRecorded") },
+                { label: tServices("maincon"), value: (record.hasDocument ? record.maincon : record.pendingMaincon) ?? tServices("directJob") },
               ].map((item) => (
                 <div key={item.label} className="rounded-xl border border-line bg-surface-soft px-4 py-3">
                   <dt className="font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">{item.label.toUpperCase()}</dt>
@@ -174,7 +174,13 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
                   {tServices("historyTitle")}
                 </h2>
               </div>
-              <AddServicePanel key={renewCategory ?? "add"} clientId={record.clientId} companyName={record.companyName} renewCategory={renewCategory} />
+              <AddServicePanel
+                key={renewCategory ?? "add"}
+                clientId={record.clientId}
+                companyName={record.companyName}
+                renewCategory={renewCategory}
+                initialJob={{ salesPerson: record.pendingSalesPerson ?? "", maincon: record.pendingMaincon ?? "" }}
+              />
             </div>
             {(outstanding.length > 0 || history.length === 0) && <RequestedServicesCard key={outstanding.join("|")} clientId={record.clientId} recordId={record.id} outstanding={outstanding} />}
             <ServiceTimeline history={history} currentId={record.id} />

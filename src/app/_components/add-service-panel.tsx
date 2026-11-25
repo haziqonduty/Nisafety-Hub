@@ -17,18 +17,22 @@ export function AddServicePanel({
   clientId,
   companyName,
   renewCategory = null,
+  initialJob,
 }: {
   clientId: string;
   companyName: string;
   /** Opens the panel straight away with this service pre-selected — the "Renew" action from expiry alerts. */
   renewCategory?: string | null;
+  /** Sales person / maincon saved with "client details only", to start from. */
+  initialJob?: JobDetails;
 }) {
   const t = useTranslations("services");
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(Boolean(renewCategory));
   const [serviceDate, setServiceDate] = useState("");
-  const [job, setJob] = useState<JobDetails>(EMPTY_JOB_DETAILS);
+  const startJob = initialJob ?? EMPTY_JOB_DETAILS;
+  const [job, setJob] = useState<JobDetails>(startJob);
   const [rows, setRows] = useState<ServiceRow[]>(() => [{ ...newServiceRow(), category: renewCategory ?? "" }]);
 
   // Arriving via a "Renew" link: bring the pre-filled panel into view.
@@ -46,7 +50,7 @@ export function AddServicePanel({
   function reset() {
     setRows([newServiceRow()]);
     setServiceDate("");
-    setJob(EMPTY_JOB_DETAILS);
+    setJob(startJob);
     setError("");
   }
 

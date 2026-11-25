@@ -122,7 +122,7 @@ export async function GET() {
       submitterName: client.submitterName,
       createdAt: client.createdAt,
     };
-    if (client.documents.length === 0) return [{ ...base, category: null, fileName: null, salesPerson: null, maincon: null }];
+    if (client.documents.length === 0) return [{ ...base, category: null, fileName: null, salesPerson: client.pendingSalesPerson, maincon: client.pendingMaincon }];
     return client.documents.map((document) => ({ ...base, category: document.category, fileName: document.fileName, salesPerson: document.salesPerson, maincon: document.maincon }));
   });
 

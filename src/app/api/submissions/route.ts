@@ -109,12 +109,16 @@ export async function POST(request: Request) {
   let report: { reportFile: ReportFile; expiryDate: string | null } | null = null;
   let job: { salesPerson: string | null; maincon: string | null } = { salesPerson: null, maincon: null };
 
+  // Every job has a sales person: on the report itself, or — for "client
+  // details only" — kept on the client to pre-fill the report later.
+  const jobDetails = readJobDetails(formData, { requireSalesPerson: true });
+  if ("error" in jobDetails) {
+    return Response.json({ error: jobDetails.error }, { status: 400 });
+  }
+  job = jobDetails;
+  const pendingJob = hasDocument ? {} : { pending_sales_person: job.salesPerson, pending_maincon: job.maincon };
+
   if (hasDocument) {
-    const jobDetails = readJobDetails(formData, { requireSalesPerson: true });
-    if ("error" in jobDetails) {
-      return Response.json({ error: jobDetails.error }, { status: 400 });
-    }
-    job = jobDetails;
     const validation = await validateReport(category, serviceDate, expiryInput, await resolveReportFile(formData));
     if ("error" in validation) {
       return Response.json({ error: validation.error }, { status: 400 });
@@ -203,6 +207,7 @@ export async function POST(request: Request) {
             additional_telephones: merged.additionalTelephones,
             additional_emails: merged.additionalEmails,
             requested_services: merged.requestedServices,
+            ...pendingJob,
           })
           .eq("id", match.id);
         if (mergeError) {
@@ -228,6 +233,7 @@ export async function POST(request: Request) {
         additional_telephones: additionalTelephones,
         additional_emails: additionalEmails,
         requested_services: requestedServices,
+        ...pendingJob,
         created_by: profile.id,
       })
       .select("id")

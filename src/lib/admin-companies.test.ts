@@ -17,6 +17,8 @@ function client(overrides: Partial<AdminClient> & { id: string; companyName: str
     additionalEmails: [],
     internalNotes: null,
     requestedServices: [],
+    pendingSalesPerson: null,
+    pendingMaincon: null,
     date: "",
     createdAt: "2026-11-01T00:00:00Z",
     documents: [],

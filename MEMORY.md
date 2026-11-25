@@ -947,3 +947,9 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Kay: the New Report form must submit without an email. `clients.email` stays NOT NULL; '' = no email (`clients_email_check`: '' or 3–254 chars). Migration `20261125_optional_client_email.sql` (applied) also cleared the "no-email@example.com" placeholder from the 16 clients that used it — no dummy email is needed for data entry any more.
 - `RepeatableField` has `optional` + `optionalLabel` (first entry not required); used for email on /submit and the record edit form. Admin contact edit: email optional (validated only if given). Record page / admin card show "No email" ("Tiada e-mel"); export "—". `mergeIntoCompany` gives a company with no email the first real address as its main email.
 - Verified: 85 unit, Playwright 12/12 (real form saved with no email, cleaned up).
+
+## Sales person + maincon for "client details only" (2026-11-25)
+- Kay: client-only entries also take Sales person (required, like reports) + Maincon (optional). Stored on the client as `clients.pending_sales_person / pending_maincon` (migration `20261125_client_pending_job_details.sql`, applied: columns + length checks + column-level GRANTs + directory_page haystack). Updated when a client-only entry merges into an existing company.
+- They pre-fill the next report: `AddServicePanel initialJob` (record page "Add a service" and the to-do "Attach report" links), and the edit form when attaching a first report to a client-only record. The report still saves its own copy. Client-only record page shows the tiles; edit form can change them (PATCH updates the client when it has no report). Admin "To do" strip and Excel export show them.
+- `JobDetailsFields` was split out of `service-reports-fields.tsx` so the client-only step reuses it.
+- Verified: 85 unit, Playwright 7/7 (client-only save → tiles → pre-filled attach → report saved with them; cleaned up incl. storage).

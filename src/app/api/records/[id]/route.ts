@@ -122,6 +122,12 @@ export async function PATCH(request: Request, context: RouteContext<"/api/record
   const jobColumns = job ? { sales_person: job.salesPerson, maincon: job.maincon } : {};
 
   if (!hasNewFile) {
+    // A client with no report yet: its sales person / maincon wait on the
+    // client until the report is attached.
+    if (!existingDocument && job) {
+      const { error } = await supabase.from("clients").update({ pending_sales_person: job.salesPerson, pending_maincon: job.maincon }).eq("id", clientId);
+      if (error) return Response.json({ error: "CLIENT_SAVE_ERROR" }, { status: 500 });
+    }
     // No replacement/attachment file — the only other possible document
     // changes are the category and/or service date of an existing report.
     if (existingDocument) {

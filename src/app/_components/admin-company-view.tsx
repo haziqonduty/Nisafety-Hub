@@ -86,6 +86,16 @@ export function AdminCompanyView({ company }: { company: AdminCompany }) {
               {company.outstanding.map((category) => (
                 <ServiceCode key={category} category={category} muted />
               ))}
+              {(() => {
+                const pending = company.clients.find((client) => client.pendingSalesPerson || client.pendingMaincon);
+                if (!pending) return null;
+                return (
+                  <span className="ml-auto text-ink-muted">
+                    Sales: {pending.pendingSalesPerson ?? "—"}
+                    {pending.pendingMaincon ? ` · Maincon: ${pending.pendingMaincon}` : ""}
+                  </span>
+                );
+              })()}
             </div>
           )}
 
