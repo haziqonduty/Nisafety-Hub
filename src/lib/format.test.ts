@@ -68,6 +68,8 @@ describe("category labels", () => {
     expect(shortCategoryLabel("Noise Control Programme Assessment (NCPA)")).toBe("NCPA");
     expect(shortCategoryLabel("Chemical Registration")).toBe("Chemical Registration");
     expect(shortCategoryLabel("Additional Noise Risk Assessment (Add.NRA)")).toBe("Add.NRA");
+    expect(shortCategoryLabel("Additional Chemical Health Risk Assessment (Add.CHRA)")).toBe("Add.CHRA");
+    expect(categoryNameWithoutAbbreviation("Additional Chemical Health Risk Assessment (Add.CHRA)")).toBe("Additional Chemical Health Risk Assessment");
     expect(categoryNameWithoutAbbreviation("Additional Noise Risk Assessment (Add.NRA)")).toBe("Additional Noise Risk Assessment");
     expect(shortCategoryLabel("Training")).toBe("Training");
   });

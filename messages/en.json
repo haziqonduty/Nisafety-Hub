@@ -280,6 +280,7 @@
     },
     "items": {
       "Chemical Health Risk Assessment (CHRA)": "Chemical Health Risk Assessment (CHRA)",
+      "Additional Chemical Health Risk Assessment (Add_CHRA)": "Additional Chemical Health Risk Assessment (Add.CHRA)",
       "Chemical Exposure Monitoring (CEM)": "Chemical Exposure Monitoring (CEM)",
       "Medical Surveillance (MS)": "Medical Surveillance (MS)",
       "Local Exhaust Ventilation (LEV)": "Local Exhaust Ventilation (LEV)",

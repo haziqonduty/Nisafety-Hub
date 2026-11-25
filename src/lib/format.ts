@@ -7,6 +7,7 @@ export const CATEGORY_GROUPS = [
     tone: "teal" as CategoryTone,
     categories: [
       "Chemical Health Risk Assessment (CHRA)",
+      "Additional Chemical Health Risk Assessment (Add.CHRA)",
       "Chemical Exposure Monitoring (CEM)",
       "Medical Surveillance (MS)",
       "Local Exhaust Ventilation (LEV)",
@@ -159,7 +160,7 @@ export function formatServiceDate(value: string, locale = "en-GB") {
 }
 
 // A bracket holds an abbreviation when it's one word with at least two capitals
-// in a row ("CHRA", "WN", "Add.NRA"); "(Baseline/Annual)" or "(Asas/Tahunan)"
+// in a row ("CHRA", "WN", "Add.NRA", "Add.CHRA"); "(Baseline/Annual)" or "(Asas/Tahunan)"
 // is part of the service's name.
 const ABBREVIATION = /\s*\(((?=[^)]*[A-Z]{2})[A-Za-z0-9&.-]+)\)/g;
 

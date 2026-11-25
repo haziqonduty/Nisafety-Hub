@@ -1000,5 +1000,10 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Review shows each service's own date (+ days ago), sales person, maincon. Timeline badge "N SERVICES · SAME DAY" (was "SAME VISIT"). Page copy no longer says "visit" (title "Submit client reports.", "Services & reports", "Add another service"). Removed unused messages: services.serviceDateHint, dateSet, dateRequiredHint, dateRequiredError; review.dateLabel, dateHint.
 - Verified: lint, tsc, 92 unit, 69 security, Playwright 13/13 (per-service fields, copy-down, same-service-different-date allowed, saved values, pre-fill on Add a service) + review test 15/16 (the 1 fail was an outdated check for the removed shared-date heading; Malay review screenshot correct). Cleaned up.
 
+## New service: Additional CHRA (Add.CHRA) (2026-11-26)
+- Kay: "Additional Chemical Health Risk Assessment (Add.CHRA)", right after CHRA in Industrial Hygiene, 5-year expiry (same as CHRA; Kay confirmed Add.NRA is 5 years too). Rule marked "practice" (USECHH source), not statutory. Malay: "Penilaian Risiko Kesihatan Bahan Kimia Tambahan (Add.CHRA)"; message key "...(Add_CHRA)" via categoryMessageKey.
+- Migration `20261126_additional_chra.sql` (category constraint only, no data change); validity.test now reads the latest category list from it, and Add.CHRA is in `addedLater` (no backfill). 28 services now (cap 30). Migration applied by Kay. Verified: lint, tsc, 92 unit, 69 security, Playwright 8/8 (list order, exact en + ms names, 5-year expiry on form, review, saved, record page; cleaned up).
+- Why: LUBRIMAX's Additional CHRA (16 Apr 2026) was filed as CHRA, so their Full CHRA (2 Oct 2025) showed "Renewed". Re-filing it to Add.CHRA and deleting the wrong-date copy (and the FONG YI duplicate) is pending Kay's OK.
+
 ## Mistakes & lessons
 - 2026-11-26: a service name with "." broke translations (next-intl key nesting). Rule: never put "." in a messages key; look service names up through `categoryMessageKey`. Browser tests must check EXACT visible text, not substrings (a substring check hid this once).

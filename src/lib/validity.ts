@@ -52,6 +52,7 @@ const DOE = { label: "Department of Environment (DOE)", url: "https://www.doe.go
 export const VALIDITY_RULES: Record<string, ValidityRule> = {
   // Industrial Hygiene (DOSH)
   "Chemical Health Risk Assessment (CHRA)": { months: 60, basis: "USECHH Regulations 2000, reg. 10(b) · review when 5 years have passed since the last assessment", confidence: "regulation", source: USECHH },
+  "Additional Chemical Health Risk Assessment (Add.CHRA)": { months: 60, basis: "USECHH Regulations 2000 · further assessment on top of the CHRA; tracked on the same 5-year review as CHRA (reg. 10(b))", confidence: "practice", source: USECHH },
   "Chemical Exposure Monitoring (CEM)": { months: 12, basis: "USECHH Regulations 2000, reg. 26(2) · interval set in the CHRA, commonly yearly; Schedule II chemicals must be monitored every 6 months or less, so set that expiry by hand", confidence: "practice", source: USECHH },
   "Medical Surveillance (MS)": { months: 12, basis: "USECHH Regulations 2000, reg. 27(3) · every 12 months or less for Schedule II chemicals", confidence: "regulation", source: USECHH },
   "Local Exhaust Ventilation (LEV)": { months: 12, basis: "USECHH Regulations 2000, reg. 17(1)(b) · examined and tested every 12 months or less", confidence: "regulation", source: USECHH },

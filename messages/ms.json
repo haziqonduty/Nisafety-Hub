@@ -280,6 +280,7 @@
     },
     "items": {
       "Chemical Health Risk Assessment (CHRA)": "Penilaian Risiko Kesihatan Bahan Kimia (CHRA)",
+      "Additional Chemical Health Risk Assessment (Add_CHRA)": "Penilaian Risiko Kesihatan Bahan Kimia Tambahan (Add.CHRA)",
       "Chemical Exposure Monitoring (CEM)": "Pemantauan Pendedahan Bahan Kimia (CEM)",
       "Medical Surveillance (MS)": "Pengawasan Perubatan (MS)",
       "Local Exhaust Ventilation (LEV)": "Pengudaraan Ekzos Setempat (LEV)",
