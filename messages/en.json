@@ -390,7 +390,8 @@
     "pickerNoMatch": "No service matches “{query}”.",
     "pickerRemove": "Remove {service}",
     "pickerClear": "Clear all",
-    "pickerNone": "None added yet. Search, or open the list to pick services."
+    "pickerNone": "None added yet. Search, or open the list to pick services.",
+    "mainBadge": "MAIN"
   },
   "expiry": {
     "validUntil": "Valid until",

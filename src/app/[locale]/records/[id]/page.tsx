@@ -147,42 +147,44 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
               </div>
 
               {(record.extraFiles.length > 0 || record.fileLabel) && (
-                <section aria-labelledby="report-documents-title" className="mt-6 rounded-2xl border border-line bg-surface-soft p-2 print:border-0 print:bg-transparent print:p-0">
-                  <p id="report-documents-title" className="px-3 pb-2 pt-2 font-mono text-[10px] font-bold tracking-[0.12em] text-ink-muted">
-                    {tServices("documentsTitle")} · {record.extraFiles.length + 1}
-                  </p>
-                  <ol className="grid gap-1.5">
+                // View only (Kay, 2026-11-26): just the names staff gave each document —
+                // no file names, no links. The main report's buttons sit above.
+                <section
+                  aria-labelledby="report-documents-title"
+                  className="relative mt-6 overflow-hidden rounded-2xl border border-line bg-surface p-5 print:border-0 print:p-0"
+                >
+                  <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-accent-soft/60 blur-3xl print:hidden" />
+                  <div className="relative flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent-soft text-accent">
+                        <File className="h-4 w-4" />
+                      </span>
+                      <h2 id="report-documents-title" className="font-mono text-[10px] font-bold tracking-[0.14em] text-ink-muted">
+                        {tServices("documentsTitle")}
+                      </h2>
+                    </div>
+                    <span className="rounded-full border border-line px-2.5 py-0.5 font-mono text-[10px] font-bold tabular-nums text-ink-muted">
+                      {record.extraFiles.length + 1}
+                    </span>
+                  </div>
+                  <ol className="relative mt-4 divide-y divide-line">
                     {[
-                      { id: "main", label: record.fileLabel ?? tServices("mainDocument"), fileName: record.fileName!, fileType: record.fileType!, fileSize: record.fileSize!, url: record.publicUrl },
+                      { id: "main", label: record.fileLabel ?? tServices("mainDocument"), fileType: record.fileType!, fileSize: record.fileSize! },
                       ...record.extraFiles,
-                    ].map((file, index) => {
-                      const row = (
-                        <>
-                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft font-mono text-[10px] font-bold text-accent">
-                            {String(index + 1).padStart(2, "0")}
+                    ].map((file, index) => (
+                      <li key={file.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                        <span className="w-6 shrink-0 font-mono text-xs font-bold tabular-nums text-accent">{String(index + 1).padStart(2, "0")}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold tracking-[-0.01em]">{file.label}</span>
+                        {index === 0 && (
+                          <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[9px] font-bold tracking-[0.1em] text-accent">
+                            {tServices("mainBadge")}
                           </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold">{file.label}</span>
-                            <span className="block truncate text-xs text-ink-muted">
-                              {file.fileName} · {file.fileType} · {file.fileSize}
-                            </span>
-                          </span>
-                        </>
-                      );
-                      const rowClass = "flex items-center gap-3 rounded-xl bg-surface px-3 py-2.5 shadow-[0_1px_0_rgba(16,42,51,.04)]";
-                      return (
-                        <li key={file.id}>
-                          {/* No icons (Kay, 2026-11-26): the whole row opens the document, so extras stay reachable. */}
-                          {file.url ? (
-                            <a href={file.url} target="_blank" rel="noopener noreferrer" className={`${rowClass} transition-colors hover:bg-accent-soft/50`}>
-                              {row}
-                            </a>
-                          ) : (
-                            <div className={rowClass}>{row}</div>
-                          )}
-                        </li>
-                      );
-                    })}
+                        )}
+                        <span className="shrink-0 font-mono text-[11px] tabular-nums text-ink-faint">
+                          {file.fileType} · {file.fileSize}
+                        </span>
+                      </li>
+                    ))}
                   </ol>
                 </section>
               )}

@@ -1015,8 +1015,10 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Copy: hint shortened to one line; "Tick the services" → "Pick the services" (en + ms). New `services.picker*` messages.
 - Verified: lint, tsc, 92 unit, 69 security, Playwright 16/16 (incl. list not behind the next card, keyboard, save order, record-page editor, Malay; cleaned up).
 
-## Record page documents list: no icons (2026-11-26)
-- Kay: removed the open (↗) and download icons from the "DOCUMENTS · n" list. Each row is now itself a link that opens the document in a new tab, so extra documents (which have no other button) stay reachable. The main report keeps its Download / Open in new tab buttons above.
+## Record page documents list: view only (2026-11-26)
+- Kay: first removed the ↗ / download icons (rows became links), then asked for the list to be VIEW ONLY: no links, no hover, and no file names — only the name staff typed for each document. Layout: card with file icon + "DOCUMENTS" + count pill, hairline-divided rows "01  <name>  [MAIN]  PDF · 3.2 MB" (MAIN tag on the main report; `services.mainBadge` MAIN / UTAMA).
+- Consequence Kay accepted: extra documents can't be opened from the record page (the main report keeps Download / Open in new tab above). Extras are still in Storage and in the admin Backup ZIP. If staff need them again, offer a download per row.
+- Verified: Playwright 10/10 (no links/buttons in the list, staff names shown, no ".pdf", MAIN tag), 92 unit, 69 security.
 
 ## Mistakes & lessons
 - 2026-11-26: a service name with "." broke translations (next-intl key nesting). Rule: never put "." in a messages key; look service names up through `categoryMessageKey`. Browser tests must check EXACT visible text, not substrings (a substring check hid this once).
