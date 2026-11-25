@@ -30,8 +30,9 @@ describe("addDays / daysUntil", () => {
 describe("defaultExpiryFor", () => {
   it("uses the category's validity period", () => {
     expect(defaultExpiryFor("Chemical Health Risk Assessment (CHRA)", "2026-11-14")).toBe("2031-11-14");
-    expect(defaultExpiryFor("Chemical Exposure Monitoring (CEM)", "2026-11-14")).toBe("2027-05-14");
-    expect(defaultExpiryFor("Boundary Noise Monitoring", "2026-11-14")).toBe("2027-02-14");
+    expect(defaultExpiryFor("Chemical Exposure Monitoring (CEM)", "2026-11-14")).toBe("2027-11-14");
+    expect(defaultExpiryFor("Boundary Noise Monitoring", "2026-11-14")).toBe("2027-11-14");
+    expect(defaultExpiryFor("Medical Surveillance (MS)", "2026-11-14")).toBe("2027-11-14");
   });
   it("is null with no fixed interval, unknown category or no date", () => {
     expect(defaultExpiryFor("Indoor Air Quality (IAQ) Testing", "2026-11-14")).toBeNull();
@@ -75,11 +76,13 @@ describe("validity rules", () => {
     expect(missing).toEqual([]);
   });
 
-  it("match the SQL backfill in the expiry migration, following later renames (KEEP IN SYNC)", () => {
+  it("match the SQL backfill in the expiry migration, following later renames and interval changes (KEEP IN SYNC)", () => {
     const sql = readFileSync("supabase/migrations/20261114_add_document_expiry_date.sql", "utf8");
     const renameSql = readFileSync("supabase/migrations/20261124_service_types_and_chemical_services.sql", "utf8");
+    const intervalSql = readFileSync("supabase/migrations/20261125_cem_boundary_noise_one_year.sql", "utf8");
     const renames = new Map([...renameSql.matchAll(/rename '([^']+)' -> '([^']+)'/g)].map((match) => [match[1], match[2]]));
-    const fromSql = Object.fromEntries([...sql.matchAll(/when '([^']+)' then (\d+)/g)].map((match) => [renames.get(match[1]) ?? match[1], Number(match[2])]));
+    const fromSql: Record<string, number> = Object.fromEntries([...sql.matchAll(/when '([^']+)' then (\d+)/g)].map((match) => [renames.get(match[1]) ?? match[1], Number(match[2])]));
+    for (const match of intervalSql.matchAll(/interval '([^']+)' -> (\d+)/g)) fromSql[match[1]] = Number(match[2]);
     // Fixed-interval services added after the backfill ran (no old reports to backfill).
     const addedLater = ["Audiometric (Medical Examination/Diagnostic-PTA)"];
     const fromCode = Object.fromEntries(
@@ -103,6 +106,8 @@ describe("validity rules", () => {
     expect(VALIDITY_RULES["Noise Control Programme Assessment (NCPA)"].months).toBeNull();
     expect(VALIDITY_RULES["Chemical Registration"].months).toBeNull();
     expect(VALIDITY_RULES["Chemical Classification"].months).toBeNull();
+    expect(VALIDITY_RULES["Chemical Exposure Monitoring (CEM)"].months).toBe(12);
+    expect(VALIDITY_RULES["Boundary Noise Monitoring"].months).toBe(12);
   });
 });
 

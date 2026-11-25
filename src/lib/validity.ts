@@ -16,7 +16,8 @@
  * Nisafety should confirm this table against the current regulation texts —
  * it was compiled from DOSH/DOE guidance and industry summaries, not legal
  * advice. KEEP IN SYNC with the backfill in
- * supabase/migrations/20261114_add_document_expiry_date.sql.
+ * supabase/migrations/20261114_add_document_expiry_date.sql and later interval
+ * changes (20261125_cem_boundary_noise_one_year.sql).
  */
 export type ValidityRule = {
   months: number | null;
@@ -51,7 +52,7 @@ const DOE = { label: "Department of Environment (DOE)", url: "https://www.doe.go
 export const VALIDITY_RULES: Record<string, ValidityRule> = {
   // Industrial Hygiene (DOSH)
   "Chemical Health Risk Assessment (CHRA)": { months: 60, basis: "USECHH Regulations 2000, reg. 10(b) · review when 5 years have passed since the last assessment", confidence: "regulation", source: USECHH },
-  "Chemical Exposure Monitoring (CEM)": { months: 6, basis: "USECHH Regulations 2000, reg. 26(2) · every 6 months or less for Schedule II chemicals, or as the assessor sets", confidence: "regulation", source: USECHH },
+  "Chemical Exposure Monitoring (CEM)": { months: 12, basis: "USECHH Regulations 2000, reg. 26(2) · interval set in the CHRA, commonly yearly; Schedule II chemicals must be monitored every 6 months or less, so set that expiry by hand", confidence: "practice", source: USECHH },
   "Medical Surveillance (MS)": { months: 12, basis: "USECHH Regulations 2000, reg. 27(3) · every 12 months or less for Schedule II chemicals", confidence: "regulation", source: USECHH },
   "Local Exhaust Ventilation (LEV)": { months: 12, basis: "USECHH Regulations 2000, reg. 17(1)(b) · examined and tested every 12 months or less", confidence: "regulation", source: USECHH },
   "Noise Risk Assessment (NRA)": { months: 60, basis: "Noise Exposure Regulations 2019, reg. 4(8)(a) · review within 5 years of the previous assessment", confidence: "regulation", source: NOISE },
@@ -67,7 +68,7 @@ export const VALIDITY_RULES: Record<string, ValidityRule> = {
   "Chemical Classification": { months: null, basis: "CLASS Regulations 2013 · hazard classification of a chemical; no expiry, redo when the chemical or its formulation changes", confidence: "practice", source: { label: "CLASS Regulations 2013 (P.U.(A) 310/2013), DOSH", url: "https://dosh.gov.my/wp-content/uploads/2026/04/Occupational-Safety-and-Health-Classification-Labelling-and-Safety-Data-Sheet-of-Hazardous-Chemicals-Regulations-2013.pdf" } },
   "Psychosocial Assessment": { months: null, basis: "DOSH Psychosocial Guidelines 2024 · no fixed interval; review when the work changes", confidence: "practice", source: { label: "DOSH Psychosocial Risk Guidelines 2024", url: "https://intranet.dosh.gov.my/competent-person-form/occupational-health/regulation-2-1/guidelines/occupational-health-1/4850-guidelines-on-psychosocial-risk-assessment-and-management-at-the-workplace-2024" } },
   // Environmental Monitoring (DOE)
-  "Boundary Noise Monitoring": { months: 3, basis: "Set by the client's DOE approval conditions · commonly quarterly", confidence: "practice", source: DOE },
+  "Boundary Noise Monitoring": { months: 12, basis: "Set by the client's DOE approval conditions · commonly yearly; follow the licence if it asks for more often", confidence: "practice", source: DOE },
   "Ambient Air Quality Monitoring": { months: 3, basis: "Set by the client's DOE approval conditions · commonly quarterly", confidence: "practice", source: DOE },
   "Environmental Compliance Audit": { months: 12, basis: "Set by the client's DOE approval conditions · commonly annual", confidence: "practice", source: DOE },
   "Drinking Water Analysis": { months: null, basis: "MOH drinking water standard · frequency set by the premises' water-safety programme", confidence: "practice", source: { label: "MOH National Standard for Drinking Water Quality", url: "https://faolex.fao.org/docs/pdf/mal189903.pdf" } },

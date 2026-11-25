@@ -916,3 +916,7 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - `POST/DELETE /api/records/[id]/renewal-action` (id = document id; RLS client; 400 on unknown reason). New `ExpiryStatus` "closed" ("Action taken" badge); `getRenewals` skips closed reports, so the banner, tracker, nav badge and map all drop them.
 - UI: `renewal-action-button.tsx` (native `<dialog>` asking why) on banner chips, tracker rows and the record page's validity card; the validity card shows "Closed on … · reason" with "Track renewal again" (undo). A new report for the same service supersedes as usual.
 - Verified: 68 unit, 62 security, Playwright 15/15 (throwaway staff/client/report, cleaned up), desktop + mobile dark.
+
+## CEM and Boundary Noise default to 1 year (2026-11-25)
+- Kay's request: CEM 6 → 12 months, Boundary Noise Monitoring 3 → 12 months. CEM is now "practice" (not "regulation"): USECHH reg. 26(2) only fixes ≤ 6 months for Schedule II chemicals, otherwise the CHRA sets the interval — the rule text tells staff to set Schedule II expiries by hand.
+- Migration `20261125_cem_boundary_noise_one_year.sql` moved only reports still on the old automatic expiry (all 4: 3 CEM, 1 Boundary Noise — G.B INDUSTRIES no longer expired). Its `-- interval 'X' -> N` lines feed the KEEP-IN-SYNC test in validity.test.ts.
