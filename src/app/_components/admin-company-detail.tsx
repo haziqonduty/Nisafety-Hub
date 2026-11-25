@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowUpRight, Calendar, Mail, Notes, Pencil, Phone, Trash } from "@/app/_components/icons";
+import { Calendar, Mail, Notes, Pencil, Phone, Trash } from "@/app/_components/icons";
 import type { AdminClient } from "@/lib/supabase/queries";
 
 const fieldClass = "mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft";
@@ -206,7 +206,7 @@ export function ContactCard({ client, reportCount, isOnlyContact }: { client: Ad
   );
 }
 
-/** Open / move-to-bin for one report row. */
+/** Move-to-bin for one report row. */
 export function ReportActions({ reportId, fileName }: { reportId: string; fileName: string }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -248,12 +248,6 @@ export function ReportActions({ reportId, fileName }: { reportId: string; fileNa
   return (
     <span className="flex items-center justify-end gap-1">
       {failed && <span className="mr-1 text-xs font-semibold text-danger">Couldn&apos;t delete</span>}
-      <a
-        href={`/records/${reportId}`}
-        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-accent-soft hover:text-accent"
-      >
-        Open <ArrowUpRight className="h-3 w-3" />
-      </a>
       <button
         type="button"
         onClick={() => setConfirming(true)}
