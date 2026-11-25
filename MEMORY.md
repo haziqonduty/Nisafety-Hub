@@ -953,3 +953,11 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - They pre-fill the next report: `AddServicePanel initialJob` (record page "Add a service" and the to-do "Attach report" links), and the edit form when attaching a first report to a client-only record. The report still saves its own copy. Client-only record page shows the tiles; edit form can change them (PATCH updates the client when it has no report). Admin "To do" strip and Excel export show them.
 - `JobDetailsFields` was split out of `service-reports-fields.tsx` so the client-only step reuses it.
 - Verified: 85 unit, Playwright 7/7 (client-only save → tiles → pre-filled attach → report saved with them; cleaned up incl. storage).
+
+## Duplicate report warning (2026-11-25)
+- Kay asked: what if staff re-create a report the client already has? Answer: it never duplicates the company (exact-name auto-join), and a repeat service is kept as history (older one = "Renewed"). Gap was the SAME service + SAME service date uploaded twice, so we added a warning.
+- `POST /api/reports/duplicates` `{clientId?, companyName?, items:[{category, serviceDate}]}` → `{duplicates:[{category, serviceDate, fileName}]}`. Client = picked one, else `find_client_by_company`. Ignores binned reports. Warning only, NOT enforced server-side (staff may upload a corrected copy).
+- `useDuplicateReportCheck()` in `duplicate-report-check.tsx` returns `{confirm, dialog}`. Used by the New Report submit (`attachDocument` only) and `AddServicePanel`. If the check request fails, saving carries on. Dialog: "Go back" / "Upload anyway"; Escape = go back. Same service twice in one visit was already warned (`duplicateService`).
+- Messages: `services.duplicateReport*` (en + ms). Security test list includes the route.
+- Not built (offered earlier): a fuzzy "possible duplicate COMPANY" warning for name variants ("ABC" vs "ABC SDN BHD", "(M)", typos).
+- Verified: lint, tsc, 85 unit, 65 security, Playwright 10/10 (cleaned up incl. storage).

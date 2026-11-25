@@ -355,7 +355,12 @@
     "mainconHint": "Leave blank if the job is direct with the client.",
     "optional": "OPTIONAL",
     "notRecorded": "Not recorded",
-    "directJob": "Direct with client"
+    "directJob": "Direct with client",
+    "duplicateReportEyebrow": "POSSIBLE DUPLICATE",
+    "duplicateReportTitle": "{count, plural, =1 {This client already has this report} other {This client already has these reports}}",
+    "duplicateReportBody": "A report for the same service and service date is already saved. Upload again only if this is a different or corrected report — both will be kept in the service history.",
+    "duplicateReportBack": "Go back",
+    "duplicateReportUploadAnyway": "Upload anyway"
   },
   "expiry": {
     "validUntil": "Valid until",

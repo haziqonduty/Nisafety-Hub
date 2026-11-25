@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useDuplicateReportCheck } from "@/app/_components/duplicate-report-check";
 import { Close, Plus } from "@/app/_components/icons";
 import { newServiceRow, ServiceReportsFields, uploadServiceRows, validateServiceRows, type ServiceRow } from "@/app/_components/service-reports-fields";
 import { EMPTY_JOB_DETAILS, type JobDetails } from "@/lib/job-details";
@@ -42,6 +43,7 @@ export function AddServicePanel({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [justSaved, setJustSaved] = useState(0);
+  const duplicateCheck = useDuplicateReportCheck();
 
   const isCompressing = rows.some((row) => row.compressing);
   const anySaved = rows.some((row) => row.status === "done");
@@ -59,6 +61,10 @@ export function AddServicePanel({
     if (isCompressing || !validateServiceRows(rows, setRows, serviceDate, job)) return;
     setError("");
     setIsSaving(true);
+    if (!(await duplicateCheck.confirm({ clientId, rows, serviceDate }))) {
+      setIsSaving(false);
+      return;
+    }
     const savedCount = rows.length;
     const allSaved = await uploadServiceRows(clientId, rows, serviceDate, job, setRows);
     setIsSaving(false);
@@ -135,6 +141,7 @@ export function AddServicePanel({
           {isSaving ? t("saving") : anySaved ? t("retryFailed", { count: pending }) : t("saveServices", { count: rows.length })}
         </button>
       </div>
+      {duplicateCheck.dialog}
     </form>
     </div>
   );

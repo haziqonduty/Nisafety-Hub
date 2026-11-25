@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { appendJobDetails, EMPTY_JOB_DETAILS, type JobDetails } from "@/lib/job-details";
 import { useEffect, useRef, useState, type FormEvent, type SVGProps } from "react";
 import { BrandLogo } from "@/app/_components/brand-logo";
+import { useDuplicateReportCheck } from "@/app/_components/duplicate-report-check";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { ServicePicker } from "@/app/_components/service-picker";
 import { addEntry, removeEntry, RepeatableField, updateEntry } from "@/app/_components/repeatable-field";
@@ -84,6 +85,7 @@ export default function SubmitPage() {
   // failed — from then on, submitting again only retries what failed instead
   // of creating the client a second time.
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
+  const duplicateCheck = useDuplicateReportCheck();
   const [attachDocument, setAttachDocument] = useState(true);
   const [requestedServices, setRequestedServices] = useState<string[]>([]);
   const [existingClientId, setExistingClientId] = useState<string | null>(null);
@@ -186,6 +188,12 @@ export default function SubmitPage() {
 
     setError("");
     setIsSubmitting(true);
+
+    // Same service + same date already saved for this client? Ask first.
+    if (attachDocument && !(await duplicateCheck.confirm({ clientId: savedClientId ?? existingClientId, companyName: values.companyName, rows: serviceRows, serviceDate }))) {
+      setIsSubmitting(false);
+      return;
+    }
 
     let clientId = savedClientId;
     let rowsToUpload = serviceRows;
@@ -417,6 +425,7 @@ export default function SubmitPage() {
             {error && <p className="mt-5 rounded-xl border border-danger-soft bg-danger-soft p-3 text-sm text-danger" role="alert">{error}</p>}
             <div className="mt-7 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">{savedClientId ? <span /> : <button type="button" onClick={() => setStep(1)} className="rounded-full px-4 py-3 text-sm font-semibold text-ink-muted transition-colors hover:text-accent">{t("back")}</button>}<button type="submit" disabled={isSubmitting || isCompressing} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(15,118,110,.18)] transition-all hover:-translate-y-0.5 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? t("submitting") : savedClientId ? tServices("retryFailed", { count: pendingServiceCount }) : attachDocument ? tServices("submitServices", { count: serviceRows.length }) : t("submitButton")} <Arrow className="h-4 w-4" /></button></div>
           </div>}
+          {duplicateCheck.dialog}
         </form>
       </div>
     </section>
