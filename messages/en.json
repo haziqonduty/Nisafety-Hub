@@ -352,7 +352,6 @@
     "viewClient": "View client",
     "monitoringDate": "Date of monitoring",
     "required": "REQUIRED",
-    "todayChip": "Today",
     "dateUnconfirmed": "Monitoring date not confirmed",
     "editUnconfirmedHint": "This report's date was filled in automatically. Key in the actual date of monitoring.",
     "requestedEyebrow": "SERVICES REQUESTED",

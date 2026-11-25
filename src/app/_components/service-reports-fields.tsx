@@ -224,7 +224,6 @@ export function ServiceReportsFields({ rows, setRows, locked = false }: Props) {
   const tCategories = useTranslations("categories.items");
   const tExpiry = useTranslations("expiry");
   const today = todayInMalaysia();
-  const yesterday = addDays(today, -1);
   // The same service twice is fine on different dates, not on the same one.
   const chosen = rows.filter((row) => row.category).map((row) => `${row.category}|${row.serviceDate}`);
 
@@ -444,26 +443,6 @@ export function ServiceReportsFields({ rows, setRows, locked = false }: Props) {
                     aria-invalid={row.errorCode === "serviceDateRequired"}
                     className={`${fieldClass} mt-1.5 py-2.5 font-medium tabular-nums ${row.serviceDate ? "" : "text-ink-faint"} ${row.errorCode === "serviceDateRequired" ? "border-danger" : ""}`}
                   />
-                  {!rowLocked && (
-                    <div className="mt-1.5 flex gap-1.5">
-                      {[
-                        { value: today, label: t("todayChip") },
-                        { value: yesterday, label: t("yesterday") },
-                      ].map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => patchField(row, { serviceDate: option.value }, ["serviceDateRequired", "INVALID_SERVICE_DATE", "INVALID_EXPIRY_DATE"])}
-                          aria-pressed={row.serviceDate === option.value}
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                            row.serviceDate === option.value ? "border-accent bg-accent text-white" : "border-line bg-surface text-ink-muted hover:border-accent hover:text-accent"
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 <div className="min-w-0">
                   <label htmlFor={salesPersonInputId(row.key)} className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">

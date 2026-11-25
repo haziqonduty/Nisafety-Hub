@@ -1005,5 +1005,8 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Migration `20261126_additional_chra.sql` (category constraint only, no data change); validity.test now reads the latest category list from it, and Add.CHRA is in `addedLater` (no backfill). 28 services now (cap 30). Migration applied by Kay. Verified: lint, tsc, 92 unit, 69 security, Playwright 8/8 (list order, exact en + ms names, 5-year expiry on form, review, saved, record page; cleaned up).
 - Why: LUBRIMAX's Additional CHRA (16 Apr 2026) was filed as CHRA, so their Full CHRA (2 Oct 2025) showed "Renewed". Re-filing it to Add.CHRA and deleting the wrong-date copy (and the FONG YI duplicate) is pending Kay's OK.
 
+## Date field: no Today / Yesterday shortcuts (2026-11-26)
+- Kay: removed the Today / Yesterday chips under each service's Date of monitoring (not needed). `services.todayChip` message removed; `services.yesterday` kept (the service timeline uses it).
+
 ## Mistakes & lessons
 - 2026-11-26: a service name with "." broke translations (next-intl key nesting). Rule: never put "." in a messages key; look service names up through `categoryMessageKey`. Browser tests must check EXACT visible text, not substrings (a substring check hid this once).
