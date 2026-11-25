@@ -32,6 +32,11 @@ export type ExtraFile = { key: string; file: File | null; label: string };
 export type ServiceRow = {
   key: string;
   category: string;
+  /** Date of monitoring of THIS service (YYYY-MM-DD); every service has its own. */
+  serviceDate: string;
+  /** Sales person / maincon of this service's job. */
+  salesPerson: string;
+  maincon: string;
   expiryMode: ExpiryMode;
   customExpiry: string;
   file: File | null;
@@ -45,8 +50,25 @@ export type ServiceRow = {
   errorCode: string;
 };
 
-export function newServiceRow(): ServiceRow {
-  return { key: crypto.randomUUID(), category: "", expiryMode: "auto", customExpiry: "", file: null, fileLabel: "", extraFiles: [], compressing: false, notice: "", status: "idle", errorCode: "" };
+/** A blank service; `seed` carries over the date / sales person / maincon (e.g. from the service above). */
+export function newServiceRow(seed: Partial<Pick<ServiceRow, "category" | "serviceDate" | "salesPerson" | "maincon">> = {}): ServiceRow {
+  return {
+    key: crypto.randomUUID(),
+    category: "",
+    serviceDate: "",
+    salesPerson: "",
+    maincon: "",
+    expiryMode: "auto",
+    customExpiry: "",
+    file: null,
+    fileLabel: "",
+    extraFiles: [],
+    compressing: false,
+    notice: "",
+    status: "idle",
+    errorCode: "",
+    ...seed,
+  };
 }
 
 const KNOWN_ERROR_CODES = new Set([
@@ -63,6 +85,7 @@ const KNOWN_ERROR_CODES = new Set([
   "NOT_FOUND",
   "NETWORK_ERROR",
   "noFile",
+  "serviceDateRequired",
   "fileLabelRequired",
   "extraFileIncomplete",
   "INVALID_FILE_LABEL",
@@ -74,10 +97,10 @@ export function knownErrorCode(code: string | undefined) {
 }
 
 /** The expiry this row will be saved with ("" = no fixed expiry). */
-export function effectiveExpiry(row: ServiceRow, serviceDate: string) {
+export function effectiveExpiry(row: ServiceRow) {
   if (row.expiryMode === "none") return "";
   if (row.expiryMode === "custom") return row.customExpiry;
-  return defaultExpiryFor(row.category, serviceDate) ?? "";
+  return row.serviceDate ? (defaultExpiryFor(row.category, row.serviceDate) ?? "") : "";
 }
 
 /**
@@ -85,12 +108,12 @@ export function effectiveExpiry(row: ServiceRow, serviceDate: string) {
  * category, dates, storage path and (for PDFs) a thumbnail. Returns an
  * error code if the upload itself failed, otherwise null.
  */
-export async function appendServiceReport(formData: FormData, row: ServiceRow, serviceDate: string, job: JobDetails): Promise<string | null> {
+export async function appendServiceReport(formData: FormData, row: ServiceRow): Promise<string | null> {
   formData.append("category", row.category);
-  formData.append("serviceDate", serviceDate);
-  appendJobDetails(formData, job);
+  formData.append("serviceDate", row.serviceDate);
+  appendJobDetails(formData, { salesPerson: row.salesPerson, maincon: row.maincon });
   // Always sent, so the server stores exactly what the row showed.
-  formData.append("expiryDate", effectiveExpiry(row, serviceDate));
+  formData.append("expiryDate", effectiveExpiry(row));
   if (!row.file) return null;
   formData.append("fileLabel", row.fileLabel.trim());
   const uploadError = await appendUploadedFile(formData, row.file);
@@ -123,14 +146,14 @@ function patchRow(setRows: Dispatch<SetStateAction<ServiceRow[]>>, key: string, 
  * calling this again after a partial failure retries only what failed.
  * Returns whether every row is now saved.
  */
-export async function uploadServiceRows(clientId: string, rows: ServiceRow[], serviceDate: string, job: JobDetails, setRows: Dispatch<SetStateAction<ServiceRow[]>>) {
+export async function uploadServiceRows(clientId: string, rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>) {
   let allSaved = true;
   for (const row of rows) {
     if (row.status === "done") continue;
     patchRow(setRows, row.key, { status: "uploading", errorCode: "" });
     try {
       const formData = new FormData();
-      const uploadError = await appendServiceReport(formData, row, serviceDate, job);
+      const uploadError = await appendServiceReport(formData, row);
       if (uploadError) {
         allSaved = false;
         patchRow(setRows, row.key, { status: "error", errorCode: knownErrorCode(uploadError) });
@@ -153,51 +176,47 @@ export async function uploadServiceRows(clientId: string, rows: ServiceRow[], se
 }
 
 /** Client-side check before anything is sent; marks offending rows. */
-export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>, serviceDate: string, job: JobDetails) {
+export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetStateAction<ServiceRow[]>>) {
   // The browser's own `required` check normally stops the form first (see
-  // the date / sales person inputs' onInvalid); this is the backstop.
-  if (!serviceDate) {
-    document.getElementById(SERVICE_DATE_INPUT_ID)?.focus();
-    return false;
-  }
-  if (!job.salesPerson.trim()) {
-    document.getElementById(SALES_PERSON_INPUT_ID)?.focus();
-    return false;
-  }
+  // each row's date / sales person onInvalid); this is the backstop.
   const problems = new Map<string, string>();
   for (const row of rows) {
     if (row.status === "done") continue;
     if (!row.category) problems.set(row.key, "INVALID_CATEGORY");
-    else if (row.expiryMode === "custom" && (!row.customExpiry || row.customExpiry <= serviceDate)) problems.set(row.key, "INVALID_EXPIRY_DATE");
+    else if (!row.serviceDate) problems.set(row.key, "serviceDateRequired");
+    else if (!row.salesPerson.trim()) problems.set(row.key, "MISSING_SALES_PERSON");
+    else if (row.expiryMode === "custom" && (!row.customExpiry || row.customExpiry <= row.serviceDate)) problems.set(row.key, "INVALID_EXPIRY_DATE");
     else if (!row.file) problems.set(row.key, "noFile");
     else if (!row.fileLabel.trim()) problems.set(row.key, "fileLabelRequired");
     else if (row.extraFiles.some((extra) => !extra.file || !extra.label.trim())) problems.set(row.key, "extraFileIncomplete");
   }
   if (problems.size > 0) {
     setRows((current) => current.map((row) => (problems.has(row.key) ? { ...row, status: "error", errorCode: problems.get(row.key)! } : row)));
+    const first = rows.find((row) => problems.has(row.key))!;
+    const code = problems.get(first.key);
+    const fieldId = code === "serviceDateRequired" ? serviceDateInputId(first.key) : code === "MISSING_SALES_PERSON" ? salesPersonInputId(first.key) : null;
+    if (fieldId) document.getElementById(fieldId)?.focus();
   }
   return problems.size === 0;
 }
 
-export const SERVICE_DATE_INPUT_ID = "service-date";
+/** Client-only step's sales person field (JobDetailsFields). */
 export const SALES_PERSON_INPUT_ID = "sales-person";
+/** Each service's own fields. */
+export const serviceDateInputId = (rowKey: string) => `service-date-${rowKey}`;
+export const salesPersonInputId = (rowKey: string) => `sales-person-${rowKey}`;
 
 const fieldClass =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:opacity-60";
 
 type Props = {
-  serviceDate: string;
-  onServiceDateChange: (value: string) => void;
-  /** Sales person + maincon of this job; saved on every report of the visit. */
-  job: JobDetails;
-  onJobChange: (job: JobDetails) => void;
   rows: ServiceRow[];
   setRows: Dispatch<SetStateAction<ServiceRow[]>>;
-  /** Locks the date and every saved/uploading row (e.g. mid-upload, or after a partial save). */
+  /** Locks every row (e.g. mid-upload, or after a partial save). */
   locked?: boolean;
 };
 
-export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, onJobChange, rows, setRows, locked = false }: Props) {
+export function ServiceReportsFields({ rows, setRows, locked = false }: Props) {
   const t = useTranslations("services");
   const tSubmit = useTranslations("submit");
   const tErrors = useTranslations("submissionErrors");
@@ -206,9 +225,13 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
   const tExpiry = useTranslations("expiry");
   const today = todayInMalaysia();
   const yesterday = addDays(today, -1);
-  // Set when the form was submitted without a date; cleared once one is picked.
-  const [dateMissing, setDateMissing] = useState(false);
-  const chosenCategories = rows.map((row) => row.category).filter(Boolean);
+  // The same service twice is fine on different dates, not on the same one.
+  const chosen = rows.filter((row) => row.category).map((row) => `${row.category}|${row.serviceDate}`);
+
+  // Editing a field clears that field's error on the row.
+  function patchField(row: ServiceRow, patch: Partial<ServiceRow>, errorCodes: string[]) {
+    patchRow(setRows, row.key, errorCodes.includes(row.errorCode) ? { ...patch, status: "idle", errorCode: "" } : patch);
+  }
 
   async function chooseFile(row: ServiceRow, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
@@ -268,90 +291,10 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
 
   return (
     <div>
-      {/* Date of monitoring — always keyed in by staff, never assumed. Every
-          expiry on this visit is counted from it. */}
-      <div
-        className={`relative overflow-hidden rounded-2xl border p-4 transition-colors sm:p-5 ${
-          dateMissing ? "border-danger/50 bg-danger-soft/40" : serviceDate ? "border-accent/35 bg-accent-soft/25" : "border-line bg-surface-soft"
-        }`}
-      >
-        <span aria-hidden className={`absolute inset-y-0 left-0 w-[3px] ${dateMissing ? "bg-danger" : serviceDate ? "bg-accent" : "bg-amber"}`} />
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label htmlFor={SERVICE_DATE_INPUT_ID} className="flex items-center gap-2 text-sm font-semibold">
-            <Calendar className="h-4 w-4 text-accent" /> {t("monitoringDate")}
-          </label>
-          {serviceDate ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-accent">
-              <Check className="h-3 w-3" /> {t("dateSet")}
-            </span>
-          ) : (
-            <span className="rounded-full bg-amber-soft px-2.5 py-1 font-mono text-[10px] font-bold tracking-wide text-amber">{t("required")}</span>
-          )}
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            id={SERVICE_DATE_INPUT_ID}
-            type="date"
-            required
-            min="2000-01-01"
-            max={today}
-            value={serviceDate}
-            disabled={locked}
-            onChange={(event) => {
-              onServiceDateChange(event.target.value);
-              if (event.target.value) setDateMissing(false);
-            }}
-            onInvalid={(event) => {
-              // Our own message instead of the browser bubble.
-              event.preventDefault();
-              setDateMissing(true);
-              event.currentTarget.focus();
-            }}
-            aria-invalid={dateMissing}
-            aria-describedby="service-date-hint"
-            className={`${fieldClass} max-w-[13rem] font-medium tabular-nums ${serviceDate ? "" : "text-ink-faint"} ${dateMissing ? "border-danger focus:border-danger focus:ring-danger-soft" : ""}`}
-          />
-          {!locked &&
-            [
-              { value: today, label: t("todayChip") },
-              { value: yesterday, label: t("yesterday") },
-            ].map((option) => {
-              const active = serviceDate === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onServiceDateChange(option.value);
-                    setDateMissing(false);
-                  }}
-                  aria-pressed={active}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
-                    active ? "border-accent bg-accent text-white shadow-[0_6px_14px_rgba(15,118,110,.2)]" : "border-line bg-surface text-ink-muted hover:-translate-y-0.5 hover:border-accent hover:text-accent"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-        </div>
-        {dateMissing ? (
-          <p id="service-date-hint" role="alert" className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger">
-            <AlertTriangle className="h-3.5 w-3.5" /> {t("dateRequiredError")}
-          </p>
-        ) : (
-          <p id="service-date-hint" className="mt-2 text-xs leading-5 text-ink-muted">
-            {serviceDate ? t("serviceDateHint") : t("dateRequiredHint")}
-          </p>
-        )}
-      </div>
-
-      <JobDetailsFields job={job} onJobChange={onJobChange} locked={locked} />
-
-      <ol className="mt-5 space-y-3">
+      <ol className="space-y-3">
         {rows.map((row, index) => {
           const rowLocked = locked || row.status === "uploading" || row.status === "done";
-          const duplicate = row.category && chosenCategories.filter((value) => value === row.category).length > 1;
+          const duplicate = row.category && chosen.filter((value) => value === `${row.category}|${row.serviceDate}`).length > 1;
           return (
             <li
               key={row.key}
@@ -478,7 +421,92 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
                 </button>
               )}
 
-              {row.category && <ExpiryStrip row={row} serviceDate={serviceDate} locked={rowLocked} onChange={(patch) => patchRow(setRows, row.key, patch)} t={tExpiry} />}
+              <div className="mt-3 grid gap-3 rounded-xl border border-line bg-surface-soft p-3 sm:grid-cols-3">
+                <div className="min-w-0">
+                  <label htmlFor={serviceDateInputId(row.key)} className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Calendar className="h-3.5 w-3.5 text-accent" /> {t("monitoringDate")}
+                  </label>
+                  <input
+                    id={serviceDateInputId(row.key)}
+                    type="date"
+                    required={row.status !== "done"}
+                    min="2000-01-01"
+                    max={today}
+                    value={row.serviceDate}
+                    disabled={rowLocked}
+                    onChange={(event) => patchField(row, { serviceDate: event.target.value }, ["serviceDateRequired", "INVALID_SERVICE_DATE", "INVALID_EXPIRY_DATE"])}
+                    onInvalid={(event) => {
+                      // Our own message on the row instead of the browser bubble.
+                      event.preventDefault();
+                      patchRow(setRows, row.key, { status: "error", errorCode: "serviceDateRequired" });
+                      event.currentTarget.focus();
+                    }}
+                    aria-invalid={row.errorCode === "serviceDateRequired"}
+                    className={`${fieldClass} mt-1.5 py-2.5 font-medium tabular-nums ${row.serviceDate ? "" : "text-ink-faint"} ${row.errorCode === "serviceDateRequired" ? "border-danger" : ""}`}
+                  />
+                  {!rowLocked && (
+                    <div className="mt-1.5 flex gap-1.5">
+                      {[
+                        { value: today, label: t("todayChip") },
+                        { value: yesterday, label: t("yesterday") },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => patchField(row, { serviceDate: option.value }, ["serviceDateRequired", "INVALID_SERVICE_DATE", "INVALID_EXPIRY_DATE"])}
+                          aria-pressed={row.serviceDate === option.value}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                            row.serviceDate === option.value ? "border-accent bg-accent text-white" : "border-line bg-surface text-ink-muted hover:border-accent hover:text-accent"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor={salesPersonInputId(row.key)} className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                    {t("salesPerson")}
+                    {!row.salesPerson.trim() && <span className="rounded-full bg-amber-soft px-1.5 py-px font-mono text-[9px] font-bold tracking-wide text-amber">{t("required")}</span>}
+                  </label>
+                  <input
+                    id={salesPersonInputId(row.key)}
+                    required={row.status !== "done"}
+                    maxLength={MAX_SALES_PERSON_LENGTH}
+                    value={row.salesPerson}
+                    disabled={rowLocked}
+                    onChange={(event) => patchField(row, { salesPerson: event.target.value }, ["MISSING_SALES_PERSON"])}
+                    onInvalid={(event) => {
+                      event.preventDefault();
+                      patchRow(setRows, row.key, { status: "error", errorCode: "MISSING_SALES_PERSON" });
+                      event.currentTarget.focus();
+                    }}
+                    aria-invalid={row.errorCode === "MISSING_SALES_PERSON"}
+                    placeholder={t("salesPersonPlaceholder")}
+                    autoComplete="off"
+                    className={`${fieldClass} mt-1.5 py-2.5 ${row.errorCode === "MISSING_SALES_PERSON" ? "border-danger" : ""}`}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor={`maincon-${row.key}`} className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                    {t("maincon")}
+                    <span className="rounded-full bg-surface px-1.5 py-px font-mono text-[9px] font-bold tracking-wide text-ink-muted">{t("optional")}</span>
+                  </label>
+                  <input
+                    id={`maincon-${row.key}`}
+                    maxLength={MAX_MAINCON_LENGTH}
+                    value={row.maincon}
+                    disabled={rowLocked}
+                    onChange={(event) => patchRow(setRows, row.key, { maincon: event.target.value })}
+                    placeholder={t("directJob")}
+                    autoComplete="off"
+                    className={`${fieldClass} mt-1.5 py-2.5`}
+                  />
+                </div>
+              </div>
+
+              {row.category && <ExpiryStrip row={row} serviceDate={row.serviceDate} locked={rowLocked} onChange={(patch) => patchRow(setRows, row.key, patch)} t={tExpiry} />}
 
               {row.notice && <p className="mt-2 text-xs text-ink-muted">{row.notice}</p>}
               {duplicate && row.status !== "done" && <p className="mt-2 text-xs text-amber">{t("duplicateService")}</p>}
@@ -495,7 +523,12 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
       {!locked && rows.length < MAX_SERVICES_PER_VISIT && (
         <button
           type="button"
-          onClick={() => setRows((current) => [...current, newServiceRow()])}
+          onClick={() =>
+            setRows((current) => {
+              const last = current[current.length - 1];
+              return [...current, newServiceRow(last ? { serviceDate: last.serviceDate, salesPerson: last.salesPerson, maincon: last.maincon } : {})];
+            })
+          }
           className="group mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-line px-4 py-3.5 text-sm font-semibold text-ink-muted transition-colors hover:border-accent hover:bg-accent-soft/40 hover:text-accent"
         >
           <span className="grid h-6 w-6 place-items-center rounded-full bg-accent-soft text-accent transition-transform group-hover:rotate-90">

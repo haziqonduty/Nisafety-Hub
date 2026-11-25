@@ -31,10 +31,10 @@ export function AddServicePanel({
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(Boolean(renewCategory));
-  const [serviceDate, setServiceDate] = useState("");
+  // Service 01 starts from the sales person / maincon saved with "client details only".
   const startJob = initialJob ?? EMPTY_JOB_DETAILS;
-  const [job, setJob] = useState<JobDetails>(startJob);
-  const [rows, setRows] = useState<ServiceRow[]>(() => [{ ...newServiceRow(), category: renewCategory ?? "" }]);
+  const firstRow = (category = "") => newServiceRow({ category, salesPerson: startJob.salesPerson, maincon: startJob.maincon });
+  const [rows, setRows] = useState<ServiceRow[]>(() => [firstRow(renewCategory ?? "")]);
 
   // Arriving via a "Renew" link: bring the pre-filled panel into view.
   useEffect(() => {
@@ -50,23 +50,21 @@ export function AddServicePanel({
   const pending = rows.filter((row) => row.status !== "done").length;
 
   function reset() {
-    setRows([newServiceRow()]);
-    setServiceDate("");
-    setJob(startJob);
+    setRows([firstRow()]);
     setError("");
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isCompressing || !validateServiceRows(rows, setRows, serviceDate, job)) return;
+    if (isCompressing || !validateServiceRows(rows, setRows)) return;
     setError("");
     setIsSaving(true);
-    if (!(await review.confirm({ clientId, companyName, rows, serviceDate, job }))) {
+    if (!(await review.confirm({ clientId, companyName, rows }))) {
       setIsSaving(false);
       return;
     }
     const savedCount = rows.length;
-    const allSaved = await uploadServiceRows(clientId, rows, serviceDate, job, setRows);
+    const allSaved = await uploadServiceRows(clientId, rows, setRows);
     setIsSaving(false);
     router.refresh();
     if (allSaved) {
@@ -123,7 +121,7 @@ export function AddServicePanel({
       </div>
 
       <div className="mt-5">
-        <ServiceReportsFields serviceDate={serviceDate} onServiceDateChange={setServiceDate} job={job} onJobChange={setJob} rows={rows} setRows={setRows} locked={isSaving || anySaved} />
+        <ServiceReportsFields rows={rows} setRows={setRows} locked={isSaving || anySaved} />
       </div>
 
       {error && (

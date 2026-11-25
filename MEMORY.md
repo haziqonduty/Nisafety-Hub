@@ -993,5 +993,12 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Messages: new `review.*` (en + ms); the old `services.duplicateReport*` keys were removed.
 - Verified: lint, tsc, 92 unit, 69 security, Playwright 17/17 (incl. Malay; cleaned up).
 
+## Each service has its own date, sales person and maincon (2026-11-26)
+- Kay: one submission can hold services from different days / jobs, so the single shared "Date of monitoring" + Sales person + Maincon was wrong (root cause of the LUBRIMAX wrong-date copy). The server and DB already stored them per report, so this is form-only.
+- `ServiceRow` now has `serviceDate`, `salesPerson`, `maincon`. `newServiceRow(seed)`; "Add another service" copies date / sales / maincon from the service above. `appendServiceReport(formData, row)`, `uploadServiceRows(clientId, rows, setRows)`, `validateServiceRows(rows, setRows)` (per-row errors `serviceDateRequired` / `MISSING_SALES_PERSON`, focuses the field), `effectiveExpiry(row)`. Field ids per row: `serviceDateInputId(key)`, `salesPersonInputId(key)`, `maincon-<key>`. The in-form duplicate warning is now same service AND same date.
+- `JobDetailsFields` (id `sales-person`) is only used by the "client details only" step now. AddServicePanel puts `initialJob` (pending values) into Service 01.
+- Review shows each service's own date (+ days ago), sales person, maincon. Timeline badge "N SERVICES · SAME DAY" (was "SAME VISIT"). Page copy no longer says "visit" (title "Submit client reports.", "Services & reports", "Add another service"). Removed unused messages: services.serviceDateHint, dateSet, dateRequiredHint, dateRequiredError; review.dateLabel, dateHint.
+- Verified: lint, tsc, 92 unit, 69 security, Playwright 13/13 (per-service fields, copy-down, same-service-different-date allowed, saved values, pre-fill on Add a service) + review test 15/16 (the 1 fail was an outdated check for the removed shared-date heading; Malay review screenshot correct). Cleaned up.
+
 ## Mistakes & lessons
 - 2026-11-26: a service name with "." broke translations (next-intl key nesting). Rule: never put "." in a messages key; look service names up through `categoryMessageKey`. Browser tests must check EXACT visible text, not substrings (a substring check hid this once).

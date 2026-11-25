@@ -5,7 +5,6 @@ import { useRef, useState } from "react";
 import { AlertTriangle, Calendar, Check, Close, File } from "@/app/_components/icons";
 import { effectiveExpiry, type ServiceRow } from "@/app/_components/service-reports-fields";
 import { categoryMessageKey, formatServiceDate, todayInMalaysia } from "@/lib/format";
-import type { JobDetails } from "@/lib/job-details";
 
 type Duplicate = { category: string; serviceDate: string; fileName: string };
 
@@ -14,8 +13,6 @@ type ReviewInput = {
   clientId?: string | null;
   companyName: string;
   rows: ServiceRow[];
-  serviceDate: string;
-  job: JobDetails;
 };
 
 type Review = ReviewInput & { duplicates: Duplicate[] };
@@ -30,14 +27,14 @@ function daysBetween(from: string, to: string) {
 
 /**
  * "Review before submitting": every report submission (New Report and Add a
- * service) stops on one summary — company, date of monitoring, each service
- * with its expiry and documents, sales person — and also says when the
+ * service) stops on one summary — company, then each service with its own
+ * date of monitoring, sales person, maincon, expiry and documents — and also says when the
  * client already has the same service on the same date. Nothing is uploaded
  * until staff press Confirm. If the duplicate check fails, the review still
  * opens without it, so it never blocks work.
  *
  *   const review = useSubmitReview();
- *   if (!(await review.confirm({ clientId, companyName, rows, serviceDate, job }))) return;
+ *   if (!(await review.confirm({ clientId, companyName, rows }))) return;
  *   ...
  *   {review.dialog}
  */
@@ -67,7 +64,7 @@ export function useSubmitReview() {
         const response = await fetch("/api/reports/duplicates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clientId: input.clientId, companyName: input.companyName, items: pending.map((row) => ({ category: row.category, serviceDate: input.serviceDate })) }),
+          body: JSON.stringify({ clientId: input.clientId, companyName: input.companyName, items: pending.map((row) => ({ category: row.category, serviceDate: row.serviceDate })) }),
         });
         if (response.ok) duplicates = ((await response.json()) as { duplicates?: Duplicate[] }).duplicates ?? [];
       } catch {
@@ -86,9 +83,12 @@ export function useSubmitReview() {
 
   let content = null;
   if (review) {
-    const age = daysBetween(review.serviceDate, todayInMalaysia());
-    const ageText = age === 0 ? t("today") : age === 1 ? t("yesterday") : t("daysAgo", { count: age });
-    const duplicateCategories = new Set(review.duplicates.map((duplicate) => duplicate.category));
+    const today = todayInMalaysia();
+    const ageText = (date: string) => {
+      const age = daysBetween(date, today);
+      return age === 0 ? t("today") : age === 1 ? t("yesterday") : t("daysAgo", { count: age });
+    };
+    const duplicateKeys = new Set(review.duplicates.map((duplicate) => `${duplicate.category}|${duplicate.serviceDate}`));
 
     content = (
       <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-6">
@@ -126,32 +126,15 @@ export function useSubmitReview() {
           </div>
         )}
 
-        <div className="mt-4 rounded-xl border border-accent/30 bg-accent-soft/40 px-3.5 py-3">
-          <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 font-semibold">
-              <Calendar className="h-4 w-4 text-accent" /> {t("dateLabel")}
-            </span>
-            <span className="font-semibold tabular-nums">{formatServiceDate(review.serviceDate, dateLocale)}</span>
-            <span className="text-xs text-ink-muted">({ageText})</span>
-          </p>
-          <p className="mt-1 text-xs leading-5 text-ink-muted">{t("dateHint", { count: review.rows.length })}</p>
-        </div>
-
-        <p className="mt-3 text-xs text-ink-muted">
-          <span className="font-semibold text-ink">{tServices("salesPerson")}:</span> {review.job.salesPerson.trim() || "—"}
-          <span className="px-1.5">·</span>
-          <span className="font-semibold text-ink">{tServices("maincon")}:</span> {review.job.maincon.trim() || tServices("directJob")}
-        </p>
-
         <ol className="mt-4 grid gap-2">
           {review.rows.map((row, index) => {
-            const expiry = effectiveExpiry(row, review.serviceDate);
+            const expiry = effectiveExpiry(row);
             const documents = [
               { key: "main", label: row.fileLabel.trim(), fileName: row.file?.name ?? "" },
               ...row.extraFiles.filter((extra) => extra.file).map((extra) => ({ key: extra.key, label: extra.label.trim(), fileName: extra.file!.name })),
             ];
             return (
-              <li key={row.key} className={`rounded-xl border px-3.5 py-3 ${duplicateCategories.has(row.category) ? "border-amber/50" : "border-line"}`}>
+              <li key={row.key} className={`rounded-xl border px-3.5 py-3 ${duplicateKeys.has(`${row.category}|${row.serviceDate}`) ? "border-amber/50" : "border-line"}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <p className="text-sm font-semibold">
                     <span className="mr-1.5 font-mono text-[10px] text-ink-muted">{String(index + 1).padStart(2, "0")}</span>
@@ -159,6 +142,15 @@ export function useSubmitReview() {
                   </p>
                   <p className="text-xs text-ink-muted">{expiry ? t("validUntil", { date: formatServiceDate(expiry, dateLocale) }) : t("noExpiry")}</p>
                 </div>
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+                  <Calendar className="h-3.5 w-3.5 text-accent" />
+                  <span className="font-semibold tabular-nums">{formatServiceDate(row.serviceDate, dateLocale)}</span>
+                  <span className="text-ink-muted">({ageText(row.serviceDate)})</span>
+                  <span className="text-ink-faint">·</span>
+                  <span className="text-ink-muted">{tServices("salesPerson")}:</span> <span className="font-semibold">{row.salesPerson.trim()}</span>
+                  <span className="text-ink-faint">·</span>
+                  <span className="text-ink-muted">{tServices("maincon")}:</span> <span className="font-semibold">{row.maincon.trim() || tServices("directJob")}</span>
+                </p>
                 <ul className="mt-2 grid gap-1">
                   {documents.map((document) => (
                     <li key={document.key} className="flex min-w-0 items-center gap-2 text-xs">
