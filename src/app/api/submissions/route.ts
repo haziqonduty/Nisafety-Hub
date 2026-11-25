@@ -1,7 +1,7 @@
 import { requireApprovedProfile } from "@/lib/auth/profile";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/supabase/rate-limit";
-import { resolveReportFile, storeReport, validateReport, type ReportFile } from "@/lib/document-upload";
+import { readFileLabel, resolveExtraFiles, resolveReportFile, storeReport, validateReport, type ExtraReportFile, type ReportFile } from "@/lib/document-upload";
 import { cleanRequestedServices } from "@/lib/requested-services";
 import { MAX_ADDITIONAL_CONTACTS, mergeIntoCompany } from "@/lib/client-merge";
 import { readJobDetails } from "@/lib/job-details";
@@ -107,6 +107,7 @@ export async function POST(request: Request) {
   // Any further services from the same visit (or a later one) are added one
   // request each via POST /api/clients/[id]/reports.
   let report: { reportFile: ReportFile; expiryDate: string | null } | null = null;
+  let extraFiles: ExtraReportFile[] = [];
   let job: { salesPerson: string | null; maincon: string | null } = { salesPerson: null, maincon: null };
 
   // Every job has a sales person: on the report itself, or — for "client
@@ -124,6 +125,11 @@ export async function POST(request: Request) {
       return Response.json({ error: validation.error }, { status: 400 });
     }
     report = validation;
+    const extras = await resolveExtraFiles(formData, validation.reportFile.kind === "uploaded" ? validation.reportFile.storagePath : null);
+    if ("error" in extras) {
+      return Response.json({ error: extras.error }, { status: 400 });
+    }
+    extraFiles = extras;
   }
 
   const supabase = await createSupabaseServerClient();
@@ -249,7 +255,7 @@ export async function POST(request: Request) {
     return Response.json({ clientId, joinedExistingCompany }, { status: 201 });
   }
 
-  const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, reportFile: report.reportFile, thumbnail, ...job });
+  const stored = await storeReport(supabase, { clientId, category, serviceDate, expiryDate: report.expiryDate, reportFile: report.reportFile, thumbnail, ...job, fileLabel: readFileLabel(formData), extraFiles });
   if ("error" in stored) {
     await rollbackNewClient(clientId, isNewClient);
     return Response.json({ error: stored.error }, { status: 500 });

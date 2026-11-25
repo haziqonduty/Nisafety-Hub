@@ -968,3 +968,14 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - UI `record-delete-buttons.tsx`: "Delete report" in the record page's Download row (then goes to `/records/<clientId>`, which shows the newest remaining report), and "Delete client" under Edit in `RecordDetailBody` (new prop `reportCount`). The client delete needs the company name typed back (case-insensitive). Messages: `record.delete.*` (en + ms).
 - No audit trail of staff deletes (nothing kept). Offer a delete log if Kay ever asks "who deleted X".
 - Verified: lint, tsc, 85 unit, 69 security, Playwright 11/11 (files confirmed gone from Storage; cleaned up).
+
+## More than one document per report, each with a name/remark (2026-11-26)
+- Kay: a service report can have several documents (add/remove like the contact fields); every document must have its own name/remark.
+- Model: `documents` keeps the MAIN file (expiry, renewals, thumbnail and directory unchanged) plus a new `documents.file_label`; extra files go in the new table `public.document_files` (document_id ON DELETE CASCADE, label, file_name, storage_path UNIQUE, file_type, file_size, position 1–9). Max 10 documents per report (trigger). RLS: staff select/insert only when the parent report is visible; no staff delete (the server uses the service role). Migration `20261126_report_extra_files.sql`. Limits live in `src/lib/report-files.ts` (keep-in-sync test).
+- Upload: extras go straight to Storage too (`uploadReportFile`) and are sent as `extraStoragePath` / `extraFileName` / `extraFileLabel`. Server: `resolveExtraFiles` (claims each, rejects duplicates) and `readFileLabel`; `storeReport` inserts the rows and is all-or-nothing (undoes the report with the service role if the extras fail).
+- Everything that touches files now covers the extras: `claimUploadedReport` (path reuse), `purgeAbandonedUploads` (keeps extras — and deletes nothing if either list can't be read), `deleteDocumentRecord` (staff/admin delete, purge, bin), admin backup (+ `data/document-files.json`, files named "<date> <service> - <name> - <file>").
+- UI: each service row has a required "Document 1 name" plus "+ Add another document · optional" (file + name + ✕, up to 9). The record page shows a "DOCUMENTS · n" list with open/download for each.
+- Not covered (yet): the edit form can't rename or add/remove documents on an existing report; the directory card doesn't show the count. Extra files aren't auto-compressed (50 MB each).
+- Also fixed: the TOO_MANY_CONTACTS message said 4 extra contacts; the limit is 10 (en + ms).
+- Migration applied by Kay. Verified: lint, tsc, 89 unit, 69 security, Playwright 11/11 (add/remove slots, name required, rows + Storage, record list + download, Add a service, delete removes extras from Storage; cleaned up).
+

@@ -5,7 +5,15 @@ import { Check, Download } from "@/app/_components/icons";
 import { shortCategoryLabel } from "@/lib/format";
 
 type Row = Record<string, unknown>;
-type Manifest = { generatedAt: string; clients: Row[]; documents: Row[]; files: { documentId: string; url: string | null }[] };
+type Manifest = {
+  generatedAt: string;
+  clients: Row[];
+  documents: Row[];
+  /** A report's extra documents (rows of public.document_files). Missing on older servers. */
+  documentFiles?: Row[];
+  files: { documentId: string; url: string | null }[];
+  extraFiles?: { fileId: string; documentId: string; url: string | null }[];
+};
 
 const LAST_BACKUP_KEY = "nisafety:last-full-backup";
 const REMIND_AFTER_DAYS = 30;
@@ -88,31 +96,44 @@ export function BackupButton() {
 
       const clientsById = new Map(manifest.clients.map((client) => [client.id as string, client]));
       const urlById = new Map(manifest.files.map((file) => [file.documentId, file.url]));
+      const extraUrlById = new Map((manifest.extraFiles ?? []).map((file) => [file.fileId, file.url]));
+      const documentsById = new Map(manifest.documents.map((document) => [document.id as string, document]));
       const missing: string[] = [];
 
+      // Every file to download: each report's main file, then its extra documents
+      // (named "<date> <service> - <document name> - <file name>").
+      const reportPrefix = (document: Row) => `${safeName(document.service_date, "undated")} ${safeName(shortCategoryLabel(String(document.category ?? "")), "Report")}`;
+      const jobs = [
+        ...manifest.documents.map((document) => ({ document, name: `${reportPrefix(document)} - ${safeName(document.file_name, "report")}`, fileName: String(document.file_name), url: urlById.get(document.id as string) })),
+        ...(manifest.documentFiles ?? []).flatMap((file) => {
+          const document = documentsById.get(file.document_id as string);
+          return document
+            ? [{ document, name: `${reportPrefix(document)} - ${safeName(file.label, "Document")} - ${safeName(file.file_name, "document")}`, fileName: String(file.file_name), url: extraUrlById.get(file.id as string) }]
+            : [];
+        }),
+      ];
+
       setPhase("downloading");
-      setProgress({ done: 0, total: manifest.documents.length });
+      setProgress({ done: 0, total: jobs.length });
       let next = 0;
       let finished = 0;
       async function worker() {
-        while (next < manifest.documents.length) {
-          const document = manifest.documents[next++];
-          const client = clientsById.get(document.client_id as string);
+        while (next < jobs.length) {
+          const job = jobs[next++];
+          const client = clientsById.get(job.document.client_id as string);
           const folder = safeName(client?.company_name, "Unknown organisation");
-          const fileName = `${safeName(document.service_date, "undated")} ${safeName(shortCategoryLabel(String(document.category ?? "")), "Report")} - ${safeName(document.file_name, "report")}`;
-          const path = uniquePath(`${root}/reports/${folder}/${fileName}`);
-          const url = urlById.get(document.id as string);
+          const path = uniquePath(`${root}/reports/${folder}/${job.name}`);
           try {
-            if (!url) throw new Error("no link");
-            const response = await fetch(url);
+            if (!job.url) throw new Error("no link");
+            const response = await fetch(job.url);
             if (!response.ok) throw new Error(String(response.status));
             // Reports are already compressed (PDF/DOCX): store them as-is, fast.
             entries[path] = [new Uint8Array(await response.arrayBuffer()), { level: 0 }];
           } catch {
-            missing.push(`${client?.company_name ?? "Unknown"} — ${document.file_name}`);
+            missing.push(`${client?.company_name ?? "Unknown"} — ${job.fileName}`);
           }
           finished += 1;
-          setProgress({ done: finished, total: manifest.documents.length });
+          setProgress({ done: finished, total: jobs.length });
         }
       }
       await Promise.all(Array.from({ length: PARALLEL_DOWNLOADS }, worker));
@@ -121,19 +142,21 @@ export function BackupButton() {
       if (excelResponse.ok) entries[`${root}/clients-and-reports.xlsx`] = [new Uint8Array(await excelResponse.arrayBuffer()), { level: 0 }];
       entries[`${root}/data/clients.json`] = strToU8(JSON.stringify(manifest.clients, null, 2));
       entries[`${root}/data/documents.json`] = strToU8(JSON.stringify(manifest.documents, null, 2));
+      entries[`${root}/data/document-files.json`] = strToU8(JSON.stringify(manifest.documentFiles ?? [], null, 2));
       entries[`${root}/README.txt`] = strToU8(
         [
           "NISAFETY HUB — FULL BACKUP",
           `Created: ${new Date(manifest.generatedAt).toLocaleString("en-GB", { timeZone: "Asia/Kuala_Lumpur" })} (Malaysia time)`,
           "",
           `Clients: ${manifest.clients.length}`,
-          `Reports: ${manifest.documents.length} (${manifest.documents.length - missing.length} files included)`,
+          `Reports: ${manifest.documents.length} · files: ${jobs.length} (${jobs.length - missing.length} included)`,
           "",
           "What's inside:",
           "  clients-and-reports.xlsx  Every client and report, for reading in Excel.",
           "  reports/<company>/         Every report file, named <date of monitoring> <service> - <file name>.",
           "  data/clients.json          Raw database rows (all fields) — used to restore the system.",
           "  data/documents.json        Raw database rows for every report, incl. dates and expiry.",
+          "  data/document-files.json   Raw rows for each report's extra documents (name/remark, file).",
           "",
           "Keep this ZIP somewhere safe and private (company computer or company Google Drive):",
           "it contains client contact details and internal notes.",

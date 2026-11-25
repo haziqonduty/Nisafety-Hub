@@ -194,7 +194,7 @@
     "FILE_TYPE_CANNOT_COMPRESS": "Fail ini melebihi 50 MB dan fail DOC/DOCX tidak boleh dimampatkan secara automatik. Sila kurangkan saiz fail atau tukar kepada PDF.",
     "CLIENT_SAVE_ERROR": "Kami tidak dapat menyimpan rekod klien. Sila cuba lagi.",
     "DOCUMENT_REQUIRED_FOR_EXISTING_CLIENT": "Lampirkan dokumen apabila menambah laporan lain untuk klien sedia ada.",
-    "TOO_MANY_CONTACTS": "Anda boleh menambah sehingga 4 nama, nombor telefon, atau alamat emel tambahan setiap satu.",
+    "TOO_MANY_CONTACTS": "Anda boleh menambah sehingga 10 nama, nombor telefon atau alamat e-mel tambahan bagi setiap satu.",
     "UPLOAD_ERROR": "Kami tidak dapat memuat naik dokumen. Sila cuba lagi.",
     "DOCUMENT_SAVE_ERROR": "Dokumen telah dimuat naik, tetapi kami tidak dapat menyelesaikan rekod. Sila hubungi sokongan.",
     "GENERIC": "Kami tidak dapat menghantar rekod. Sila cuba lagi.",
@@ -203,7 +203,11 @@
     "INVALID_SERVICE_DATE": "Pilih tarikh perkhidmatan yang sah — ia tidak boleh pada masa hadapan.",
     "NOT_FOUND": "Klien ini tidak lagi wujud.",
     "INVALID_EXPIRY_DATE": "Tarikh tamat mestilah selepas tarikh pemantauan.",
-    "MISSING_SALES_PERSON": "Masukkan jurujual untuk kerja ini."
+    "MISSING_SALES_PERSON": "Masukkan jurujual untuk kerja ini.",
+    "fileLabelRequired": "Berikan nama atau catatan untuk dokumen ini.",
+    "extraFileIncomplete": "Setiap dokumen tambahan perlukan fail dan nama — atau buangnya.",
+    "INVALID_FILE_LABEL": "Setiap dokumen perlukan nama atau catatan.",
+    "TOO_MANY_FILES": "Satu laporan boleh ada sehingga 10 dokumen."
   },
   "submissionSuccess": {
     "eyebrow": "PENGHANTARAN DITERIMA",
@@ -254,7 +258,7 @@
       "eyebrow": "PADAM KEKAL",
       "reportButton": "Padam laporan",
       "reportTitle": "Padam laporan ini?",
-      "reportBody": "Fail laporan dan butirannya akan dibuang untuk semua orang. Tindakan ini tidak boleh dibatalkan — walaupun oleh admin. Klien dan laporan lain akan kekal.",
+      "reportBody": "Laporan, semua dokumennya dan butirannya akan dibuang untuk semua orang. Tindakan ini tidak boleh dibatalkan — walaupun oleh admin. Klien dan laporan lain akan kekal.",
       "clientButton": "Padam klien",
       "clientTitle": "Padam klien ini dan semua laporannya?",
       "clientReportCount": "{count, plural, =0 {Tiada laporan} other {# laporan}} juga akan dipadam",
@@ -376,7 +380,15 @@
     "duplicateReportTitle": "{count, plural, =1 {Klien ini sudah ada laporan ini} other {Klien ini sudah ada laporan-laporan ini}}",
     "duplicateReportBody": "Laporan untuk perkhidmatan dan tarikh perkhidmatan yang sama sudah disimpan. Muat naik semula hanya jika ini laporan yang berbeza atau telah dibetulkan — kedua-duanya akan disimpan dalam sejarah perkhidmatan.",
     "duplicateReportBack": "Kembali",
-    "duplicateReportUploadAnyway": "Muat naik juga"
+    "duplicateReportUploadAnyway": "Muat naik juga",
+    "fileLabel": "Nama dokumen {number}",
+    "fileLabelPlaceholder": "Nama / catatan dokumen, cth. Laporan utama",
+    "extraFileLabelPlaceholder": "Nama / catatan, cth. Lampiran A",
+    "chooseExtraFile": "Lampirkan dokumen lain",
+    "addExtraFile": "Tambah dokumen lain",
+    "removeExtraFile": "Buang dokumen {number}",
+    "documentsTitle": "DOKUMEN",
+    "mainDocument": "Dokumen utama"
   },
   "expiry": {
     "validUntil": "Sah sehingga",

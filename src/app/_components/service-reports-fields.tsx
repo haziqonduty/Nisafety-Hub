@@ -4,10 +4,11 @@ import { useTranslations } from "next-intl";
 import { useState, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
 import { AlertTriangle, Calendar, Check, Close, File, Hourglass, Plus, Upload } from "@/app/_components/icons";
 import { compressPdf } from "@/lib/compress-pdf";
-import { appendUploadedFile, MAX_UPLOAD_SIZE } from "@/lib/direct-upload";
+import { appendUploadedFile, MAX_UPLOAD_SIZE, uploadReportFile } from "@/lib/direct-upload";
 import { CATEGORY_GROUPS, formatServiceDate, todayInMalaysia } from "@/lib/format";
 import { generatePdfThumbnail } from "@/lib/generate-pdf-thumbnail";
 import { appendJobDetails, MAX_MAINCON_LENGTH, MAX_SALES_PERSON_LENGTH, type JobDetails } from "@/lib/job-details";
+import { MAX_EXTRA_FILES, MAX_FILE_LABEL_LENGTH } from "@/lib/report-files";
 import { addDays, addMonths, defaultExpiryFor, validityRuleFor } from "@/lib/validity";
 
 // Reports upload straight to Supabase Storage (src/lib/direct-upload.ts),
@@ -25,12 +26,18 @@ export type ServiceRowStatus = "idle" | "uploading" | "done" | "error";
  */
 export type ExpiryMode = "auto" | "custom" | "none";
 
+/** Another document of the same service report, with its own name/remark. */
+export type ExtraFile = { key: string; file: File | null; label: string };
+
 export type ServiceRow = {
   key: string;
   category: string;
   expiryMode: ExpiryMode;
   customExpiry: string;
   file: File | null;
+  /** The main document's name/remark (required). */
+  fileLabel: string;
+  extraFiles: ExtraFile[];
   compressing: boolean;
   notice: string;
   status: ServiceRowStatus;
@@ -39,7 +46,7 @@ export type ServiceRow = {
 };
 
 export function newServiceRow(): ServiceRow {
-  return { key: crypto.randomUUID(), category: "", expiryMode: "auto", customExpiry: "", file: null, compressing: false, notice: "", status: "idle", errorCode: "" };
+  return { key: crypto.randomUUID(), category: "", expiryMode: "auto", customExpiry: "", file: null, fileLabel: "", extraFiles: [], compressing: false, notice: "", status: "idle", errorCode: "" };
 }
 
 const KNOWN_ERROR_CODES = new Set([
@@ -56,6 +63,10 @@ const KNOWN_ERROR_CODES = new Set([
   "NOT_FOUND",
   "NETWORK_ERROR",
   "noFile",
+  "fileLabelRequired",
+  "extraFileIncomplete",
+  "INVALID_FILE_LABEL",
+  "TOO_MANY_FILES",
 ]);
 
 export function knownErrorCode(code: string | undefined) {
@@ -81,8 +92,19 @@ export async function appendServiceReport(formData: FormData, row: ServiceRow, s
   // Always sent, so the server stores exactly what the row showed.
   formData.append("expiryDate", effectiveExpiry(row, serviceDate));
   if (!row.file) return null;
+  formData.append("fileLabel", row.fileLabel.trim());
   const uploadError = await appendUploadedFile(formData, row.file);
   if (uploadError) return uploadError;
+  // The other documents of this report go straight to Storage too, each
+  // sent with its own name/remark (the server checks every one).
+  for (const extra of row.extraFiles) {
+    if (!extra.file) continue;
+    const result = await uploadReportFile(extra.file);
+    if ("error" in result) return result.error;
+    formData.append("extraStoragePath", result.storagePath);
+    formData.append("extraFileName", extra.file.name);
+    formData.append("extraFileLabel", extra.label.trim());
+  }
   if (row.file.type === "application/pdf") {
     const thumbnail = await generatePdfThumbnail(row.file).catch(() => null);
     if (thumbnail) formData.append("thumbnail", thumbnail);
@@ -148,6 +170,8 @@ export function validateServiceRows(rows: ServiceRow[], setRows: Dispatch<SetSta
     if (!row.category) problems.set(row.key, "INVALID_CATEGORY");
     else if (row.expiryMode === "custom" && (!row.customExpiry || row.customExpiry <= serviceDate)) problems.set(row.key, "INVALID_EXPIRY_DATE");
     else if (!row.file) problems.set(row.key, "noFile");
+    else if (!row.fileLabel.trim()) problems.set(row.key, "fileLabelRequired");
+    else if (row.extraFiles.some((extra) => !extra.file || !extra.label.trim())) problems.set(row.key, "extraFileIncomplete");
   }
   if (problems.size > 0) {
     setRows((current) => current.map((row) => (problems.has(row.key) ? { ...row, status: "error", errorCode: problems.get(row.key)! } : row)));
@@ -218,6 +242,28 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
     } finally {
       patchRow(setRows, row.key, { compressing: false });
     }
+  }
+
+  function patchExtra(row: ServiceRow, key: string, patch: Partial<ExtraFile>) {
+    setRows((current) =>
+      current.map((item) =>
+        item.key === row.key
+          ? { ...item, status: "idle", errorCode: "", extraFiles: item.extraFiles.map((extra) => (extra.key === key ? { ...extra, ...patch } : extra)) }
+          : item,
+      ),
+    );
+  }
+
+  // Extra documents go up as they are (no automatic PDF compression).
+  function chooseExtraFile(row: ServiceRow, key: string, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    if (file && file.size > MAX_FILE_SIZE) {
+      event.target.value = "";
+      patchExtra(row, key, { file: null });
+      patchRow(setRows, row.key, { status: "error", errorCode: "FILE_SIZE" });
+      return;
+    }
+    patchExtra(row, key, { file });
   }
 
   return (
@@ -362,21 +408,75 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
                   ))}
                 </select>
 
-                <label
-                  className={`flex min-w-0 items-center gap-3 rounded-xl border border-dashed px-3.5 py-2.5 text-sm transition-colors ${
-                    rowLocked || row.compressing ? "pointer-events-none" : "cursor-pointer hover:border-accent hover:bg-accent-soft/50"
-                  } ${row.file ? "border-accent/50 bg-accent-soft/30" : "border-line bg-surface-soft"}`}
-                >
-                  <input type="file" accept=".pdf,.doc,.docx" disabled={rowLocked || row.compressing} onChange={(event) => chooseFile(row, event)} className="sr-only" />
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-accent shadow-sm">
-                    {row.file ? <File className="h-4 w-4" /> : <Upload className={`h-4 w-4 ${row.compressing ? "animate-pulse" : ""}`} />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{row.compressing ? tSubmit("compressing") : row.file?.name ?? t("chooseReport")}</span>
-                    <span className="block truncate text-[11px] text-ink-muted">{row.file ? (row.file.size < 1024 * 1024 ? `${Math.max(1, Math.round(row.file.size / 1024))} KB` : `${(row.file.size / (1024 * 1024)).toFixed(1)} MB`) : t("fileTypes")}</span>
-                  </span>
-                </label>
+                <FilePicker
+                  file={row.file}
+                  disabled={rowLocked || row.compressing}
+                  busy={row.compressing}
+                  emptyLabel={row.compressing ? tSubmit("compressing") : t("chooseReport")}
+                  hint={t("fileTypes")}
+                  onChange={(event) => chooseFile(row, event)}
+                />
               </div>
+
+              <input
+                type="text"
+                required={row.status !== "done" && Boolean(row.file)}
+                value={row.fileLabel}
+                disabled={rowLocked}
+                maxLength={MAX_FILE_LABEL_LENGTH}
+                onChange={(event) => patchRow(setRows, row.key, { fileLabel: event.target.value, ...(row.errorCode === "fileLabelRequired" ? { status: "idle", errorCode: "" } : {}) })}
+                placeholder={t("fileLabelPlaceholder")}
+                aria-label={t("fileLabel", { number: 1 })}
+                className={`${fieldClass} mt-3`}
+              />
+
+              {row.extraFiles.length > 0 && (
+                <ol className="mt-3 space-y-2 border-l-2 border-accent-soft pl-3">
+                  {row.extraFiles.map((extra, extraIndex) => (
+                    <li key={extra.key} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                      <FilePicker
+                        file={extra.file}
+                        disabled={rowLocked}
+                        emptyLabel={t("chooseExtraFile")}
+                        hint={t("fileTypes")}
+                        onChange={(event) => chooseExtraFile(row, extra.key, event)}
+                      />
+                      <input
+                        type="text"
+                        required={row.status !== "done"}
+                        value={extra.label}
+                        disabled={rowLocked}
+                        maxLength={MAX_FILE_LABEL_LENGTH}
+                        onChange={(event) => patchExtra(row, extra.key, { label: event.target.value })}
+                        placeholder={t("extraFileLabelPlaceholder")}
+                        aria-label={t("fileLabel", { number: extraIndex + 2 })}
+                        className={fieldClass}
+                      />
+                      {!rowLocked && (
+                        <button
+                          type="button"
+                          onClick={() => patchRow(setRows, row.key, { extraFiles: row.extraFiles.filter((item) => item.key !== extra.key), status: "idle", errorCode: "" })}
+                          className="grid h-9 w-9 place-items-center justify-self-end rounded-full text-ink-faint transition-colors hover:bg-danger-soft hover:text-danger"
+                          aria-label={t("removeExtraFile", { number: extraIndex + 2 })}
+                        >
+                          <Close className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+
+              {!rowLocked && row.extraFiles.length < MAX_EXTRA_FILES && (
+                <button
+                  type="button"
+                  onClick={() => patchRow(setRows, row.key, { extraFiles: [...row.extraFiles, { key: crypto.randomUUID(), file: null, label: "" }] })}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft"
+                >
+                  <Plus className="h-3.5 w-3.5" /> {t("addExtraFile")}
+                  <span className="font-normal text-ink-faint">· {t("optional")}</span>
+                </button>
+              )}
 
               {row.category && <ExpiryStrip row={row} serviceDate={serviceDate} locked={rowLocked} onChange={(patch) => patchRow(setRows, row.key, patch)} t={tExpiry} />}
 
@@ -572,5 +672,43 @@ export function JobDetailsFields({ job, onJobChange, locked = false, className =
           </p>
         </div>
       </div>
+  );
+}
+
+function formatPickedSize(size: number) {
+  return size < 1024 * 1024 ? `${Math.max(1, Math.round(size / 1024))} KB` : `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** The dashed "choose a file" box used for a report's main and extra documents. */
+function FilePicker({
+  file,
+  disabled,
+  busy = false,
+  emptyLabel,
+  hint,
+  onChange,
+}: {
+  file: File | null;
+  disabled: boolean;
+  busy?: boolean;
+  emptyLabel: string;
+  hint: string;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label
+      className={`flex min-w-0 items-center gap-3 rounded-xl border border-dashed px-3.5 py-2.5 text-sm transition-colors ${
+        disabled ? "pointer-events-none" : "cursor-pointer hover:border-accent hover:bg-accent-soft/50"
+      } ${file ? "border-accent/50 bg-accent-soft/30" : "border-line bg-surface-soft"}`}
+    >
+      <input type="file" accept=".pdf,.doc,.docx" disabled={disabled} onChange={onChange} className="sr-only" />
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-accent shadow-sm">
+        {file ? <File className="h-4 w-4" /> : <Upload className={`h-4 w-4 ${busy ? "animate-pulse" : ""}`} />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{busy ? emptyLabel : (file?.name ?? emptyLabel)}</span>
+        <span className="block truncate text-[11px] text-ink-muted">{file ? formatPickedSize(file.size) : hint}</span>
+      </span>
+    </label>
   );
 }

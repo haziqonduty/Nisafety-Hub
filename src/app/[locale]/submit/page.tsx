@@ -43,6 +43,8 @@ const KNOWN_ERROR_CODES = [
   "TOO_MANY_CONTACTS",
   "INVALID_SERVICE_DATE",
   "MISSING_SALES_PERSON",
+  "INVALID_FILE_LABEL",
+  "TOO_MANY_FILES",
 ] as const;
 type ErrorCode = (typeof KNOWN_ERROR_CODES)[number];
 
@@ -57,7 +59,7 @@ type SubmissionValues = {
 
 // Errors about the report itself (shown on its service row) rather than
 // about the client details (shown under the form).
-const REPORT_ERROR_CODES = new Set(["INVALID_CATEGORY", "INVALID_SERVICE_DATE", "INVALID_FILE_TYPE", "FILE_SIZE", "UPLOAD_ERROR", "DOCUMENT_SAVE_ERROR"]);
+const REPORT_ERROR_CODES = new Set(["INVALID_CATEGORY", "INVALID_SERVICE_DATE", "INVALID_FILE_TYPE", "FILE_SIZE", "UPLOAD_ERROR", "DOCUMENT_SAVE_ERROR", "INVALID_FILE_LABEL", "TOO_MANY_FILES"]);
 
 type ClientMatch = {
   id: string;

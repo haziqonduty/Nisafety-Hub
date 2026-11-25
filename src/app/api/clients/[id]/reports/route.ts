@@ -1,5 +1,5 @@
 import { requireApprovedProfile } from "@/lib/auth/profile";
-import { resolveReportFile, storeReport, validateReport } from "@/lib/document-upload";
+import { readFileLabel, resolveExtraFiles, resolveReportFile, storeReport, validateReport } from "@/lib/document-upload";
 import { readJobDetails } from "@/lib/job-details";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -34,6 +34,11 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
   if ("error" in validation) {
     return Response.json({ error: validation.error }, { status: 400 });
   }
+  const mainPath = validation.reportFile.kind === "uploaded" ? validation.reportFile.storagePath : null;
+  const extraFiles = await resolveExtraFiles(formData, mainPath);
+  if ("error" in extraFiles) {
+    return Response.json({ error: extraFiles.error }, { status: 400 });
+  }
 
   // Session client: RLS (is_approved_staff) gates both the lookup and the
   // insert as this specific staff member.
@@ -52,6 +57,8 @@ export async function POST(request: Request, context: RouteContext<"/api/clients
     thumbnail: formData.get("thumbnail"),
     salesPerson: job.salesPerson,
     maincon: job.maincon,
+    fileLabel: readFileLabel(formData),
+    extraFiles,
   });
   if ("error" in stored) {
     return Response.json({ error: stored.error }, { status: 500 });

@@ -194,7 +194,7 @@
     "FILE_TYPE_CANNOT_COMPRESS": "This file is over 50 MB and DOC/DOCX files can't be compressed automatically. Please reduce the file size or convert it to PDF.",
     "CLIENT_SAVE_ERROR": "We could not save the client record. Please try again.",
     "DOCUMENT_REQUIRED_FOR_EXISTING_CLIENT": "Attach a document when adding another report to an existing client.",
-    "TOO_MANY_CONTACTS": "You can add up to 4 extra names, telephone numbers, or email addresses each.",
+    "TOO_MANY_CONTACTS": "You can add up to 10 extra names, telephone numbers, or email addresses each.",
     "UPLOAD_ERROR": "We could not upload the document. Please try again.",
     "DOCUMENT_SAVE_ERROR": "The document was uploaded, but we could not finish the record. Please contact support.",
     "GENERIC": "We could not submit the record. Please try again.",
@@ -203,7 +203,11 @@
     "INVALID_SERVICE_DATE": "Choose a valid service date — it can't be in the future.",
     "NOT_FOUND": "This client no longer exists.",
     "INVALID_EXPIRY_DATE": "The expiry date must be after the date of monitoring.",
-    "MISSING_SALES_PERSON": "Enter the sales person for this job."
+    "MISSING_SALES_PERSON": "Enter the sales person for this job.",
+    "fileLabelRequired": "Give the document a name or remark.",
+    "extraFileIncomplete": "Each extra document needs a file and a name — or remove it.",
+    "INVALID_FILE_LABEL": "Each document needs a name or remark.",
+    "TOO_MANY_FILES": "A report can have up to 10 documents."
   },
   "submissionSuccess": {
     "eyebrow": "SUBMISSION RECEIVED",
@@ -254,7 +258,7 @@
       "eyebrow": "PERMANENT DELETE",
       "reportButton": "Delete report",
       "reportTitle": "Delete this report?",
-      "reportBody": "The report file and its details are removed for everyone. This can't be undone — not even by admin. The client and its other reports stay.",
+      "reportBody": "The report, all its documents and its details are removed for everyone. This can't be undone — not even by admin. The client and its other reports stay.",
       "clientButton": "Delete client",
       "clientTitle": "Delete this client and all its reports?",
       "clientReportCount": "{count, plural, =0 {No reports} =1 {1 report} other {# reports}} will also be deleted",
@@ -376,7 +380,15 @@
     "duplicateReportTitle": "{count, plural, =1 {This client already has this report} other {This client already has these reports}}",
     "duplicateReportBody": "A report for the same service and service date is already saved. Upload again only if this is a different or corrected report — both will be kept in the service history.",
     "duplicateReportBack": "Go back",
-    "duplicateReportUploadAnyway": "Upload anyway"
+    "duplicateReportUploadAnyway": "Upload anyway",
+    "fileLabel": "Document {number} name",
+    "fileLabelPlaceholder": "Document name / remark, e.g. Main report",
+    "extraFileLabelPlaceholder": "Name / remark, e.g. Appendix A",
+    "chooseExtraFile": "Attach another document",
+    "addExtraFile": "Add another document",
+    "removeExtraFile": "Remove document {number}",
+    "documentsTitle": "DOCUMENTS",
+    "mainDocument": "Main document"
   },
   "expiry": {
     "validUntil": "Valid until",

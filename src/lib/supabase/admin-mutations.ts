@@ -84,13 +84,17 @@ export async function restoreDocument(supabase: SupabaseClient, documentId: stri
  * surviving a failed cleanup is harmless.
  */
 export async function deleteDocumentRecord(supabase: SupabaseClient, documentId: string): Promise<MutationResult> {
-  const { data: document } = await supabase.from("documents").select("storage_path, thumbnail_path").eq("id", documentId).single();
+  const [{ data: document }, { data: extraFiles }] = await Promise.all([
+    supabase.from("documents").select("storage_path, thumbnail_path").eq("id", documentId).single(),
+    supabase.from("document_files").select("storage_path").eq("document_id", documentId),
+  ]);
 
+  // Its extra-file rows go with it (on delete cascade).
   const { error } = await supabase.from("documents").delete().eq("id", documentId);
   if (error) return { error };
 
-  // The report AND its preview image — the thumbnail used to be left behind.
-  const paths = [document?.storage_path, document?.thumbnail_path].filter((path): path is string => Boolean(path));
+  // The report, its preview image and its extra documents.
+  const paths = [document?.storage_path, document?.thumbnail_path, ...(extraFiles ?? []).map((file) => file.storage_path)].filter((path): path is string => Boolean(path));
   if (paths.length > 0) {
     await supabase.storage.from("safety-documents").remove(paths);
   }

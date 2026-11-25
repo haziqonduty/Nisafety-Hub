@@ -266,7 +266,14 @@ export async function getDirectoryPage({
   return { documents, total: Number(result?.total ?? 0), clientCount: clientRows.length, statusCounts };
 }
 
+/** One of a report's extra documents (see report-files.ts). */
+export type ReportExtraFile = { id: string; label: string; fileName: string; fileType: string; fileSize: string; url: string | null };
+
 export type RecordDetail = {
+  /** The main file's name/remark (null on older reports). */
+  fileLabel: string | null;
+  /** The report's other documents, in the order they were added. */
+  extraFiles: ReportExtraFile[];
   id: string;
   clientId: string;
   hasDocument: boolean;
@@ -328,18 +335,20 @@ type RecordDetailRow = {
   renewal_closed_reason: string | null;
   sales_person: string | null;
   maincon: string | null;
+  file_label: string | null;
   file_name: string;
   file_size: number;
   storage_path: string;
   created_at: string;
   clients: RecordDetailClient | RecordDetailClient[] | null;
+  document_files: { id: string; label: string; file_name: string; file_size: number; storage_path: string; position: number }[] | null;
 };
 
 async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, renewal_closed_reason, sales_person, maincon, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services, pending_sales_person, pending_maincon)")
+    .select("id, client_id, category, service_date, service_date_confirmed, expiry_date, renewal_closed_at, renewal_closed_reason, sales_person, maincon, file_label, file_name, file_size, storage_path, created_at, clients(client_name, company_name, telephone, email, submitter_name, additional_client_names, additional_telephones, additional_emails, requested_services, pending_sales_person, pending_maincon), document_files(id, label, file_name, file_size, storage_path, position)")
     .eq("id", id)
     .single();
 
@@ -349,7 +358,19 @@ async function getDocumentRecordById(id: string): Promise<RecordDetail | null> {
   const client = Array.isArray(row.clients) ? row.clients[0] : row.clients;
   if (!client) return null;
 
+  const extraRows = [...(row.document_files ?? [])].sort((a, b) => a.position - b.position);
+  const extraUrls = extraRows.length > 0 ? await signedUrlsFor(supabase, extraRows.map((file) => file.storage_path)) : new Map<string, string>();
+
   return {
+    fileLabel: row.file_label,
+    extraFiles: extraRows.map((file) => ({
+      id: file.id,
+      label: file.label,
+      fileName: file.file_name,
+      fileType: extensionFromFileName(file.file_name),
+      fileSize: formatFileSize(file.file_size),
+      url: extraUrls.get(file.storage_path) ?? null,
+    })),
     id: row.id,
     clientId: row.client_id,
     hasDocument: true,
@@ -425,6 +446,8 @@ async function getClientOnlyRecordById(id: string): Promise<RecordDetail | null>
 
   const row = data as unknown as ClientOnlyRecordRow;
   return {
+    fileLabel: null,
+    extraFiles: [],
     id: row.id,
     clientId: row.id,
     hasDocument: false,

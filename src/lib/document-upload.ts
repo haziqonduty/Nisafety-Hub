@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DOCUMENT_CATEGORIES, isValidServiceDate, resolveExpiryInput } from "@/lib/format";
+import { cleanFileLabel, MAX_EXTRA_FILES } from "@/lib/report-files";
 import { defaultExpiryFor } from "@/lib/validity";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
@@ -101,8 +102,11 @@ export async function claimUploadedReport(storagePath: string, fileName: string)
   const expectedMimeType = ALLOWED_TYPES.get(extension)!;
   const service = createSupabaseServiceClient();
 
-  const { data: alreadyUsed } = await service.from("documents").select("id").eq("storage_path", storagePath).limit(1);
-  if (alreadyUsed && alreadyUsed.length > 0) return { error: "INVALID_FILE_TYPE" };
+  const [{ data: alreadyUsed }, { data: alreadyUsedExtra }] = await Promise.all([
+    service.from("documents").select("id").eq("storage_path", storagePath).limit(1),
+    service.from("document_files").select("id").eq("storage_path", storagePath).limit(1),
+  ]);
+  if ((alreadyUsed && alreadyUsed.length > 0) || (alreadyUsedExtra && alreadyUsedExtra.length > 0)) return { error: "INVALID_FILE_TYPE" };
 
   const { data: info, error: infoError } = await service.storage.from(BUCKET).info(storagePath);
   if (infoError || !info) return { error: "UPLOAD_ERROR" };
@@ -202,6 +206,37 @@ export async function resolveReportFile(formData: FormData): Promise<ReportFile 
   return "error" in validation ? validation : { kind: "file", file, extension: validation.extension };
 }
 
+export type ExtraReportFile = UploadedReport & { label: string };
+export type ExtraFilesError = FileValidationError | "UPLOAD_ERROR" | "INVALID_FILE_LABEL" | "TOO_MANY_FILES";
+
+/** The main file's name/remark ("fileLabel"); null when not sent (older forms, the edit form). */
+export function readFileLabel(formData: FormData) {
+  return cleanFileLabel(formData.get("fileLabel")) || null;
+}
+
+/**
+ * The report's extra documents, each uploaded straight to Storage and sent
+ * as extraStoragePath + extraFileName + extraFileLabel (same order). Every
+ * one needs a name/remark; each file is verified like the main one.
+ */
+export async function resolveExtraFiles(formData: FormData, mainStoragePath: string | null): Promise<ExtraReportFile[] | { error: ExtraFilesError }> {
+  const paths = formData.getAll("extraStoragePath").map(String);
+  const names = formData.getAll("extraFileName").map(String);
+  const labels = formData.getAll("extraFileLabel").map(cleanFileLabel);
+  if (paths.length === 0) return [];
+  if (paths.length > MAX_EXTRA_FILES) return { error: "TOO_MANY_FILES" };
+  if (names.length !== paths.length || labels.length !== paths.length || labels.some((label) => !label)) return { error: "INVALID_FILE_LABEL" };
+  if (new Set([...paths, mainStoragePath]).size !== paths.length + 1) return { error: "INVALID_FILE_TYPE" };
+
+  const files: ExtraReportFile[] = [];
+  for (const [index, path] of paths.entries()) {
+    const claimed = await claimUploadedReport(path, names[index]);
+    if ("error" in claimed) return claimed;
+    files.push({ ...claimed, label: labels[index] });
+  }
+  return files;
+}
+
 export async function validateReport(
   category: string,
   serviceDate: string,
@@ -240,6 +275,10 @@ type StoreReportInput = {
   /** The job's sales person and main contractor (null = blank / direct job). */
   salesPerson: string | null;
   maincon: string | null;
+  /** The main file's name/remark. */
+  fileLabel: string | null;
+  /** Extra documents of this report, already verified (resolveExtraFiles). */
+  extraFiles: ExtraReportFile[];
 };
 
 /**
@@ -270,13 +309,35 @@ export async function storeReport(supabase: SupabaseClient, input: StoreReportIn
       thumbnail_path: thumbnailPath,
       sales_person: input.salesPerson,
       maincon: input.maincon,
+      file_label: input.fileLabel,
     })
     .select("id")
     .single();
 
+  const extraPaths = input.extraFiles.map((file) => file.storagePath);
   if (error || !data) {
-    await removeStorageObjects([storagePath, thumbnailPath]);
+    await removeStorageObjects([storagePath, thumbnailPath, ...extraPaths]);
     return { error: "DOCUMENT_SAVE_ERROR" };
+  }
+
+  if (input.extraFiles.length > 0) {
+    const { error: filesError } = await supabase.from("document_files").insert(
+      input.extraFiles.map((file, index) => ({
+        document_id: data.id,
+        label: file.label,
+        file_name: file.fileName,
+        storage_path: file.storagePath,
+        file_type: file.fileType,
+        file_size: file.fileSize,
+        position: index + 1,
+      })),
+    );
+    if (filesError) {
+      // All or nothing: staff have no delete grant, so undo with the service role.
+      await createSupabaseServiceClient().from("documents").delete().eq("id", data.id);
+      await removeStorageObjects([storagePath, thumbnailPath, ...extraPaths]);
+      return { error: "DOCUMENT_SAVE_ERROR" };
+    }
   }
   return { documentId: data.id as string };
 }
@@ -289,8 +350,13 @@ export async function storeReport(supabase: SupabaseClient, input: StoreReportIn
  */
 export async function purgeAbandonedUploads(): Promise<number> {
   const service = createSupabaseServiceClient();
-  const { data: documents } = await service.from("documents").select("storage_path, thumbnail_path");
-  const inUse = new Set((documents ?? []).flatMap((row) => [row.storage_path, row.thumbnail_path]).filter(Boolean));
+  const [{ data: documents, error: documentsError }, { data: extraFiles, error: extraFilesError }] = await Promise.all([
+    service.from("documents").select("storage_path, thumbnail_path"),
+    service.from("document_files").select("storage_path"),
+  ]);
+  // Never guess: if either list can't be read, delete nothing.
+  if (documentsError || extraFilesError || !documents || !extraFiles) return 0;
+  const inUse = new Set([...documents.flatMap((row) => [row.storage_path, row.thumbnail_path]), ...extraFiles.map((row) => row.storage_path)].filter(Boolean));
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   const abandoned: string[] = [];
   for (let offset = 0; ; offset += 1000) {
