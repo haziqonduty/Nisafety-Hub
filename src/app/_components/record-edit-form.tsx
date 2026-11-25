@@ -277,7 +277,6 @@ export function RecordEditForm({ record, onDone }: { record: RecordDetail; onDon
               maxLength={MAX_MAINCON_LENGTH}
               value={maincon}
               onChange={(event) => setMaincon(event.target.value)}
-              placeholder={tServices("mainconPlaceholder")}
               autoComplete="off"
               className={fieldClass}
             />

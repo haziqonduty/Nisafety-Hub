@@ -351,7 +351,6 @@ export function ServiceReportsFields({ serviceDate, onServiceDateChange, job, on
             disabled={locked}
             onChange={(event) => onJobChange({ ...job, maincon: event.target.value })}
             aria-describedby="maincon-hint"
-            placeholder={t("mainconPlaceholder")}
             autoComplete="off"
             className={`${fieldClass} mt-2`}
           />
