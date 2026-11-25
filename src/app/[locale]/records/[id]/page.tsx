@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ViewTransition } from "react";
 import { AddServicePanel } from "@/app/_components/add-service-panel";
 import { ConfirmMonitoringDate } from "@/app/_components/confirm-monitoring-date";
-import { ArrowUpRight, Calendar, Download, File } from "@/app/_components/icons";
+import { Calendar, Download, File } from "@/app/_components/icons";
 import { BrandLogo } from "@/app/_components/brand-logo";
 import { LanguageSwitcher } from "@/app/_components/language-switcher";
 import { DeleteReportButton } from "@/app/_components/record-delete-buttons";
@@ -155,42 +155,34 @@ export default async function RecordPage(props: PageProps<"/[locale]/records/[id
                     {[
                       { id: "main", label: record.fileLabel ?? tServices("mainDocument"), fileName: record.fileName!, fileType: record.fileType!, fileSize: record.fileSize!, url: record.publicUrl },
                       ...record.extraFiles,
-                    ].map((file, index) => (
-                      <li key={file.id} className="flex items-center gap-3 rounded-xl bg-surface px-3 py-2.5 shadow-[0_1px_0_rgba(16,42,51,.04)]">
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft font-mono text-[10px] font-bold text-accent">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">{file.label}</span>
-                          <span className="block truncate text-xs text-ink-muted">
-                            {file.fileName} · {file.fileType} · {file.fileSize}
+                    ].map((file, index) => {
+                      const row = (
+                        <>
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft font-mono text-[10px] font-bold text-accent">
+                            {String(index + 1).padStart(2, "0")}
                           </span>
-                        </span>
-                        {file.url && (
-                          <span className="flex shrink-0 items-center gap-1 print:hidden">
-                            {file.fileType === "PDF" && (
-                              <a
-                                href={file.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label={`${t("openInNewTab")} ${file.label}`}
-                                className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent"
-                              >
-                                <ArrowUpRight className="h-4 w-4" />
-                              </a>
-                            )}
-                            <a
-                              href={file.url}
-                              download
-                              aria-label={`${t("downloadDocument")} ${file.label}`}
-                              className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent-soft hover:text-accent"
-                            >
-                              <Download className="h-4 w-4" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold">{file.label}</span>
+                            <span className="block truncate text-xs text-ink-muted">
+                              {file.fileName} · {file.fileType} · {file.fileSize}
+                            </span>
+                          </span>
+                        </>
+                      );
+                      const rowClass = "flex items-center gap-3 rounded-xl bg-surface px-3 py-2.5 shadow-[0_1px_0_rgba(16,42,51,.04)]";
+                      return (
+                        <li key={file.id}>
+                          {/* No icons (Kay, 2026-11-26): the whole row opens the document, so extras stay reachable. */}
+                          {file.url ? (
+                            <a href={file.url} target="_blank" rel="noopener noreferrer" className={`${rowClass} transition-colors hover:bg-accent-soft/50`}>
+                              {row}
                             </a>
-                          </span>
-                        )}
-                      </li>
-                    ))}
+                          ) : (
+                            <div className={rowClass}>{row}</div>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ol>
                 </section>
               )}

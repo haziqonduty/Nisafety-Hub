@@ -1015,5 +1015,8 @@ Kay: the date of monitoring must be entered by staff, never set automatically, a
 - Copy: hint shortened to one line; "Tick the services" → "Pick the services" (en + ms). New `services.picker*` messages.
 - Verified: lint, tsc, 92 unit, 69 security, Playwright 16/16 (incl. list not behind the next card, keyboard, save order, record-page editor, Malay; cleaned up).
 
+## Record page documents list: no icons (2026-11-26)
+- Kay: removed the open (↗) and download icons from the "DOCUMENTS · n" list. Each row is now itself a link that opens the document in a new tab, so extra documents (which have no other button) stay reachable. The main report keeps its Download / Open in new tab buttons above.
+
 ## Mistakes & lessons
 - 2026-11-26: a service name with "." broke translations (next-intl key nesting). Rule: never put "." in a messages key; look service names up through `categoryMessageKey`. Browser tests must check EXACT visible text, not substrings (a substring check hid this once).
